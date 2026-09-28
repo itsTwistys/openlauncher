@@ -61,6 +61,7 @@ class SettingsRepository(private val context: Context) {
         val SHOW_CONNECTIVITY   = booleanPreferencesKey("show_connectivity")
         val SHOW_DESTINATIONS   = booleanPreferencesKey("show_destinations")
         val SHOW_RADAR          = booleanPreferencesKey("show_radar")
+        val SHOW_TRAFFIC        = booleanPreferencesKey("show_traffic")
         val HOME_DESTINATION    = stringPreferencesKey("home_destination")
         val WORK_DESTINATION    = stringPreferencesKey("work_destination")
         val LAYOUT_PROFILES_JSON = stringPreferencesKey("layout_profiles_json")
@@ -143,6 +144,7 @@ class SettingsRepository(private val context: Context) {
                 showConnectivity = prefs[Keys.SHOW_CONNECTIVITY] ?: defaults.showConnectivity,
                 showDestinations = prefs[Keys.SHOW_DESTINATIONS] ?: defaults.showDestinations,
                 showRadar = prefs[Keys.SHOW_RADAR] ?: defaults.showRadar,
+                showTraffic = prefs[Keys.SHOW_TRAFFIC] ?: defaults.showTraffic,
                 homeDestination = prefs[Keys.HOME_DESTINATION] ?: defaults.homeDestination,
                 workDestination = prefs[Keys.WORK_DESTINATION] ?: defaults.workDestination,
                 layoutProfiles = prefs[Keys.LAYOUT_PROFILES_JSON]?.let {
@@ -215,6 +217,7 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.SHOW_CONNECTIVITY]  = s.showConnectivity
             prefs[Keys.SHOW_DESTINATIONS]  = s.showDestinations
             prefs[Keys.SHOW_RADAR]         = s.showRadar
+            prefs[Keys.SHOW_TRAFFIC]       = s.showTraffic
             prefs[Keys.HOME_DESTINATION]   = s.homeDestination
             prefs[Keys.WORK_DESTINATION]   = s.workDestination
             prefs[Keys.LAYOUT_PROFILES_JSON] = gson.toJson(s.layoutProfiles)
