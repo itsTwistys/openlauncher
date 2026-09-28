@@ -109,6 +109,7 @@ data class AppSettings(
     val compassOffset: Float = 0f,
     val showSoundboard: Boolean = false,
     val showMap: Boolean = false,
+    val onlineMapEnabled: Boolean = false,
     val showConnectivity: Boolean = false,
     val showDestinations: Boolean = false,
     val showRadar: Boolean = false,
