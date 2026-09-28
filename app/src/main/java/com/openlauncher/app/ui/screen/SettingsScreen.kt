@@ -325,6 +325,22 @@ fun SettingsScreen(
 
             SettingsDivider()
 
+            SettingsRow(label = "Clock Seconds", sublabel = "Show seconds on the digital clock", icon = Icons.Default.Timer) {
+                Switch(
+                    checked = settings.showClockSeconds,
+                    onCheckedChange = { enabled -> onUpdate { copy(showClockSeconds = enabled) } },
+                    colors = switchColors(accent)
+                )
+            }
+            SettingsDivider()
+            SettingsRow(label = "Date Format", sublabel = if (settings.clockDateFormat == "SHORT") "Compact" else "Full date", icon = Icons.Default.DateRange) {
+                FilterChip(
+                    selected = settings.clockDateFormat == "SHORT",
+                    onClick = { onUpdate { copy(clockDateFormat = if (clockDateFormat == "SHORT") "LONG" else "SHORT") } },
+                    label = { Text(if (settings.clockDateFormat == "SHORT") "Compact" else "Full", fontSize = 10.sp) }
+                )
+            }
+            SettingsDivider()
             SettingsRow(label = "Unit System", sublabel = if (settings.unitSystem == UnitSystem.METRIC) "Metric (°C, km)" else "Imperial (°F, mi)", icon = Icons.Default.Straighten) {
                 Row {
                     FilterChip(
@@ -347,6 +363,30 @@ fun SettingsScreen(
                         )
                     )
                 }
+            }
+        }
+
+        SettingsSection("Destinations") {
+            listOf("Home" to settings.homeDestination, "Work" to settings.workDestination).forEach { (label, address) ->
+                var input by remember(address) { mutableStateOf(address) }
+                SettingsRow(label = label, sublabel = "Street address or place name", icon = if (label == "Home") Icons.Default.Home else Icons.Default.Work) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            value = input,
+                            onValueChange = { input = it },
+                            singleLine = true,
+                            modifier = Modifier.width(220.dp),
+                            textStyle = LocalTextStyle.current.copy(fontSize = 11.sp)
+                        )
+                        IconButton(onClick = {
+                            if (label == "Home") onUpdate { copy(homeDestination = input.trim()) }
+                            else onUpdate { copy(workDestination = input.trim()) }
+                        }) {
+                            Icon(Icons.Default.Check, contentDescription = "Save $label", tint = accent)
+                        }
+                    }
+                }
+                SettingsDivider()
             }
         }
 
