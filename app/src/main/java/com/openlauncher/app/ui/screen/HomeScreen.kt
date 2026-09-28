@@ -64,6 +64,11 @@ private val ALL_WIDGET_TYPES = listOf(
     WidgetTypeInfo("SPEEDOMETER", "SPEED",       Icons.Default.Speed,         "GPS speed"),
     WidgetTypeInfo("VITALS",      "VITALS",      Icons.Default.Dns,           "Head Unit Health / Vitals"),
     WidgetTypeInfo("TRIP_TRACKER", "TRIP TRACKER", Icons.Default.Map,          "Trip logs & stats"),
+    WidgetTypeInfo("MAP",          "MAP",          Icons.Default.Place,        "Open maps at your location"),
+    WidgetTypeInfo("CONNECTIVITY", "CONNECTIVITY", Icons.Default.Wifi,       "Network status"),
+    WidgetTypeInfo("DESTINATIONS", "DESTINATIONS", Icons.Default.Home,      "Home and work shortcuts"),
+    WidgetTypeInfo("RADAR",        "RADAR",        Icons.Default.Grain,      "Open live weather radar"),
+    WidgetTypeInfo("TRAFFIC",      "TRAFFIC",      Icons.Default.Traffic,    "Open live traffic and ETA"),
     WidgetTypeInfo("SOUNDBOARD",  "SOUNDBOARD",  Icons.Default.Piano,         "Custom sound pads")
 )
 
@@ -78,6 +83,11 @@ private fun canAddWidget(settings: com.openlauncher.app.data.AppSettings): Boole
         if (settings.showVitals) add("VITALS")
         if (settings.showTripTracker) add("TRIP_TRACKER")
         if (settings.showSoundboard) add("SOUNDBOARD")
+        if (settings.showMap) add("MAP")
+                if (settings.showConnectivity) add("CONNECTIVITY")
+                if (settings.showDestinations) add("DESTINATIONS")
+                if (settings.showRadar) add("RADAR")
+                if (settings.showTraffic) add("TRAFFIC")
     }
     val activeWidgets = settings.widgetLayout.filter { it.enabled && it.id in visibleIds }
     val occupied = buildSet<Pair<Int, Int>> {
@@ -243,6 +253,11 @@ fun HomeScreen(
                 if (settings.showVitals) add("VITALS")
                 if (settings.showTripTracker) add("TRIP_TRACKER")
                 if (settings.showSoundboard) add("SOUNDBOARD")
+        if (settings.showMap) add("MAP")
+                if (settings.showConnectivity) add("CONNECTIVITY")
+                if (settings.showDestinations) add("DESTINATIONS")
+                if (settings.showRadar) add("RADAR")
+                if (settings.showTraffic) add("TRAFFIC")
             }
 
             // Keep only visible widgets exactly as configured in settings, allowing explicit resizing to dictate layout
@@ -317,6 +332,11 @@ fun HomeScreen(
                     "ALTIMETER"   -> "ALTIMETER"
                     "SPEEDOMETER" -> "SPEED"
                     "TRIP_TRACKER" -> "TRIP"
+                    "MAP"         -> "MAP"
+                    "CONNECTIVITY" -> "NETWORK"
+                    "DESTINATIONS" -> "PLACES"
+                    "RADAR" -> "RADAR"
+                    "TRAFFIC" -> "TRAFFIC"
                     "SOUNDBOARD"  -> "SOUND"
                     else          -> w.id
                 }
@@ -398,6 +418,9 @@ fun HomeScreen(
                             style      = settings.clockStyle,
                             accent     = accent,
                             isDayMode  = isDayMode,
+                            use12HourTime = settings.use12HourTime,
+                            showSeconds = settings.showClockSeconds,
+                            dateFormat = settings.clockDateFormat,
                             modifier   = Modifier.fillMaxSize()
                         )
                         "WEATHER" -> WeatherWidget(
@@ -466,6 +489,22 @@ fun HomeScreen(
                             isDayMode = isDayMode,
                             modifier  = Modifier.fillMaxSize()
                         )
+                        "MAP" -> MapWidget(
+                            location = location,
+                            isEditing = editMode,
+                            onlineEnabled = settings.onlineMapEnabled,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        "CONNECTIVITY" -> ConnectivityWidget(
+                            isWifi = isWifi, isData = isData, modifier = Modifier.fillMaxSize()
+                        )
+                        "DESTINATIONS" -> DestinationsWidget(
+                            home = settings.homeDestination,
+                            work = settings.workDestination,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        "RADAR" -> RadarWidget(modifier = Modifier.fillMaxSize())
+                        "TRAFFIC" -> TrafficWidget(location = location, modifier = Modifier.fillMaxSize())
                         "SOUNDBOARD" -> SoundboardWidget(
                             pads      = settings.soundboardPads,
                             accent    = accent,
@@ -511,6 +550,7 @@ fun HomeScreen(
             pipAppPackage       = settings.pipAppPackage,
             isDayMode           = isDayMode,
             onResize            = { contextMenuId = null; resizingId = id },
+            onRemove            = { contextMenuId = null; onRemoveWidget(id) },
             onAssignCarPlay     = { contextMenuId = null; onAssignCarPlay() },
             onAssignAndroidAuto = { contextMenuId = null; onAssignAndroidAuto() },
             onClearCarPlay      = { contextMenuId = null; onClearCarPlay() },
@@ -566,6 +606,7 @@ private fun WidgetContextMenu(
     pipAppPackage: String = "",
     isDayMode: Boolean,
     onResize: () -> Unit,
+    onRemove: () -> Unit,
     onAssignCarPlay: () -> Unit,
     onAssignAndroidAuto: () -> Unit,
     onClearCarPlay: () -> Unit,
@@ -591,6 +632,8 @@ private fun WidgetContextMenu(
         ) {
             val inactiveMenuTint = if (isDayMode) Color(0xFF777777) else Color(0xFF555555)
             ContextRow("RESIZE", Icons.Default.OpenWith, accent, onResize, isDayMode = isDayMode)
+            HorizontalDivider(color = menuDivider)
+            ContextRow("REMOVE WIDGET", Icons.Default.Delete, Color(0xFF884444), onRemove, isDayMode = isDayMode)
             if (widgetId == "CLOCK") {
                 HorizontalDivider(color = menuDivider)
                 ContextRow(
@@ -707,8 +750,8 @@ private fun WidgetResizeDialog(
     var spanX by remember { mutableStateOf(config.spanX) }
     var spanY by remember { mutableStateOf(config.spanY) }
 
-    val maxSpanX = GRID_COLS - config.gridX
-    val maxSpanY = GRID_ROWS - config.gridY
+    val maxSpanX = GRID_COLS
+    val maxSpanY = GRID_ROWS
 
     val dialogBg     = if (isDayMode) Color(0xFFFFFFFF) else MaterialTheme.colorScheme.background
     val dialogText   = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
@@ -725,6 +768,19 @@ private fun WidgetResizeDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                Text("QUICK SIZES", color = dialogText, fontSize = 9.sp, letterSpacing = 1.sp)
+                (1..maxSpanY).forEach { height ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        (1..maxSpanX).forEach { width ->
+                            FilterChip(
+                                selected = spanX == width && spanY == height,
+                                onClick = { spanX = width; spanY = height },
+                                label = { Text("${width}×${height}", fontSize = 10.sp) }
+                            )
+                        }
+                    }
+                }
+                Text("The widget may move to fit. Free space is required.", color = dialogText.copy(alpha = 0.6f), fontSize = 9.sp)
                 SpanRow(label = "WIDTH",  value = spanX, min = 1, max = maxSpanX, accent = accent, isDayMode = isDayMode) { spanX = it }
                 SpanRow(label = "HEIGHT", value = spanY, min = 1, max = maxSpanY, accent = accent, isDayMode = isDayMode) { spanY = it }
             }
@@ -839,6 +895,11 @@ private fun WidgetLibraryDialog(
         if (settings.showVitals) add("VITALS")
         if (settings.showTripTracker) add("TRIP_TRACKER")
         if (settings.showSoundboard) add("SOUNDBOARD")
+        if (settings.showMap) add("MAP")
+                if (settings.showConnectivity) add("CONNECTIVITY")
+                if (settings.showDestinations) add("DESTINATIONS")
+                if (settings.showRadar) add("RADAR")
+                if (settings.showTraffic) add("TRAFFIC")
     }
     val canAdd = canAddWidget(settings)
 

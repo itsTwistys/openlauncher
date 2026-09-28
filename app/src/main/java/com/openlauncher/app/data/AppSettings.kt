@@ -62,6 +62,12 @@ data class WidgetConfig(
     val enabled: Boolean = true
 )
 
+data class LayoutProfile(
+    val name: String,
+    val layout: List<WidgetConfig>,
+    val enabledIds: List<String>
+)
+
 data class AppSettings(
     val vehicleName: String = "MY CAR",
     val accentColor: Int = Color.White.toArgb(),
@@ -72,6 +78,9 @@ data class AppSettings(
     val textScale: Float = 1.2f,
     val uiScale: Float = 1.0f,
     val clockStyle: ClockStyle = ClockStyle.DIGITAL,
+    val use12HourTime: Boolean = false,
+    val showClockSeconds: Boolean = false,
+    val clockDateFormat: String = "LONG",
     val unitSystem: UnitSystem = UnitSystem.METRIC,
     val appFont: AppFont = AppFont.JETBRAINS_MONO,
     val showWeather: Boolean = true,
@@ -99,6 +108,15 @@ data class AppSettings(
     val showTripTracker: Boolean = false,
     val compassOffset: Float = 0f,
     val showSoundboard: Boolean = false,
+    val showMap: Boolean = false,
+    val onlineMapEnabled: Boolean = false,
+    val showConnectivity: Boolean = false,
+    val showDestinations: Boolean = false,
+    val showRadar: Boolean = false,
+    val showTraffic: Boolean = false,
+    val homeDestination: String = "",
+    val workDestination: String = "",
+    val layoutProfiles: List<LayoutProfile> = emptyList(),
     val soundboardPads: List<SoundPadConfig> = defaultSoundboardPads(),
     val vitalsAsBars: Boolean = false,
     val speedometerDigitalOnly: Boolean = false,
@@ -130,7 +148,23 @@ fun AppSettings.activeWidgetIds(): Set<String> = buildSet {
     if (showVitals) add("VITALS")
     if (showTripTracker) add("TRIP_TRACKER")
     if (showSoundboard) add("SOUNDBOARD")
+    if (showMap) add("MAP")
+    if (showConnectivity) add("CONNECTIVITY")
+    if (showDestinations) add("DESTINATIONS")
+    if (showRadar) add("RADAR")
+    if (showTraffic) add("TRAFFIC")
 }
+
+fun AppSettings.withWidgetVisibility(ids: Set<String>): AppSettings = copy(
+    showClock = "CLOCK" in ids, showWeather = "WEATHER" in ids,
+    showNowPlaying = "NOW_PLAYING" in ids, showTelemetry = "TELEMETRY" in ids,
+    showAltimeter = "ALTIMETER" in ids, showSpeedometer = "SPEEDOMETER" in ids,
+    showVitals = "VITALS" in ids, showTripTracker = "TRIP_TRACKER" in ids,
+    showSoundboard = "SOUNDBOARD" in ids, showMap = "MAP" in ids,
+    showConnectivity = "CONNECTIVITY" in ids,
+    showDestinations = "DESTINATIONS" in ids, showRadar = "RADAR" in ids,
+    showTraffic = "TRAFFIC" in ids
+)
 
 /**
  * Moves [movingId] to ([targetX], [targetY]) and pushes any displaced widgets to the
