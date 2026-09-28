@@ -26,6 +26,7 @@ class MediaListenerService : NotificationListenerService() {
         instance = this
         isConnected.value = true
         refreshNowPlaying()
+        refreshNavigation()
     }
 
     override fun onListenerDisconnected() {
@@ -34,10 +35,17 @@ class MediaListenerService : NotificationListenerService() {
         isConnected.value = false
         clearController()
         _nowPlaying.value = null
+        _navigation.value = emptyList()
     }
 
-    override fun onNotificationPosted(sbn: StatusBarNotification?)  { refreshNowPlaying() }
-    override fun onNotificationRemoved(sbn: StatusBarNotification?) { refreshNowPlaying() }
+    override fun onNotificationPosted(sbn: StatusBarNotification?) {
+        refreshNowPlaying()
+        if (sbn?.packageName in navigationPackages) refreshNavigation()
+    }
+    override fun onNotificationRemoved(sbn: StatusBarNotification?) {
+        refreshNowPlaying()
+        if (sbn?.packageName in navigationPackages) refreshNavigation()
+    }
 
     override fun onDestroy() {
         instance = null
@@ -45,7 +53,32 @@ class MediaListenerService : NotificationListenerService() {
         // Clear the static flow so the UI doesn't keep showing a dead session
         // (and pinning its album-art bitmap) after the service is killed
         _nowPlaying.value = null
+        _navigation.value = emptyList()
+        isConnected.value = false
         super.onDestroy()
+    }
+
+    private fun refreshNavigation() {
+        // Read only supported navigation notifications. Never persist or transmit their contents.
+        _navigation.value = runCatching {
+            activeNotifications.orEmpty().filter { sbn ->
+                sbn.packageName in navigationPackages &&
+                    sbn.notification.category == android.app.Notification.CATEGORY_NAVIGATION &&
+                    sbn.notification.flags and android.app.Notification.FLAG_GROUP_SUMMARY == 0
+            }.sortedByDescending { it.postTime }.mapNotNull { sbn ->
+                val n = sbn.notification
+                val extras = n.extras
+                val title = extras.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString().orEmpty()
+                val lines = listOfNotNull(
+                    extras.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString(),
+                    extras.getCharSequence(android.app.Notification.EXTRA_BIG_TEXT)?.toString(),
+                    extras.getCharSequence(android.app.Notification.EXTRA_SUB_TEXT)?.toString()
+                ) + extras.getCharSequenceArray(android.app.Notification.EXTRA_TEXT_LINES).orEmpty().map { it.toString() }
+                val details = lines.filter { it.isNotBlank() && it != title }.distinct().joinToString(" · ").take(1000)
+                if (title.isBlank() && details.isBlank()) null else NavigationInfo(
+                    sbn.packageName, title.take(300), details, n.contentIntent)
+            }
+        }.getOrDefault(emptyList())
     }
 
     private fun clearController() {
@@ -130,7 +163,13 @@ class MediaListenerService : NotificationListenerService() {
         )
     }
 
+    data class NavigationInfo(val packageName: String, val title: String, val details: String,
+        val openIntent: android.app.PendingIntent?)
+
     companion object {
+        private val navigationPackages = setOf("com.google.android.apps.maps", "com.waze")
+        private val _navigation = MutableStateFlow<List<NavigationInfo>>(emptyList())
+        val navigation: StateFlow<List<NavigationInfo>> = _navigation
         private val _nowPlaying = MutableStateFlow<NowPlayingState?>(null)
         val nowPlaying: StateFlow<NowPlayingState?> = _nowPlaying
         val isConnected = MutableStateFlow(false)

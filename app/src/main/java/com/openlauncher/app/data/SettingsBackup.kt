@@ -8,7 +8,7 @@ import com.google.gson.JsonParser
 object SettingsBackup {
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val ids = setOf("CLOCK", "WEATHER", "NOW_PLAYING", "TELEMETRY", "ALTIMETER", "SPEEDOMETER",
-        "VITALS", "TRIP_TRACKER", "SOUNDBOARD", "MAP", "CONNECTIVITY", "DESTINATIONS", "RADAR", "TRAFFIC")
+        "VITALS", "TRIP_TRACKER", "SOUNDBOARD", "MAP", "CONNECTIVITY", "DESTINATIONS", "RADAR", "TRAFFIC", "YOUTUBE")
 
     fun encode(settings: AppSettings): String = gson.toJson(JsonObject().apply {
         addProperty("format", "openlauncher-settings")
@@ -55,6 +55,7 @@ object SettingsBackup {
             require(p.layout.map { it.id }.distinct().size == p.layout.size) { "Duplicate widget in saved layout" }
             require(validWidgetLayout(p.layout.filter { it.enabled && it.id in p.enabledIds })) { "Invalid saved layout" }
         }
+        require(s.youtubeUrl.isBlank() || com.openlauncher.app.util.youtubeVideoId(s.youtubeUrl) != null) { "Invalid YouTube link" }
         require(s.shortcuts.size <= 128 && s.soundboardPads.size <= 6)
         require(s.shortcuts.all { it.defaultIcon in DefaultShortcutIcon.entries })
         // Device file grants cannot move between head units. Online location sharing is opt-in again.

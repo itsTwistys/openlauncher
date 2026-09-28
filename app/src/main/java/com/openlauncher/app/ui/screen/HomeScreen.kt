@@ -67,7 +67,8 @@ private val ALL_WIDGET_TYPES = listOf(
     WidgetTypeInfo("SPEEDOMETER", "SPEED",       Icons.Default.Speed,         "GPS speed"),
     WidgetTypeInfo("VITALS",      "VITALS",      Icons.Default.Dns,           "Head Unit Health / Vitals"),
     WidgetTypeInfo("TRIP_TRACKER", "TRIP TRACKER", Icons.Default.Map,          "Trip logs & stats"),
-    WidgetTypeInfo("MAP",          "MAP",          Icons.Default.Place,        "Open maps at your location"),
+    WidgetTypeInfo("YOUTUBE", "YOUTUBE", Icons.Default.PlayCircle, "Embedded video or live stream while parked"),
+    WidgetTypeInfo("MAP",          "MAP",          Icons.Default.Place,        "Live map and navigation instructions"),
     WidgetTypeInfo("CONNECTIVITY", "CONNECTIVITY", Icons.Default.Wifi,       "Network status"),
     WidgetTypeInfo("DESTINATIONS", "DESTINATIONS", Icons.Default.Home,      "Home and work shortcuts"),
     WidgetTypeInfo("RADAR",        "RADAR",        Icons.Default.Grain,      "Open live weather radar"),
@@ -341,6 +342,7 @@ fun HomeScreen(
                     "ALTIMETER"   -> "ALTIMETER"
                     "SPEEDOMETER" -> "SPEED"
                     "TRIP_TRACKER" -> "TRIP"
+                    "YOUTUBE" -> "YOUTUBE"
                     "MAP"         -> "MAP"
                     "CONNECTIVITY" -> "NETWORK"
                     "DESTINATIONS" -> "PLACES"
@@ -499,10 +501,13 @@ fun HomeScreen(
                             isDayMode = isDayMode,
                             modifier  = Modifier.fillMaxSize()
                         )
+                        "YOUTUBE" -> YouTubeWidget(url = settings.youtubeUrl, isEditing = editMode,
+                            moving = (location?.speedMps ?: 0f) > 1.4f, networkAvailable = isWifi || isData, modifier = Modifier.fillMaxSize())
                         "MAP" -> MapWidget(
                             location = location,
                             isEditing = editMode,
                             onlineEnabled = settings.onlineMapEnabled,
+                            navigationPackage = settings.navigationPackage,
                             networkAvailable = isWifi || isData,
                             modifier = Modifier.fillMaxSize()
                         )
