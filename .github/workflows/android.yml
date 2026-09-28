@@ -1,7 +1,7 @@
 name: Android preview
 on:
   push:
-    branches: [main, feature/dashboard-polish, feature/embedded-media, fix/embedded-player-layout]
+    branches: [main, "feature/**", "fix/**"]
     paths-ignore: ['README.md', 'docs/**']
   pull_request:
   workflow_dispatch:
@@ -48,6 +48,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: openlauncher-preview
@@ -57,8 +58,48 @@ jobs:
           GH_REPO: ${{ github.repository }}
           COMMIT_SHA: ${{ github.sha }}
         run: |
+          VERSION=$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' app/build.gradle.kts | head -n 1)
+          test -n "$VERSION" || { echo 'Missing versionName'; exit 1; }
+          TAG="preview-${COMMIT_SHA:0:7}"
           mv app-debug.apk openlauncher-preview.apk
           sha256sum openlauncher-preview.apk > SHA256SUMS.txt
-          gh release create "preview-${COMMIT_SHA:0:7}" openlauncher-preview.apk SHA256SUMS.txt \
-            --target "$COMMIT_SHA" --prerelease --title "Open Launcher 0.0.8 development preview" \
-            --notes "Installable debug-signed preview with a separate app ID, so it can coexist with your current launcher. Build and unit tests passed; physical head-unit testing is still required. Development signing is cached between builds; if the cache is lost, a future preview may require uninstalling the previous preview. Back up your settings first. Download the APK below, not the source archives."
+          cat > RELEASE_NOTES.md <<EOF
+          Open Launcher $VERSION is an installable, debug-signed development preview with a separate app ID. Build and unit tests passed. The preview has not been confirmed on all physical head units. See the [installation guide](https://github.com/$GH_REPO/blob/$TAG/docs/PREVIEW.md) for setup, features and known limits.
+
+          Download the APK below, not the source archives. A checksum is provided in SHA256SUMS.txt. Development signing is cached between builds; if that cache is lost, back up settings before reinstalling the preview.
+          EOF
+          gh release create "$TAG" openlauncher-preview.apk SHA256SUMS.txt \
+            --target "$COMMIT_SHA" --prerelease --title "Open Launcher $VERSION development preview" \
+            --notes-file RELEASE_NOTES.md
+          if [ "$GITHUB_REF_NAME" = main ]; then
+            echo "PREVIEW_TAG=$TAG" >> "$GITHUB_ENV"
+            echo "PREVIEW_VERSION=$VERSION" >> "$GITHUB_ENV"
+          fi
+      - name: Update main README with the tested APK
+        if: github.ref_name == 'main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api "repos/$GH_REPO/contents/README.md" --jq '.content' | base64 -d > README.current.md
+          README_SHA=$(gh api "repos/$GH_REPO/contents/README.md" --jq '.sha')
+          python3 - <<'PYDOC'
+          import os
+          from pathlib import Path
+          path = Path('README.current.md')
+          text = path.read_text()
+          start, end = '<!-- preview-download:start -->', '<!-- preview-download:end -->'
+          assert text.count(start) == text.count(end) == 1, 'Preview download markers missing'
+          tag, version, repo = (os.environ[key] for key in ('PREVIEW_TAG', 'PREVIEW_VERSION', 'GH_REPO'))
+          base = f'https://github.com/{repo}'
+          block = f'''{start}
+          **[Download Open Launcher {version} preview APK]({base}/releases/download/{tag}/openlauncher-preview.apk)**
+
+          [Release notes and checksum]({base}/releases/tag/{tag}) · [Installation and testing guide]({base}/blob/{tag}/docs/PREVIEW.md)
+          {end}'''
+          path.write_text(text[:text.index(start)] + block + text[text.index(end) + len(end):])
+          PYDOC
+          README_CONTENT=$(base64 -w0 README.current.md)
+          gh api -X PUT "repos/$GH_REPO/contents/README.md" \
+            -f message="Update preview download for $PREVIEW_VERSION" \
+            -f branch=main -f sha="$README_SHA" -f content="$README_CONTENT"
