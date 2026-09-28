@@ -49,6 +49,12 @@ class DashboardTest {
         SettingsBackup.decode(SettingsBackup.encode(bad))
     }
     @Test(expected = IllegalArgumentException::class)
+    fun backupRejectsDuplicateWidgetsInProfile() {
+        val bad = AppSettings(layoutProfiles = listOf(LayoutProfile("Day",
+            listOf(WidgetConfig("CLOCK", 0, 0), WidgetConfig("CLOCK", 1, 0)), listOf("CLOCK"))))
+        SettingsBackup.decode(SettingsBackup.encode(bad))
+    }
+    @Test(expected = IllegalArgumentException::class)
     fun backupRejectsUnsupportedVersion() {
         SettingsBackup.decode("""{"format":"openlauncher-settings","version":99,"settings":{}}""")
     }

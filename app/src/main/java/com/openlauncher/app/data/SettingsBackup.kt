@@ -52,6 +52,7 @@ object SettingsBackup {
             require(p.name in setOf("Driving", "Parked", "Day", "Night"))
             require(p.enabledIds.all { it in ids } && p.layout.size <= ids.size && p.layout.all { it.id in ids && validWidgetLayout(listOf(it)) })
             require(p.enabledIds.all { id -> p.layout.any { it.id == id } })
+            require(p.layout.map { it.id }.distinct().size == p.layout.size) { "Duplicate widget in saved layout" }
             require(validWidgetLayout(p.layout.filter { it.enabled && it.id in p.enabledIds })) { "Invalid saved layout" }
         }
         require(s.shortcuts.size <= 128 && s.soundboardPads.size <= 6)
