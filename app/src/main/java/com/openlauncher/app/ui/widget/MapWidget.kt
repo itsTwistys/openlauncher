@@ -28,9 +28,7 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, modifier: Modifier = 
                     Uri.parse(String.format(Locale.US, "geo:%f,%f?q=%f,%f", location.latitude,
                         location.longitude, location.latitude, location.longitude))
                 val intent = Intent(Intent.ACTION_VIEW, uri)
-                if (intent.resolveActivity(context.packageManager) != null) {
-                    context.startActivity(intent)
-                }
+                runCatching { context.startActivity(intent) }
             }
             .padding(14.dp),
         verticalArrangement = Arrangement.Center,
