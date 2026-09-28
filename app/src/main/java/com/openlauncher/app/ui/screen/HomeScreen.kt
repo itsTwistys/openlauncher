@@ -492,6 +492,7 @@ fun HomeScreen(
                         "MAP" -> MapWidget(
                             location = location,
                             isEditing = editMode,
+                            onlineEnabled = settings.onlineMapEnabled,
                             modifier = Modifier.fillMaxSize()
                         )
                         "CONNECTIVITY" -> ConnectivityWidget(
