@@ -7,12 +7,12 @@
 ## Download the Android preview
 
 <!-- preview-download:start -->
-**[Download Open Launcher 0.0.8-preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-e1aa48d/openlauncher-preview.apk)**
+**[Download Open Launcher 0.0.8-preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-c24b872/openlauncher-preview.apk)**
 
-[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-e1aa48d) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-e1aa48d/docs/PREVIEW.md)
+[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-c24b872) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-c24b872/docs/PREVIEW.md)
 <!-- preview-download:end -->
 
-This debug-signed preview installs as **Open Launcher Preview** alongside an existing launcher. Android build and 13 unit tests passed. The map and YouTube rendering changes still need confirmation on the QUZHIDA head unit.
+This debug-signed preview installs as **Open Launcher Preview** alongside an existing launcher. Android build and 13 unit tests passed. The map and YouTube rendering changes still need confirmation on the QUZHIDA head unit. This 0.0.8 preview comes from [PR #4](https://github.com/itsTwistys/openlauncher/pull/4); the code on `main` is still 0.0.7 until that PR is merged.
 
 ![Earlier Open Launcher dashboard screenshot; current preview layout and controls may differ](https://github.com/user-attachments/assets/a1bc63f3-2d4e-4ac0-bd56-b5d181681658)
 
@@ -46,6 +46,6 @@ Use JDK 17 and Android SDK 36.1 to build from source:
 ./gradlew :app:testDebugUnitTest :app:assembleDebug
 ```
 
-Each passing push to `main` or a feature/fix branch publishes a debug-signed prerelease with an APK and SHA-256 checksum. The workflow updates the README download after a successful `main` release. Pull requests run build and unit tests without publishing an APK.
+Preview builds on the active fix branch publish an APK and SHA-256 checksum after the Android build and unit tests pass. Pull requests run checks without publishing an APK. [PR #4](https://github.com/itsTwistys/openlauncher/pull/4) also changes the workflow so future passing `main` builds will update this README download link automatically after merge.
 
 This public fork does not currently include a repository-level license file. The Leaflet map library retains its own bundled license in `app/src/main/assets/map/LICENSE`.
