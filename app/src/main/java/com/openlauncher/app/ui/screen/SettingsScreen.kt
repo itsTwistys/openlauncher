@@ -432,7 +432,7 @@ fun SettingsScreen(
         SettingsSection("YouTube") {
             var videoLink by remember(settings.youtubeUrl) { mutableStateOf(settings.youtubeUrl) }
             val validLink = videoLink.isBlank() || com.openlauncher.app.util.youtubeVideoId(videoLink) != null
-            Text("Paste a YouTube video or live-stream link, then add YouTube from the widget library. Playback is for parked use and requires a tap. Some videos do not allow embedding.", fontSize = 11.sp)
+            Text("Paste a YouTube video or live-stream link, then choose YouTube video from the Now Playing source menu (three dots). Playback is for parked use and requires a tap. Some videos do not allow embedding.", fontSize = 11.sp)
             OutlinedTextField(value = videoLink, onValueChange = { videoLink = it.take(2048) },
                 label = { Text("Video or live-stream URL") }, singleLine = true,
                 isError = !validLink, modifier = Modifier.fillMaxWidth())

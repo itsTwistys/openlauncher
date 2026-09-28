@@ -41,3 +41,15 @@ The GitHub workflow runs the same checks and publishes a development preview onl
 - YouTube uses its official web player with app identity supplied through its referrer. Network traffic goes to YouTube only after loading the player. Unavailable, private, age-restricted or non-embeddable videos may show a YouTube error; use **Open YouTube**. **Reload** retries a failed player. This does not mirror the installed YouTube app or its login.
 - Playback stops on leaving the launcher, entering edit mode, losing connectivity, or GPS detecting movement above approximately 5 km/h. GPS is not a parking-brake interlock; use video only while parked. No autoplay or background playback is added.
 - Physical-device verification is still required for the ROM's permission screen, Google Maps/Waze notification fields, WebView/YouTube playback and audio behavior.
+
+## 0.0.8: YouTube inside Now Playing and web-content layout fixes
+
+1. Update Open Launcher Preview. Close any existing floating YouTube window using that window's close control; it is separate from the launcher widget.
+2. Remove the separate YouTube card if present. Keep or add **Now Playing**.
+3. Save a video/live-stream Share link in **Settings > YouTube**. In Now Playing, tap the three-dot source menu and select **YouTube video**. Choose **I'm parked > Load player**, then press YouTube's play control. The source menu also retains **Any Player** and **FM/AM Radio**.
+4. Enlarge Now Playing if prompted. The minimum-player check now accounts for the launcher's UI scale versus the WebView's device density. The source selector occupies space above the player, leaving YouTube controls unobstructed.
+5. The map now has a native loading indicator, **Reload**, script initialization checks, and visible failure messages. It uses software rendering to avoid vendor GPU compositing problems. GPS location and the online map setting are still required. Directions remain notification text, not a mirrored Google Maps route.
+
+Each widget now has a stable Compose identity. WebViews live in clipped, match-parent native frames and are destroyed after their frames are released. This targets placement and lifecycle failures during resize/removal. The embedded YouTube frame no longer delegates picture-in-picture permission. It cannot close a floating window owned by the separate YouTube app.
+
+Validation: Android build and unit tests, plus browser checks for player bounds at 200x200, 640x360 and 1100x700 and map marker/Follow/Recenter/offline behavior. Browser tests stub video and tile responses; they do not establish real YouTube playback or rendering on the QUZHIDA head unit. Device confirmation is still needed.

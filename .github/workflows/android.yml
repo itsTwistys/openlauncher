@@ -1,7 +1,7 @@
 name: Android preview
 on:
   push:
-    branches: [main, feature/dashboard-polish, feature/embedded-media]
+    branches: [main, feature/dashboard-polish, feature/embedded-media, fix/embedded-player-layout]
     paths-ignore: ['README.md', 'docs/**']
   pull_request:
   workflow_dispatch:
@@ -60,5 +60,5 @@ jobs:
           mv app-debug.apk openlauncher-preview.apk
           sha256sum openlauncher-preview.apk > SHA256SUMS.txt
           gh release create "preview-${COMMIT_SHA:0:7}" openlauncher-preview.apk SHA256SUMS.txt \
-            --target "$COMMIT_SHA" --prerelease --title "Open Launcher 0.0.7 development preview" \
+            --target "$COMMIT_SHA" --prerelease --title "Open Launcher 0.0.8 development preview" \
             --notes "Installable debug-signed preview with a separate app ID, so it can coexist with your current launcher. Build and unit tests passed; physical head-unit testing is still required. Development signing is cached between builds; if the cache is lost, a future preview may require uninstalling the previous preview. Back up your settings first. Download the APK below, not the source archives."
