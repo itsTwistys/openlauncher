@@ -13,13 +13,15 @@
 
 Open Launcher is an Android home screen for aftermarket car head units, with customizable widgets, media controls, maps, and saved dashboard layouts.
 
-**[Download Open Launcher Preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-2556c39/openlauncher-preview.apk)**
+**[Download Open Launcher Preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-e1aa48d/openlauncher-preview.apk)**
 
-Version **0.0.7 preview** installs as **Open Launcher Preview** alongside your existing launcher. This is a development build with debug signing. The Android build and 13 unit tests passed; physical head-unit testing is still required.
+Version **0.0.8 preview** installs as **Open Launcher Preview** alongside your existing launcher. This is a development build with debug signing. The Android build and 13 unit tests passed; physical head-unit testing is still required.
 
-[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-2556c39) · [Installation guide](https://github.com/itsTwistys/openlauncher/blob/preview-2556c39/docs/PREVIEW.md) · [Source changes (PR #3)](https://github.com/itsTwistys/openlauncher/pull/3)
+[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-e1aa48d) · [Installation guide](https://github.com/itsTwistys/openlauncher/blob/preview-e1aa48d/docs/PREVIEW.md) · [Source changes (PR #4)](https://github.com/itsTwistys/openlauncher/pull/4)
 
-New in 0.0.7: corrected overlay permission setup, Google Maps/Waze navigation notification text beside the embedded GPS map, and a YouTube video/live-stream widget for parked use. Full navigation app screens and CarPlay routes are not mirrored.
+New in 0.0.8: **Now Playing → source menu → YouTube video**, native frame sizing/clipping and stable widget identity, and map loading/error/reload controls. Remove the separate YouTube card to use the combined player. Close any floating window owned by the separate YouTube app. Head-unit verification of these rendering changes remains pending.
+
+Included from 0.0.7: corrected overlay permission setup, Google Maps/Waze navigation notification text beside the embedded GPS map, and a YouTube video/live-stream widget for parked use. Full navigation app screens and CarPlay routes are not mirrored.
 
 The preview also includes smooth map tracking with Follow and Recenter, widget size previews and removal Undo, adaptive clock text, home-screen profile switching, optional Day/Night layouts, live internet status, preferred navigation apps and recent destinations, and local settings backup/restore.
 
