@@ -62,6 +62,12 @@ data class WidgetConfig(
     val enabled: Boolean = true
 )
 
+data class LayoutProfile(
+    val name: String,
+    val layout: List<WidgetConfig>,
+    val enabledIds: List<String>
+)
+
 data class AppSettings(
     val vehicleName: String = "MY CAR",
     val accentColor: Int = Color.White.toArgb(),
@@ -108,6 +114,7 @@ data class AppSettings(
     val showRadar: Boolean = false,
     val homeDestination: String = "",
     val workDestination: String = "",
+    val layoutProfiles: List<LayoutProfile> = emptyList(),
     val soundboardPads: List<SoundPadConfig> = defaultSoundboardPads(),
     val vitalsAsBars: Boolean = false,
     val speedometerDigitalOnly: Boolean = false,
@@ -144,6 +151,16 @@ fun AppSettings.activeWidgetIds(): Set<String> = buildSet {
     if (showDestinations) add("DESTINATIONS")
     if (showRadar) add("RADAR")
 }
+
+fun AppSettings.withWidgetVisibility(ids: Set<String>): AppSettings = copy(
+    showClock = "CLOCK" in ids, showWeather = "WEATHER" in ids,
+    showNowPlaying = "NOW_PLAYING" in ids, showTelemetry = "TELEMETRY" in ids,
+    showAltimeter = "ALTIMETER" in ids, showSpeedometer = "SPEEDOMETER" in ids,
+    showVitals = "VITALS" in ids, showTripTracker = "TRIP_TRACKER" in ids,
+    showSoundboard = "SOUNDBOARD" in ids, showMap = "MAP" in ids,
+    showConnectivity = "CONNECTIVITY" in ids,
+    showDestinations = "DESTINATIONS" in ids, showRadar = "RADAR" in ids
+)
 
 /**
  * Moves [movingId] to ([targetX], [targetY]) and pushes any displaced widgets to the
