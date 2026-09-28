@@ -1,7 +1,7 @@
 package com.openlauncher.app.ui.widget
 
 import android.content.Intent
-import android.location.Location
+import com.openlauncher.app.util.LocationData
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 import java.util.Locale
 
 @Composable
-fun MapWidget(location: Location?, isEditing: Boolean, modifier: Modifier = Modifier) {
+fun MapWidget(location: LocationData?, isEditing: Boolean, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     Column(
         modifier = modifier
