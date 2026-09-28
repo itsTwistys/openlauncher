@@ -63,6 +63,7 @@ class SettingsRepository(private val context: Context) {
         val SHOW_RADAR          = booleanPreferencesKey("show_radar")
         val HOME_DESTINATION    = stringPreferencesKey("home_destination")
         val WORK_DESTINATION    = stringPreferencesKey("work_destination")
+        val LAYOUT_PROFILES_JSON = stringPreferencesKey("layout_profiles_json")
         val SOUNDBOARD_PADS_JSON  = stringPreferencesKey("soundboard_pads_json")
         val VITALS_AS_BARS        = booleanPreferencesKey("vitals_as_bars")
         val SPEEDOMETER_DIGITAL_ONLY = booleanPreferencesKey("speedometer_digital_only")
@@ -144,6 +145,9 @@ class SettingsRepository(private val context: Context) {
                 showRadar = prefs[Keys.SHOW_RADAR] ?: defaults.showRadar,
                 homeDestination = prefs[Keys.HOME_DESTINATION] ?: defaults.homeDestination,
                 workDestination = prefs[Keys.WORK_DESTINATION] ?: defaults.workDestination,
+                layoutProfiles = prefs[Keys.LAYOUT_PROFILES_JSON]?.let {
+                    runCatching { gson.fromJson<List<LayoutProfile>>(it, object : TypeToken<List<LayoutProfile>>() {}.type) }.getOrNull()
+                } ?: defaults.layoutProfiles,
                 soundboardPads   = prefs[Keys.SOUNDBOARD_PADS_JSON]?.let {
                     runCatching {
                         gson.fromJson<List<SoundPadConfig>>(it, object : com.google.gson.reflect.TypeToken<List<SoundPadConfig>>() {}.type)
@@ -213,6 +217,7 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.SHOW_RADAR]         = s.showRadar
             prefs[Keys.HOME_DESTINATION]   = s.homeDestination
             prefs[Keys.WORK_DESTINATION]   = s.workDestination
+            prefs[Keys.LAYOUT_PROFILES_JSON] = gson.toJson(s.layoutProfiles)
             prefs[Keys.SOUNDBOARD_PADS_JSON] = gson.toJson(s.soundboardPads)
             prefs[Keys.VITALS_AS_BARS]     = s.vitalsAsBars
             prefs[Keys.SPEEDOMETER_DIGITAL_ONLY] = s.speedometerDigitalOnly
