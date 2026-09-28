@@ -239,6 +239,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 "CONNECTIVITY" -> copy(showConnectivity = true)
                 "DESTINATIONS" -> copy(showDestinations = true)
                 "RADAR" -> copy(showRadar = true)
+                "TRAFFIC" -> copy(showTraffic = true)
                 else          -> this
             }
             val idx       = layout.indexOfFirst { it.id == id }
@@ -274,6 +275,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 "CONNECTIVITY" -> copy(showConnectivity = false)
                 "DESTINATIONS" -> copy(showDestinations = false)
                 "RADAR" -> copy(showRadar = false)
+                "TRAFFIC" -> copy(showTraffic = false)
                 else          -> this
             }
         }
