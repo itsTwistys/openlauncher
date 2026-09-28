@@ -26,11 +26,17 @@ import kotlin.math.abs
 
 /**
  * The visible map loads OpenStreetMap tiles for the device's precise location.
- * The user opts into this network request by adding the Map widget.
+ * The user opts into this network request with the Online Map setting.
  */
 @Composable
-fun MapWidget(location: LocationData?, isEditing: Boolean, modifier: Modifier = Modifier) {
+fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolean, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    if (!onlineEnabled) {
+        Box(modifier, contentAlignment = Alignment.Center) {
+            Text("Enable online map in Settings", fontSize = 11.sp)
+        }
+        return
+    }
     if (location == null) {
         Box(modifier, contentAlignment = Alignment.Center) {
             Text("Waiting for GPS location", fontSize = 11.sp)
