@@ -9,6 +9,27 @@
 
 ---
 
+## Get the Android app
+
+Open Launcher is an Android home screen for aftermarket car head units, with customizable widgets, media controls, maps, and saved dashboard layouts.
+
+**APK download:** No installable APK has been published in this repository yet. [Check releases](https://github.com/itsTwistys/openlauncher/releases) for packaged builds when available.
+
+The source includes the new widgets and embedded map, but these changes still need an Android build and head-unit testing before an APK release.
+
+<img width="1200" alt="Open Launcher dashboard preview" src="https://github.com/user-attachments/assets/a1bc63f3-2d4e-4ac0-bd56-b5d181681658" />
+
+*Preview of the existing dashboard; it does not show every newly added feature.*
+
+### Setup after installing a build
+
+1. Select Open Launcher as the Android home app.
+2. Grant location access for GPS widgets.
+3. Use the widget library to add, remove, and resize dashboard cards.
+4. For the embedded map, enable **Settings → Online Map → Show Embedded Map**. While visible, it shares precise GPS location and the displayed map area with OpenStreetMap.
+
+---
+
 ## 📖 Table of Contents
 - [Why Build Another Car Launcher?](#-why-build-another-car-launcher)
 - [The Philosophy](#-the-philosophy-offline-first--oem-aesthetics)
