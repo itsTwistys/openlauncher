@@ -26,6 +26,8 @@ fun ClockWidget(
     accent: Color,
     isDayMode: Boolean = false,
     use12HourTime: Boolean = false,
+    showSeconds: Boolean = false,
+    dateFormat: String = "LONG",
     modifier: Modifier = Modifier
 ) {
     var calendar by remember { mutableStateOf(Calendar.getInstance()) }
@@ -42,16 +44,17 @@ fun ClockWidget(
 
     Box(modifier = modifier) {
         when (style) {
-            ClockStyle.DIGITAL -> DigitalClock(calendar, contentColor, subColor, use12HourTime)
+            ClockStyle.DIGITAL -> DigitalClock(calendar, contentColor, subColor, use12HourTime, showSeconds, dateFormat)
             ClockStyle.ANALOG  -> AnalogClock(calendar, accent, isDayMode)
         }
     }
 }
 
 @Composable
-private fun DigitalClock(cal: Calendar, contentColor: Color, subColor: Color, use12HourTime: Boolean) {
+private fun DigitalClock(cal: Calendar, contentColor: Color, subColor: Color, use12HourTime: Boolean, showSeconds: Boolean, dateFormat: String) {
     val hour   = cal.get(Calendar.HOUR_OF_DAY)
     val minute = cal.get(Calendar.MINUTE)
+    val second = cal.get(Calendar.SECOND)
 
     Column(
         modifier            = Modifier.fillMaxSize().padding(start = 14.dp, bottom = 14.dp),
@@ -59,14 +62,14 @@ private fun DigitalClock(cal: Calendar, contentColor: Color, subColor: Color, us
         horizontalAlignment = Alignment.Start
     ) {
         Text(
-            text          = if (use12HourTime) "%d:%02d %s".format((hour + 11) % 12 + 1, minute, if (hour < 12) "AM" else "PM") else "%02d:%02d".format(hour, minute),
+            text          = if (use12HourTime) "%d:%02d%s %s".format((hour + 11) % 12 + 1, minute, if (showSeconds) ":%02d".format(second) else "", if (hour < 12) "AM" else "PM") else "%02d:%02d%s".format(hour, minute, if (showSeconds) ":%02d".format(second) else ""),
             color         = contentColor,
-            fontSize      = 48.sp,
+            fontSize      = if (showSeconds) 38.sp else 48.sp,
             fontWeight    = androidx.compose.ui.text.font.FontWeight.Light,
             letterSpacing = 1.sp
         )
         Text(
-            text     = buildDateString(cal),
+            text     = if (dateFormat == "SHORT") shortDateString(cal) else buildDateString(cal),
             color    = subColor,
             fontSize = 12.sp
         )
