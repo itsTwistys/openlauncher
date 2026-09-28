@@ -58,6 +58,7 @@ class SettingsRepository(private val context: Context) {
         val COMPASS_OFFSET        = floatPreferencesKey("compass_offset")
         val SHOW_SOUNDBOARD       = booleanPreferencesKey("show_soundboard")
         val SHOW_MAP            = booleanPreferencesKey("show_map")
+        val ONLINE_MAP_ENABLED = booleanPreferencesKey("online_map_enabled")
         val SHOW_CONNECTIVITY   = booleanPreferencesKey("show_connectivity")
         val SHOW_DESTINATIONS   = booleanPreferencesKey("show_destinations")
         val SHOW_RADAR          = booleanPreferencesKey("show_radar")
@@ -141,6 +142,7 @@ class SettingsRepository(private val context: Context) {
                 compassOffset    = prefs[Keys.COMPASS_OFFSET]    ?: defaults.compassOffset,
                 showSoundboard   = prefs[Keys.SHOW_SOUNDBOARD]   ?: defaults.showSoundboard,
                 showMap          = prefs[Keys.SHOW_MAP]          ?: defaults.showMap,
+                onlineMapEnabled = prefs[Keys.ONLINE_MAP_ENABLED] ?: defaults.onlineMapEnabled,
                 showConnectivity = prefs[Keys.SHOW_CONNECTIVITY] ?: defaults.showConnectivity,
                 showDestinations = prefs[Keys.SHOW_DESTINATIONS] ?: defaults.showDestinations,
                 showRadar = prefs[Keys.SHOW_RADAR] ?: defaults.showRadar,
@@ -214,6 +216,7 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.COMPASS_OFFSET]     = s.compassOffset
             prefs[Keys.SHOW_SOUNDBOARD]    = s.showSoundboard
             prefs[Keys.SHOW_MAP]           = s.showMap
+            prefs[Keys.ONLINE_MAP_ENABLED] = s.onlineMapEnabled
             prefs[Keys.SHOW_CONNECTIVITY]  = s.showConnectivity
             prefs[Keys.SHOW_DESTINATIONS]  = s.showDestinations
             prefs[Keys.SHOW_RADAR]         = s.showRadar
