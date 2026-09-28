@@ -64,7 +64,10 @@ private val ALL_WIDGET_TYPES = listOf(
     WidgetTypeInfo("SPEEDOMETER", "SPEED",       Icons.Default.Speed,         "GPS speed"),
     WidgetTypeInfo("VITALS",      "VITALS",      Icons.Default.Dns,           "Head Unit Health / Vitals"),
     WidgetTypeInfo("TRIP_TRACKER", "TRIP TRACKER", Icons.Default.Map,          "Trip logs & stats"),
-    WidgetTypeInfo("MAP",          "MAP",          Icons.Default.Place,        "Live map of your location"),
+    WidgetTypeInfo("MAP",          "MAP",          Icons.Default.Place,        "Open maps at your location"),
+    WidgetTypeInfo("CONNECTIVITY", "CONNECTIVITY", Icons.Default.Wifi,       "Network status"),
+    WidgetTypeInfo("DESTINATIONS", "DESTINATIONS", Icons.Default.Home,      "Home and work shortcuts"),
+    WidgetTypeInfo("RADAR",        "RADAR",        Icons.Default.Grain,      "Open live weather radar"),
     WidgetTypeInfo("SOUNDBOARD",  "SOUNDBOARD",  Icons.Default.Piano,         "Custom sound pads")
 )
 
@@ -80,6 +83,9 @@ private fun canAddWidget(settings: com.openlauncher.app.data.AppSettings): Boole
         if (settings.showTripTracker) add("TRIP_TRACKER")
         if (settings.showSoundboard) add("SOUNDBOARD")
         if (settings.showMap) add("MAP")
+                if (settings.showConnectivity) add("CONNECTIVITY")
+                if (settings.showDestinations) add("DESTINATIONS")
+                if (settings.showRadar) add("RADAR")
     }
     val activeWidgets = settings.widgetLayout.filter { it.enabled && it.id in visibleIds }
     val occupied = buildSet<Pair<Int, Int>> {
@@ -246,6 +252,9 @@ fun HomeScreen(
                 if (settings.showTripTracker) add("TRIP_TRACKER")
                 if (settings.showSoundboard) add("SOUNDBOARD")
         if (settings.showMap) add("MAP")
+                if (settings.showConnectivity) add("CONNECTIVITY")
+                if (settings.showDestinations) add("DESTINATIONS")
+                if (settings.showRadar) add("RADAR")
             }
 
             // Keep only visible widgets exactly as configured in settings, allowing explicit resizing to dictate layout
@@ -321,6 +330,9 @@ fun HomeScreen(
                     "SPEEDOMETER" -> "SPEED"
                     "TRIP_TRACKER" -> "TRIP"
                     "MAP"         -> "MAP"
+                    "CONNECTIVITY" -> "NETWORK"
+                    "DESTINATIONS" -> "PLACES"
+                    "RADAR" -> "RADAR"
                     "SOUNDBOARD"  -> "SOUND"
                     else          -> w.id
                 }
@@ -403,6 +415,8 @@ fun HomeScreen(
                             accent     = accent,
                             isDayMode  = isDayMode,
                             use12HourTime = settings.use12HourTime,
+                            showSeconds = settings.showClockSeconds,
+                            dateFormat = settings.clockDateFormat,
                             modifier   = Modifier.fillMaxSize()
                         )
                         "WEATHER" -> WeatherWidget(
@@ -476,6 +490,15 @@ fun HomeScreen(
                             isEditing = editMode,
                             modifier = Modifier.fillMaxSize()
                         )
+                        "CONNECTIVITY" -> ConnectivityWidget(
+                            isWifi = isWifi, isData = isData, modifier = Modifier.fillMaxSize()
+                        )
+                        "DESTINATIONS" -> DestinationsWidget(
+                            home = settings.homeDestination,
+                            work = settings.workDestination,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        "RADAR" -> RadarWidget(modifier = Modifier.fillMaxSize())
                         "SOUNDBOARD" -> SoundboardWidget(
                             pads      = settings.soundboardPads,
                             accent    = accent,
@@ -866,6 +889,9 @@ private fun WidgetLibraryDialog(
         if (settings.showTripTracker) add("TRIP_TRACKER")
         if (settings.showSoundboard) add("SOUNDBOARD")
         if (settings.showMap) add("MAP")
+                if (settings.showConnectivity) add("CONNECTIVITY")
+                if (settings.showDestinations) add("DESTINATIONS")
+                if (settings.showRadar) add("RADAR")
     }
     val canAdd = canAddWidget(settings)
 
