@@ -33,6 +33,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import kotlin.math.roundToInt
+import com.openlauncher.app.data.resizePreview
+import com.openlauncher.app.data.activeWidgetIds
+import com.openlauncher.app.data.LayoutProfile
 import com.openlauncher.app.data.AppSettings
 import com.openlauncher.app.data.ClockStyle
 import com.openlauncher.app.data.computeWidgetMove
@@ -73,22 +76,7 @@ private val ALL_WIDGET_TYPES = listOf(
 )
 
 private fun canAddWidget(settings: com.openlauncher.app.data.AppSettings): Boolean {
-    val visibleIds = buildSet {
-        if (settings.showClock) add("CLOCK")
-        if (settings.showWeather) add("WEATHER")
-        if (settings.showNowPlaying) add("NOW_PLAYING")
-        if (settings.showTelemetry) add("TELEMETRY")
-        if (settings.showAltimeter) add("ALTIMETER")
-        if (settings.showSpeedometer) add("SPEEDOMETER")
-        if (settings.showVitals) add("VITALS")
-        if (settings.showTripTracker) add("TRIP_TRACKER")
-        if (settings.showSoundboard) add("SOUNDBOARD")
-        if (settings.showMap) add("MAP")
-                if (settings.showConnectivity) add("CONNECTIVITY")
-                if (settings.showDestinations) add("DESTINATIONS")
-                if (settings.showRadar) add("RADAR")
-                if (settings.showTraffic) add("TRAFFIC")
-    }
+    val visibleIds = settings.activeWidgetIds()
     val activeWidgets = settings.widgetLayout.filter { it.enabled && it.id in visibleIds }
     val occupied = buildSet<Pair<Int, Int>> {
         activeWidgets.forEach { w ->
@@ -110,6 +98,10 @@ fun HomeScreen(
     nowPlaying: NowPlayingState?,
     location: LocationData?,
     bearing: Float,
+    internetValidated: Boolean,
+    onApplyProfile: (String) -> Unit,
+    onRestoreLayout: (LayoutProfile) -> Unit,
+    onRememberDestination: (String) -> Unit,
     isWifi: Boolean,
     isData: Boolean,
     isDayMode: Boolean = false,
@@ -170,6 +162,15 @@ fun HomeScreen(
     var editMode         by remember { mutableStateOf(false) }
     var widgetLibraryOpen by remember { mutableStateOf(false) }
 
+    var profileMenu by remember { mutableStateOf(false) }
+    var removedLayout by remember { mutableStateOf<LayoutProfile?>(null) }
+    fun removeWithUndo(id: String) {
+        removedLayout = LayoutProfile("Undo", settings.widgetLayout, settings.activeWidgetIds().toList())
+        onRemoveWidget(id)
+    }
+    LaunchedEffect(removedLayout) {
+        if (removedLayout != null) { kotlinx.coroutines.delay(8000); removedLayout = null }
+    }
     Column(modifier = modifier.fillMaxSize()) {
 
         // ── Header ──────────────────────────────────────────────────────────
@@ -185,9 +186,25 @@ fun HomeScreen(
                 style         = MaterialTheme.typography.titleLarge,
                 color         = headerTextColor,
                 letterSpacing = 3.sp,
-                fontSize      = 14.sp
+                fontSize      = 14.sp,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
             )
-            Spacer(Modifier.weight(1f))
+            if (settings.layoutProfiles.isNotEmpty()) {
+                Box {
+                    TextButton(onClick = { profileMenu = true }) {
+                        Text(settings.activeLayoutProfile.ifBlank { "Layouts" }, fontSize = 11.sp)
+                    }
+                    DropdownMenu(expanded = profileMenu, onDismissRequest = { profileMenu = false }) {
+                        settings.layoutProfiles.forEach { profile ->
+                            DropdownMenuItem(text = { Text(profile.name) }, onClick = {
+                                profileMenu = false; onApplyProfile(profile.name)
+                            })
+                        }
+                    }
+                }
+            }
             AnimatedVisibility(visible = isWifi, enter = fadeIn(), exit = fadeOut()) {
                 Icon(Icons.Default.Wifi, "WiFi", tint = statusIconColor, modifier = Modifier.size(16.dp))
             }
@@ -195,7 +212,7 @@ fun HomeScreen(
             AnimatedVisibility(visible = isData, enter = fadeIn(), exit = fadeOut()) {
                 Icon(Icons.Default.SignalCellularAlt, "Data", tint = statusIconColor, modifier = Modifier.size(16.dp))
             }
-            if (isLandscape) {
+            run {
                 Spacer(Modifier.width(8.dp))
                 if (editMode) {
                     IconButton(
@@ -227,6 +244,13 @@ fun HomeScreen(
 
         HorizontalDivider(color = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF141414))
 
+        if (removedLayout != null) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Widget removed", modifier = Modifier.weight(1f), fontSize = 12.sp)
+                TextButton(onClick = { removedLayout?.let(onRestoreLayout); removedLayout = null }) { Text("Undo") }
+            }
+        }
+
         // ── Widget Grid ─────────────────────────────────────────────────────
         BoxWithConstraints(
             modifier = Modifier
@@ -243,22 +267,7 @@ fun HomeScreen(
             // (LauncherViewModel.moveWidgetConfig) computes against settings flags
             // only, so dropping it here would make the drop ghost and the committed
             // layout disagree. With no data the cell renders fully transparent.
-            val visibleIds = buildSet {
-                if (settings.showClock) add("CLOCK")
-                if (settings.showWeather) add("WEATHER")
-                if (settings.showNowPlaying) add("NOW_PLAYING")
-                if (settings.showTelemetry) add("TELEMETRY")
-                if (settings.showAltimeter) add("ALTIMETER")
-                if (settings.showSpeedometer) add("SPEEDOMETER")
-                if (settings.showVitals) add("VITALS")
-                if (settings.showTripTracker) add("TRIP_TRACKER")
-                if (settings.showSoundboard) add("SOUNDBOARD")
-        if (settings.showMap) add("MAP")
-                if (settings.showConnectivity) add("CONNECTIVITY")
-                if (settings.showDestinations) add("DESTINATIONS")
-                if (settings.showRadar) add("RADAR")
-                if (settings.showTraffic) add("TRAFFIC")
-            }
+            val visibleIds = settings.activeWidgetIds()
 
             // Keep only visible widgets exactly as configured in settings, allowing explicit resizing to dictate layout
             val visible = settings.widgetLayout.filter { it.enabled && it.id in visibleIds }
@@ -493,18 +502,23 @@ fun HomeScreen(
                             location = location,
                             isEditing = editMode,
                             onlineEnabled = settings.onlineMapEnabled,
+                            networkAvailable = isWifi || isData,
                             modifier = Modifier.fillMaxSize()
                         )
                         "CONNECTIVITY" -> ConnectivityWidget(
-                            isWifi = isWifi, isData = isData, modifier = Modifier.fillMaxSize()
+                            isWifi = isWifi, isData = isData, internetValidated = internetValidated, enabled = !editMode, modifier = Modifier.fillMaxSize()
                         )
                         "DESTINATIONS" -> DestinationsWidget(
                             home = settings.homeDestination,
                             work = settings.workDestination,
+                            recent = settings.recentDestinations,
+                            preferredPackage = settings.navigationPackage,
+                            onNavigate = onRememberDestination,
+                            enabled = !editMode,
                             modifier = Modifier.fillMaxSize()
                         )
-                        "RADAR" -> RadarWidget(modifier = Modifier.fillMaxSize())
-                        "TRAFFIC" -> TrafficWidget(location = location, modifier = Modifier.fillMaxSize())
+                        "RADAR" -> RadarWidget(enabled = !editMode, modifier = Modifier.fillMaxSize())
+                        "TRAFFIC" -> TrafficWidget(location = location, enabled = !editMode, modifier = Modifier.fillMaxSize())
                         "SOUNDBOARD" -> SoundboardWidget(
                             pads      = settings.soundboardPads,
                             accent    = accent,
@@ -550,7 +564,7 @@ fun HomeScreen(
             pipAppPackage       = settings.pipAppPackage,
             isDayMode           = isDayMode,
             onResize            = { contextMenuId = null; resizingId = id },
-            onRemove            = { contextMenuId = null; onRemoveWidget(id) },
+            onRemove            = { contextMenuId = null; removeWithUndo(id) },
             onAssignCarPlay     = { contextMenuId = null; onAssignCarPlay() },
             onAssignAndroidAuto = { contextMenuId = null; onAssignAndroidAuto() },
             onClearCarPlay      = { contextMenuId = null; onClearCarPlay() },
@@ -570,6 +584,7 @@ fun HomeScreen(
         if (config != null) {
             WidgetResizeDialog(
                 config    = config,
+                settings  = settings,
                 accent    = accent,
                 isDayMode = isDayMode,
                 onDismiss = { resizingId = null },
@@ -588,7 +603,7 @@ fun HomeScreen(
             accent    = accent,
             isDayMode = isDayMode,
             onAdd     = { id -> onAddWidget(id) },
-            onRemove  = { id -> onRemoveWidget(id) },
+            onRemove  = { id -> removeWithUndo(id) },
             onDismiss = { widgetLibraryOpen = false }
         )
     }
@@ -742,6 +757,7 @@ private fun ContextRow(
 @Composable
 private fun WidgetResizeDialog(
     config: WidgetConfig,
+    settings: AppSettings,
     accent: Color,
     isDayMode: Boolean,
     onDismiss: () -> Unit,
@@ -750,6 +766,7 @@ private fun WidgetResizeDialog(
     var spanX by remember { mutableStateOf(config.spanX) }
     var spanY by remember { mutableStateOf(config.spanY) }
 
+    val preview = settings.resizePreview(config.id, spanX, spanY)
     val maxSpanX = GRID_COLS
     val maxSpanY = GRID_ROWS
 
@@ -773,6 +790,7 @@ private fun WidgetResizeDialog(
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         (1..maxSpanX).forEach { width ->
                             FilterChip(
+                                enabled = settings.resizePreview(config.id, width, height) != null,
                                 selected = spanX == width && spanY == height,
                                 onClick = { spanX = width; spanY = height },
                                 label = { Text("${width}×${height}", fontSize = 10.sp) }
@@ -780,13 +798,28 @@ private fun WidgetResizeDialog(
                         }
                     }
                 }
-                Text("The widget may move to fit. Free space is required.", color = dialogText.copy(alpha = 0.6f), fontSize = 9.sp)
+                Text(if (preview == null) "This size does not fit. Remove or shrink another widget."
+                    else "Preview: the highlighted cells show this widget. Disabled sizes need more room.",
+                    color = dialogText.copy(alpha = 0.7f), fontSize = 11.sp)
+                val target = preview?.firstOrNull { it.id == config.id }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    repeat(GRID_ROWS) { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            repeat(GRID_COLS) { col ->
+                                val highlighted = target != null && col in target.gridX until target.gridX + target.spanX &&
+                                    row in target.gridY until target.gridY + target.spanY
+                                Box(Modifier.size(width = 52.dp, height = 30.dp).background(
+                                    if (highlighted) accent else dialogText.copy(alpha = 0.12f)))
+                            }
+                        }
+                    }
+                }
                 SpanRow(label = "WIDTH",  value = spanX, min = 1, max = maxSpanX, accent = accent, isDayMode = isDayMode) { spanX = it }
                 SpanRow(label = "HEIGHT", value = spanY, min = 1, max = maxSpanY, accent = accent, isDayMode = isDayMode) { spanY = it }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(spanX, spanY) }) {
+            TextButton(enabled = preview != null, onClick = { onConfirm(spanX, spanY) }) {
                 Text("APPLY", color = accent, fontSize = 11.sp, letterSpacing = 1.sp)
             }
         },
@@ -885,22 +918,7 @@ private fun WidgetLibraryDialog(
     val titleColor  = if (isDayMode) Color(0xFF495057) else Color(0xFF555555)
     val closeColor  = if (isDayMode) Color(0xFF495057) else Color(0xFF444444)
 
-    val activeIds = buildSet {
-        if (settings.showClock) add("CLOCK")
-        if (settings.showWeather) add("WEATHER")
-        if (settings.showNowPlaying) add("NOW_PLAYING")
-        if (settings.showTelemetry) add("TELEMETRY")
-        if (settings.showAltimeter) add("ALTIMETER")
-        if (settings.showSpeedometer) add("SPEEDOMETER")
-        if (settings.showVitals) add("VITALS")
-        if (settings.showTripTracker) add("TRIP_TRACKER")
-        if (settings.showSoundboard) add("SOUNDBOARD")
-        if (settings.showMap) add("MAP")
-                if (settings.showConnectivity) add("CONNECTIVITY")
-                if (settings.showDestinations) add("DESTINATIONS")
-                if (settings.showRadar) add("RADAR")
-                if (settings.showTraffic) add("TRAFFIC")
-    }
+    val activeIds = settings.activeWidgetIds()
     val canAdd = canAddWidget(settings)
 
     Dialog(onDismissRequest = onDismiss) {

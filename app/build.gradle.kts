@@ -11,15 +11,17 @@ android {
 
     defaultConfig {
         applicationId  = "com.openlauncher.app"
+        manifestPlaceholders["appLabel"] = "Open Launcher"
         minSdk         = 21
         targetSdk      = 36
-        versionCode    = 6
-        versionName    = "0.0.5"
+        versionCode    = 7
+        versionName    = "0.0.6-preview"
     }
 
     buildTypes {
         debug {
-            // Default signing config for normal device testing (restores app visibility)
+            applicationIdSuffix = ".preview"
+            manifestPlaceholders["appLabel"] = "Open Launcher Preview"
         }
         release {
             isMinifyEnabled = false
@@ -77,6 +79,8 @@ dependencies {
 
     // JSON serialization
     implementation("com.google.code.gson:gson:2.13.1")
+
+    testImplementation("junit:junit:4.13.2")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

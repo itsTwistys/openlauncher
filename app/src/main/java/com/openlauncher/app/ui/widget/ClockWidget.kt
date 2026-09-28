@@ -56,24 +56,37 @@ private fun DigitalClock(cal: Calendar, contentColor: Color, subColor: Color, us
     val minute = cal.get(Calendar.MINUTE)
     val second = cal.get(Calendar.SECOND)
 
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    val time = if (use12HourTime) "%d:%02d%s %s".format((hour + 11) % 12 + 1, minute,
+        if (showSeconds) ":%02d".format(second) else "", if (hour < 12) "AM" else "PM")
+        else "%02d:%02d%s".format(hour, minute, if (showSeconds) ":%02d".format(second) else "")
+    val compactDate = maxWidth < 240.dp
+    val scale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+    val clockSize = minOf(48f, (maxWidth.value - 28f) / (time.length * 0.65f * scale),
+        (maxHeight.value - 42f) / scale).coerceAtLeast(12f)
     Column(
-        modifier            = Modifier.fillMaxSize().padding(start = 14.dp, bottom = 14.dp),
+        modifier            = Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.Bottom,
         horizontalAlignment = Alignment.Start
     ) {
         Text(
-            text          = if (use12HourTime) "%d:%02d%s %s".format((hour + 11) % 12 + 1, minute, if (showSeconds) ":%02d".format(second) else "", if (hour < 12) "AM" else "PM") else "%02d:%02d%s".format(hour, minute, if (showSeconds) ":%02d".format(second) else ""),
+            text          = time,
+            maxLines = 1,
             color         = contentColor,
-            fontSize      = if (showSeconds) 38.sp else 48.sp,
+            fontSize      = clockSize.sp,
             fontWeight    = androidx.compose.ui.text.font.FontWeight.Light,
             letterSpacing = 1.sp
         )
         Text(
-            text     = if (dateFormat == "SHORT") shortDateString(cal) else buildDateString(cal),
+            text     = if (dateFormat == "SHORT" || compactDate) shortDateString(cal) else buildDateString(cal),
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             color    = subColor,
             fontSize = 12.sp
         )
     }
+}
+
 }
 
 @Composable

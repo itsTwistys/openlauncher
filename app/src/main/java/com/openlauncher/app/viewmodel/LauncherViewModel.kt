@@ -12,6 +12,8 @@ import android.os.Looper
 import android.provider.Settings as AndroidSettings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.openlauncher.app.data.resizePreview
+import com.openlauncher.app.data.withWidgetVisibility
 import com.openlauncher.app.data.AppSettings
 import com.openlauncher.app.data.DayNightMode
 import com.openlauncher.app.data.DefaultShortcutIcon
@@ -159,38 +161,22 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun updateWidgetConfig(id: String, spanX: Int, spanY: Int) {
         updateSettings {
-            val width = spanX.coerceIn(1, GRID_COLS)
-            val height = spanY.coerceIn(1, GRID_ROWS)
-            val activeIds = activeWidgetIds()
-            val active = widgetLayout.filter { it.enabled && it.id in activeIds }
-            val inactive = widgetLayout.filter { !it.enabled || it.id !in activeIds }
-            val target = active.firstOrNull { it.id == id } ?: return@updateSettings this
-            // Try current position first, then nearby cells. Never persist an overlap.
-            val positions = (0..GRID_ROWS - height).flatMap { y ->
-                (0..GRID_COLS - width).map { x -> x to y }
-            }.sortedBy { (x, y) -> kotlin.math.abs(x - target.gridX) + kotlin.math.abs(y - target.gridY) }
-            val fitted = positions.firstNotNullOfOrNull { (x, y) ->
-                val candidate = active.map { w ->
-                    if (w.id == id) w.copy(gridX = x, gridY = y, spanX = width, spanY = height) else w
-                }
-                val moved = computeWidgetMove(candidate, id, x, y)
-                val valid = moved.all { w ->
-                    w.gridX >= 0 && w.gridY >= 0 &&
-                    w.gridX + w.spanX <= GRID_COLS && w.gridY + w.spanY <= GRID_ROWS
-                } && moved.indices.all { i ->
-                    (i + 1 until moved.size).all { j ->
-                        val left = moved[i]
-                        val right = moved[j]
-                        left.gridX + left.spanX <= right.gridX ||
-                            right.gridX + right.spanX <= left.gridX ||
-                            left.gridY + left.spanY <= right.gridY ||
-                            right.gridY + right.spanY <= left.gridY
-                    }
-                }
-                if (valid) moved else null
-            }
-            if (fitted == null) this else copy(widgetLayout = fitted + inactive)
+            val fitted = resizePreview(id, spanX, spanY) ?: return@updateSettings this
+            val active = activeWidgetIds()
+            copy(widgetLayout = fitted + widgetLayout.filter { !it.enabled || it.id !in active })
         }
+    }
+
+    fun applyLayoutProfile(name: String) {
+        updateSettings {
+            val profile = layoutProfiles.firstOrNull { it.name == name } ?: return@updateSettings this
+            copy(widgetLayout = profile.layout, activeLayoutProfile = name)
+                .withWidgetVisibility(profile.enabledIds.toSet())
+        }
+    }
+
+    fun rememberDestination(destination: String) {
+        updateSettings { copy(recentDestinations = (listOf(destination) + recentDestinations).distinct().take(5)) }
     }
 
     fun moveWidgetConfig(id: String, gridX: Int, gridY: Int) {
@@ -450,6 +436,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // ── Connectivity ──────────────────────────────────────────────────────────
     private val _isWifi = MutableStateFlow(false)
     private val _isData = MutableStateFlow(false)
+    private val _internetValidated = MutableStateFlow(false)
+    val internetValidated: StateFlow<Boolean> = _internetValidated
+    private val connectivity by lazy { getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager }
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: android.net.Network) { refreshConnectivity() }
+        override fun onLost(network: android.net.Network) { refreshConnectivity() }
+        override fun onCapabilitiesChanged(network: android.net.Network, caps: NetworkCapabilities) { refreshConnectivity() }
+    }
     val isWifi: StateFlow<Boolean> = _isWifi
     val isData: StateFlow<Boolean> = _isData
 
@@ -654,6 +648,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val cm = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val caps = cm.getNetworkCapabilities(cm.activeNetwork)
+            _internetValidated.value = caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
             _isWifi.value = caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
             _isData.value = caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
         } else {
@@ -664,12 +659,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             val connected = info?.isConnected == true
             @Suppress("DEPRECATION")
             val type = info?.type
+            _internetValidated.value = false // Android 5 cannot report validated internet
             _isWifi.value = connected && type == ConnectivityManager.TYPE_WIFI
             _isData.value = connected && type == ConnectivityManager.TYPE_MOBILE
         }
     }
 
     override fun onCleared() {
+        runCatching { connectivity.unregisterNetworkCallback(networkCallback) }
         super.onCleared()
         locationMgr.stop()
         radioObserver?.let { getApplication<Application>().contentResolver.unregisterContentObserver(it) }
@@ -679,6 +676,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     init {
         loadInstalledApps()
         refreshConnectivity()
+        runCatching {
+            if (Build.VERSION.SDK_INT >= 24) connectivity.registerDefaultNetworkCallback(networkCallback)
+            else connectivity.registerNetworkCallback(android.net.NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build(), networkCallback)
+        }
         if (hasSzchoicewayMcu) startHardwareRadioObserver()
         // Fetch weather on first location fix, then every 30 minutes.
         // The minute ticker covers the parked case where no location updates arrive.

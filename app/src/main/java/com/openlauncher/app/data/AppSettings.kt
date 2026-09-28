@@ -117,6 +117,10 @@ data class AppSettings(
     val homeDestination: String = "",
     val workDestination: String = "",
     val layoutProfiles: List<LayoutProfile> = emptyList(),
+    val activeLayoutProfile: String = "",
+    val autoDayNightProfiles: Boolean = false,
+    val navigationPackage: String = "",
+    val recentDestinations: List<String> = emptyList(),
     val soundboardPads: List<SoundPadConfig> = defaultSoundboardPads(),
     val vitalsAsBars: Boolean = false,
     val speedometerDigitalOnly: Boolean = false,
@@ -166,58 +170,49 @@ fun AppSettings.withWidgetVisibility(ids: Set<String>): AppSettings = copy(
     showTraffic = "TRAFFIC" in ids
 )
 
-/**
- * Moves [movingId] to ([targetX], [targetY]) and pushes any displaced widgets to the
- * first available free cell, cascading until all conflicts are resolved.
- * Operates only on the supplied [layout] list — callers should pass only active/enabled widgets.
- */
-fun computeWidgetMove(
-    layout: List<WidgetConfig>,
-    movingId: String,
-    targetX: Int,
-    targetY: Int
-): List<WidgetConfig> {
-    val moving = layout.find { it.id == movingId } ?: return layout
-    val placed = moving.copy(
-        gridX = targetX.coerceIn(0, GRID_COLS - moving.spanX),
-        gridY = targetY.coerceIn(0, GRID_ROWS - moving.spanY)
-    )
-
-    val others  = layout.filter { it.id != movingId }
-    val result  = mutableListOf(placed)
-    val occupied = buildOccupied(result).toMutableSet()
-
-    // Stable widgets that don't conflict go first; displaced ones are pushed afterwards
-    val (stable, displaced) = others.partition { w -> result.none { widgetsOverlap(it, w) } }
-
-    for (w in stable) {
-        result.add(w)
-        for (dx in 0 until w.spanX) for (dy in 0 until w.spanY) occupied.add(w.gridX + dx to w.gridY + dy)
+/** Exhaustive placement for a six-cell grid; never persists overlaps. */
+fun fitWidgetLayout(layout: List<WidgetConfig>, target: WidgetConfig): List<WidgetConfig>? {
+    if (target.spanX !in 1..GRID_COLS || target.spanY !in 1..GRID_ROWS) return null
+    val others = layout.filter { it.id != target.id }.sortedByDescending { it.spanX * it.spanY }
+    if (others.sumOf { it.spanX * it.spanY } + target.spanX * target.spanY > GRID_COLS * GRID_ROWS) return null
+    fun positions(w: WidgetConfig) = (0..GRID_ROWS - w.spanY).flatMap { y ->
+        (0..GRID_COLS - w.spanX).map { x -> w.copy(gridX = x, gridY = y) }
+    }.sortedBy { kotlin.math.abs(it.gridX - w.gridX) + kotlin.math.abs(it.gridY - w.gridY) }
+    fun place(todo: List<WidgetConfig>, placed: List<WidgetConfig>): List<WidgetConfig>? {
+        if (todo.isEmpty()) return placed
+        val w = todo.first()
+        for (candidate in positions(w)) {
+            if (placed.none { widgetsOverlap(it, candidate) }) {
+                val result = place(todo.drop(1), placed + candidate)
+                if (result != null) return result
+            }
+        }
+        return null
     }
-
-    for (w in displaced) {
-        val pos = firstFreeGridPos(w.spanX, w.spanY, occupied)
-        val resolved = if (pos != null) w.copy(gridX = pos.first, gridY = pos.second) else w
-        result.add(resolved)
-        for (dx in 0 until resolved.spanX) for (dy in 0 until resolved.spanY) occupied.add(resolved.gridX + dx to resolved.gridY + dy)
+    for (candidate in positions(target)) {
+        val result = place(others, listOf(candidate))
+        if (result != null) return layout.map { w -> result.first { it.id == w.id } }
     }
-
-    return result
+    return null
 }
 
-private fun buildOccupied(widgets: List<WidgetConfig>) = buildSet<Pair<Int, Int>> {
-    widgets.forEach { w -> for (dx in 0 until w.spanX) for (dy in 0 until w.spanY) add(w.gridX + dx to w.gridY + dy) }
+fun computeWidgetMove(layout: List<WidgetConfig>, movingId: String, targetX: Int, targetY: Int): List<WidgetConfig> {
+    val moving = layout.firstOrNull { it.id == movingId } ?: return layout
+    return fitWidgetLayout(layout, moving.copy(gridX = targetX, gridY = targetY)) ?: layout
 }
+
+fun AppSettings.resizePreview(id: String, spanX: Int, spanY: Int): List<WidgetConfig>? {
+    val active = widgetLayout.filter { it.enabled && it.id in activeWidgetIds() }
+    val target = active.firstOrNull { it.id == id } ?: return null
+    return fitWidgetLayout(active, target.copy(spanX = spanX, spanY = spanY))
+}
+
+fun validWidgetLayout(layout: List<WidgetConfig>): Boolean =
+    layout.map { it.id }.distinct().size == layout.size && layout.all {
+        it.spanX in 1..GRID_COLS && it.spanY in 1..GRID_ROWS && it.gridX >= 0 && it.gridY >= 0 &&
+            it.gridX + it.spanX <= GRID_COLS && it.gridY + it.spanY <= GRID_ROWS
+    } && layout.indices.all { i -> (i + 1 until layout.size).all { j -> !widgetsOverlap(layout[i], layout[j]) } }
 
 private fun widgetsOverlap(a: WidgetConfig, b: WidgetConfig): Boolean =
     a.gridX < b.gridX + b.spanX && a.gridX + a.spanX > b.gridX &&
     a.gridY < b.gridY + b.spanY && a.gridY + a.spanY > b.gridY
-
-private fun firstFreeGridPos(spanX: Int, spanY: Int, occupied: Set<Pair<Int, Int>>): Pair<Int, Int>? {
-    for (row in 0 until GRID_ROWS) for (col in 0 until GRID_COLS) {
-        if (col + spanX > GRID_COLS || row + spanY > GRID_ROWS) continue
-        if ((0 until spanX).all { dx -> (0 until spanY).all { dy -> (col + dx to row + dy) !in occupied } })
-            return col to row
-    }
-    return null
-}

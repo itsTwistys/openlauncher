@@ -66,6 +66,10 @@ class SettingsRepository(private val context: Context) {
         val HOME_DESTINATION    = stringPreferencesKey("home_destination")
         val WORK_DESTINATION    = stringPreferencesKey("work_destination")
         val LAYOUT_PROFILES_JSON = stringPreferencesKey("layout_profiles_json")
+        val ACTIVE_PROFILE = stringPreferencesKey("active_profile")
+        val AUTO_PROFILES = booleanPreferencesKey("auto_profiles")
+        val NAVIGATION_PACKAGE = stringPreferencesKey("navigation_package")
+        val RECENT_DESTINATIONS = stringPreferencesKey("recent_destinations")
         val SOUNDBOARD_PADS_JSON  = stringPreferencesKey("soundboard_pads_json")
         val VITALS_AS_BARS        = booleanPreferencesKey("vitals_as_bars")
         val SPEEDOMETER_DIGITAL_ONLY = booleanPreferencesKey("speedometer_digital_only")
@@ -97,8 +101,8 @@ class SettingsRepository(private val context: Context) {
                         object : TypeToken<List<WidgetConfig>>() {}.type
                     )
                 }.getOrNull() ?: defaults.widgetLayout
-                // Migrate: old 2×2 layout has no widget with gridX≥2 — replace with new 3×2 default
-                if (loaded.none { it.gridX >= 2 }) defaults.widgetLayout else loaded
+                // Keep saved positions; an empty right-hand column is a valid custom layout.
+                loaded
             } else defaults.widgetLayout
 
             return AppSettings(
@@ -149,6 +153,12 @@ class SettingsRepository(private val context: Context) {
                 showTraffic = prefs[Keys.SHOW_TRAFFIC] ?: defaults.showTraffic,
                 homeDestination = prefs[Keys.HOME_DESTINATION] ?: defaults.homeDestination,
                 workDestination = prefs[Keys.WORK_DESTINATION] ?: defaults.workDestination,
+                activeLayoutProfile = prefs[Keys.ACTIVE_PROFILE] ?: "",
+                autoDayNightProfiles = prefs[Keys.AUTO_PROFILES] ?: false,
+                navigationPackage = prefs[Keys.NAVIGATION_PACKAGE] ?: "",
+                recentDestinations = prefs[Keys.RECENT_DESTINATIONS]?.let {
+                    runCatching { gson.fromJson<List<String>>(it, object : TypeToken<List<String>>() {}.type) }.getOrNull()
+                } ?: emptyList(),
                 layoutProfiles = prefs[Keys.LAYOUT_PROFILES_JSON]?.let {
                     runCatching { gson.fromJson<List<LayoutProfile>>(it, object : TypeToken<List<LayoutProfile>>() {}.type) }.getOrNull()
                 } ?: defaults.layoutProfiles,
@@ -224,6 +234,10 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.HOME_DESTINATION]   = s.homeDestination
             prefs[Keys.WORK_DESTINATION]   = s.workDestination
             prefs[Keys.LAYOUT_PROFILES_JSON] = gson.toJson(s.layoutProfiles)
+            prefs[Keys.ACTIVE_PROFILE] = s.activeLayoutProfile
+            prefs[Keys.AUTO_PROFILES] = s.autoDayNightProfiles
+            prefs[Keys.NAVIGATION_PACKAGE] = s.navigationPackage
+            prefs[Keys.RECENT_DESTINATIONS] = gson.toJson(s.recentDestinations)
             prefs[Keys.SOUNDBOARD_PADS_JSON] = gson.toJson(s.soundboardPads)
             prefs[Keys.VITALS_AS_BARS]     = s.vitalsAsBars
             prefs[Keys.SPEEDOMETER_DIGITAL_ONLY] = s.speedometerDigitalOnly
