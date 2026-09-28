@@ -68,6 +68,7 @@ private val ALL_WIDGET_TYPES = listOf(
     WidgetTypeInfo("CONNECTIVITY", "CONNECTIVITY", Icons.Default.Wifi,       "Network status"),
     WidgetTypeInfo("DESTINATIONS", "DESTINATIONS", Icons.Default.Home,      "Home and work shortcuts"),
     WidgetTypeInfo("RADAR",        "RADAR",        Icons.Default.Grain,      "Open live weather radar"),
+    WidgetTypeInfo("TRAFFIC",      "TRAFFIC",      Icons.Default.Traffic,    "Open live traffic and ETA"),
     WidgetTypeInfo("SOUNDBOARD",  "SOUNDBOARD",  Icons.Default.Piano,         "Custom sound pads")
 )
 
@@ -86,6 +87,7 @@ private fun canAddWidget(settings: com.openlauncher.app.data.AppSettings): Boole
                 if (settings.showConnectivity) add("CONNECTIVITY")
                 if (settings.showDestinations) add("DESTINATIONS")
                 if (settings.showRadar) add("RADAR")
+                if (settings.showTraffic) add("TRAFFIC")
     }
     val activeWidgets = settings.widgetLayout.filter { it.enabled && it.id in visibleIds }
     val occupied = buildSet<Pair<Int, Int>> {
@@ -255,6 +257,7 @@ fun HomeScreen(
                 if (settings.showConnectivity) add("CONNECTIVITY")
                 if (settings.showDestinations) add("DESTINATIONS")
                 if (settings.showRadar) add("RADAR")
+                if (settings.showTraffic) add("TRAFFIC")
             }
 
             // Keep only visible widgets exactly as configured in settings, allowing explicit resizing to dictate layout
@@ -333,6 +336,7 @@ fun HomeScreen(
                     "CONNECTIVITY" -> "NETWORK"
                     "DESTINATIONS" -> "PLACES"
                     "RADAR" -> "RADAR"
+                    "TRAFFIC" -> "TRAFFIC"
                     "SOUNDBOARD"  -> "SOUND"
                     else          -> w.id
                 }
@@ -499,6 +503,7 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxSize()
                         )
                         "RADAR" -> RadarWidget(modifier = Modifier.fillMaxSize())
+                        "TRAFFIC" -> TrafficWidget(location = location, modifier = Modifier.fillMaxSize())
                         "SOUNDBOARD" -> SoundboardWidget(
                             pads      = settings.soundboardPads,
                             accent    = accent,
@@ -893,6 +898,7 @@ private fun WidgetLibraryDialog(
                 if (settings.showConnectivity) add("CONNECTIVITY")
                 if (settings.showDestinations) add("DESTINATIONS")
                 if (settings.showRadar) add("RADAR")
+                if (settings.showTraffic) add("TRAFFIC")
     }
     val canAdd = canAddWidget(settings)
 
