@@ -72,6 +72,7 @@ data class AppSettings(
     val textScale: Float = 1.2f,
     val uiScale: Float = 1.0f,
     val clockStyle: ClockStyle = ClockStyle.DIGITAL,
+    val use12HourTime: Boolean = false,
     val unitSystem: UnitSystem = UnitSystem.METRIC,
     val appFont: AppFont = AppFont.JETBRAINS_MONO,
     val showWeather: Boolean = true,
@@ -99,6 +100,7 @@ data class AppSettings(
     val showTripTracker: Boolean = false,
     val compassOffset: Float = 0f,
     val showSoundboard: Boolean = false,
+    val showMap: Boolean = false,
     val soundboardPads: List<SoundPadConfig> = defaultSoundboardPads(),
     val vitalsAsBars: Boolean = false,
     val speedometerDigitalOnly: Boolean = false,
@@ -130,6 +132,7 @@ fun AppSettings.activeWidgetIds(): Set<String> = buildSet {
     if (showVitals) add("VITALS")
     if (showTripTracker) add("TRIP_TRACKER")
     if (showSoundboard) add("SOUNDBOARD")
+    if (showMap) add("MAP")
 }
 
 /**
