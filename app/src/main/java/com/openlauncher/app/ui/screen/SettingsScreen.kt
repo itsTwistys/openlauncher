@@ -32,6 +32,9 @@ import com.openlauncher.app.data.SidebarPosition
 import com.openlauncher.app.data.ShortcutConfig
 import com.openlauncher.app.data.GradientDirection
 import com.openlauncher.app.data.UnitSystem
+import com.openlauncher.app.data.LayoutProfile
+import com.openlauncher.app.data.activeWidgetIds
+import com.openlauncher.app.data.withWidgetVisibility
 import com.openlauncher.app.ui.theme.LocalDayMode
 import com.openlauncher.app.util.SunriseSunset
 import kotlinx.coroutines.launch
@@ -383,6 +386,36 @@ fun SettingsScreen(
                             else onUpdate { copy(workDestination = input.trim()) }
                         }) {
                             Icon(Icons.Default.Check, contentDescription = "Save $label", tint = accent)
+                        }
+                    }
+                }
+                SettingsDivider()
+            }
+        }
+
+        SettingsSection("Widget Layout Profiles") {
+            Text("Save and restore Driving, Parked, Day, or Night layouts.",
+                fontSize = 10.sp, color = if (isDayMode) Color.DarkGray else Color.LightGray)
+            listOf("Driving", "Parked", "Day", "Night").forEach { name ->
+                val saved = settings.layoutProfiles.firstOrNull { it.name == name }
+                SettingsRow(
+                    label = name,
+                    sublabel = if (saved == null) "No saved layout" else "Saved layout",
+                    icon = Icons.Default.Dashboard
+                ) {
+                    Row {
+                        TextButton(onClick = {
+                            onUpdate {
+                                val profile = LayoutProfile(name, widgetLayout, activeWidgetIds().toList())
+                                copy(layoutProfiles = layoutProfiles.filterNot { it.name == name } + profile)
+                            }
+                        }) { Text("SAVE", fontSize = 10.sp) }
+                        if (saved != null) {
+                            TextButton(onClick = {
+                                onUpdate {
+                                    copy(widgetLayout = saved.layout).withWidgetVisibility(saved.enabledIds.toSet())
+                                }
+                            }) { Text("LOAD", fontSize = 10.sp) }
                         }
                     }
                 }
