@@ -315,6 +315,16 @@ fun SettingsScreen(
 
             SettingsDivider()
 
+            SettingsRow(label = "Standard Time", sublabel = if (settings.use12HourTime) "12-hour (AM/PM)" else "24-hour", icon = Icons.Default.AccessTime) {
+                Switch(
+                    checked = settings.use12HourTime,
+                    onCheckedChange = { enabled -> onUpdate { copy(use12HourTime = enabled) } },
+                    colors = switchColors(accent)
+                )
+            }
+
+            SettingsDivider()
+
             SettingsRow(label = "Unit System", sublabel = if (settings.unitSystem == UnitSystem.METRIC) "Metric (°C, km)" else "Imperial (°F, mi)", icon = Icons.Default.Straighten) {
                 Row {
                     FilterChip(
