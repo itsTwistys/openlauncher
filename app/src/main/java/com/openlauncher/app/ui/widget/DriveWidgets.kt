@@ -69,3 +69,23 @@ fun RadarWidget(modifier: Modifier = Modifier) {
         Text("Uses WiFi • opens RainViewer", fontSize = 9.sp)
     }
 }
+
+@Composable
+fun TrafficWidget(location: com.openlauncher.app.util.LocationData?, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    Column(
+        modifier = modifier.clickable {
+            val center = if (location == null) "" else
+                "&center=" + location.latitude + "%2C" + location.longitude + "&zoom=13"
+            val url = Uri.parse("https://www.google.com/maps/@?api=1&map_action=map&layer=traffic" + center)
+            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, url)) }
+        }.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(Icons.Default.Traffic, contentDescription = null, modifier = Modifier.size(30.dp))
+        Spacer(Modifier.height(8.dp))
+        Text("OPEN LIVE TRAFFIC", fontSize = 12.sp)
+        Text("ETA available in maps", fontSize = 9.sp)
+    }
+}
