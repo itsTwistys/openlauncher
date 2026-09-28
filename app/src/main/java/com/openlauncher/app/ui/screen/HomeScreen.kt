@@ -199,7 +199,7 @@ fun HomeScreen(
                     DropdownMenu(expanded = profileMenu, onDismissRequest = { profileMenu = false }) {
                         settings.layoutProfiles.forEach { profile ->
                             DropdownMenuItem(text = { Text(profile.name) }, onClick = {
-                                profileMenu = false; onApplyProfile(profile.name)
+                                profileMenu = false; removedLayout = null; onApplyProfile(profile.name)
                             })
                         }
                     }
@@ -407,6 +407,7 @@ fun HomeScreen(
                                                 .coerceIn(0, GRID_COLS - origSpanX)
                                             val newY = (w.gridY + (dragOffsetPx.y / cellStepYPx).roundToInt())
                                                 .coerceIn(0, GRID_ROWS - w.spanY)
+                                            removedLayout = null
                                             onMoveWidget(w.id, newX, newY)
                                         } else {
                                             contextMenuId = w.id
@@ -589,6 +590,7 @@ fun HomeScreen(
                 isDayMode = isDayMode,
                 onDismiss = { resizingId = null },
                 onConfirm = { sx, sy ->
+                    removedLayout = null
                     onUpdateWidget(id, sx, sy)
                     resizingId = null
                 }
@@ -602,7 +604,7 @@ fun HomeScreen(
             settings  = settings,
             accent    = accent,
             isDayMode = isDayMode,
-            onAdd     = { id -> onAddWidget(id) },
+            onAdd     = { id -> removedLayout = null; onAddWidget(id) },
             onRemove  = { id -> removeWithUndo(id) },
             onDismiss = { widgetLibraryOpen = false }
         )
