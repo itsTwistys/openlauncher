@@ -25,6 +25,7 @@ fun ClockWidget(
     style: ClockStyle,
     accent: Color,
     isDayMode: Boolean = false,
+    use12HourTime: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var calendar by remember { mutableStateOf(Calendar.getInstance()) }
@@ -41,14 +42,14 @@ fun ClockWidget(
 
     Box(modifier = modifier) {
         when (style) {
-            ClockStyle.DIGITAL -> DigitalClock(calendar, contentColor, subColor)
+            ClockStyle.DIGITAL -> DigitalClock(calendar, contentColor, subColor, use12HourTime)
             ClockStyle.ANALOG  -> AnalogClock(calendar, accent, isDayMode)
         }
     }
 }
 
 @Composable
-private fun DigitalClock(cal: Calendar, contentColor: Color, subColor: Color) {
+private fun DigitalClock(cal: Calendar, contentColor: Color, subColor: Color, use12HourTime: Boolean) {
     val hour   = cal.get(Calendar.HOUR_OF_DAY)
     val minute = cal.get(Calendar.MINUTE)
 
@@ -58,7 +59,7 @@ private fun DigitalClock(cal: Calendar, contentColor: Color, subColor: Color) {
         horizontalAlignment = Alignment.Start
     ) {
         Text(
-            text          = "%02d:%02d".format(hour, minute),
+            text          = if (use12HourTime) "%d:%02d %s".format((hour + 11) % 12 + 1, minute, if (hour < 12) "AM" else "PM") else "%02d:%02d".format(hour, minute),
             color         = contentColor,
             fontSize      = 48.sp,
             fontWeight    = androidx.compose.ui.text.font.FontWeight.Light,
