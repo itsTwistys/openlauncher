@@ -369,6 +369,20 @@ fun SettingsScreen(
             }
         }
 
+        SettingsSection("Online Map") {
+            SettingsRow(
+                label = "Show Embedded Map",
+                sublabel = "Shares precise GPS location and map area with OpenStreetMap while the Map widget is visible",
+                icon = Icons.Default.Map
+            ) {
+                Switch(
+                    checked = settings.onlineMapEnabled,
+                    onCheckedChange = { enabled -> onUpdate { copy(onlineMapEnabled = enabled) } },
+                    colors = switchColors(accent)
+                )
+            }
+        }
+
         SettingsSection("Destinations") {
             listOf("Home" to settings.homeDestination, "Work" to settings.workDestination).forEach { (label, address) ->
                 var input by remember(address) { mutableStateOf(address) }
