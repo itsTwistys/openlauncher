@@ -744,8 +744,8 @@ private fun WidgetResizeDialog(
     var spanX by remember { mutableStateOf(config.spanX) }
     var spanY by remember { mutableStateOf(config.spanY) }
 
-    val maxSpanX = GRID_COLS - config.gridX
-    val maxSpanY = GRID_ROWS - config.gridY
+    val maxSpanX = GRID_COLS
+    val maxSpanY = GRID_ROWS
 
     val dialogBg     = if (isDayMode) Color(0xFFFFFFFF) else MaterialTheme.colorScheme.background
     val dialogText   = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
@@ -774,6 +774,7 @@ private fun WidgetResizeDialog(
                         }
                     }
                 }
+                Text("The widget may move to fit. Free space is required.", color = dialogText.copy(alpha = 0.6f), fontSize = 9.sp)
                 SpanRow(label = "WIDTH",  value = spanX, min = 1, max = maxSpanX, accent = accent, isDayMode = isDayMode) { spanX = it }
                 SpanRow(label = "HEIGHT", value = spanY, min = 1, max = maxSpanY, accent = accent, isDayMode = isDayMode) { spanY = it }
             }
