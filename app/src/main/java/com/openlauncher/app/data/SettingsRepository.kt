@@ -28,6 +28,8 @@ class SettingsRepository(private val context: Context) {
         val UI_SCALE           = floatPreferencesKey("ui_scale")
         val CLOCK_STYLE        = stringPreferencesKey("clock_style")
         val USE_12_HOUR_TIME   = booleanPreferencesKey("use_12_hour_time")
+        val CLOCK_SECONDS      = booleanPreferencesKey("clock_seconds")
+        val CLOCK_DATE_FORMAT  = stringPreferencesKey("clock_date_format")
         val UNIT_SYSTEM        = stringPreferencesKey("unit_system")
         val APP_FONT           = stringPreferencesKey("app_font")
         val SHOW_WEATHER       = booleanPreferencesKey("show_weather")
@@ -56,6 +58,11 @@ class SettingsRepository(private val context: Context) {
         val COMPASS_OFFSET        = floatPreferencesKey("compass_offset")
         val SHOW_SOUNDBOARD       = booleanPreferencesKey("show_soundboard")
         val SHOW_MAP            = booleanPreferencesKey("show_map")
+        val SHOW_CONNECTIVITY   = booleanPreferencesKey("show_connectivity")
+        val SHOW_DESTINATIONS   = booleanPreferencesKey("show_destinations")
+        val SHOW_RADAR          = booleanPreferencesKey("show_radar")
+        val HOME_DESTINATION    = stringPreferencesKey("home_destination")
+        val WORK_DESTINATION    = stringPreferencesKey("work_destination")
         val SOUNDBOARD_PADS_JSON  = stringPreferencesKey("soundboard_pads_json")
         val VITALS_AS_BARS        = booleanPreferencesKey("vitals_as_bars")
         val SPEEDOMETER_DIGITAL_ONLY = booleanPreferencesKey("speedometer_digital_only")
@@ -102,6 +109,8 @@ class SettingsRepository(private val context: Context) {
                 uiScale        = prefs[Keys.UI_SCALE]         ?: defaults.uiScale,
                 clockStyle     = prefs[Keys.CLOCK_STYLE]?.let { runCatching { ClockStyle.valueOf(it) }.getOrNull() } ?: defaults.clockStyle,
                 use12HourTime  = prefs[Keys.USE_12_HOUR_TIME] ?: defaults.use12HourTime,
+                showClockSeconds = prefs[Keys.CLOCK_SECONDS] ?: defaults.showClockSeconds,
+                clockDateFormat = prefs[Keys.CLOCK_DATE_FORMAT] ?: defaults.clockDateFormat,
                 unitSystem     = prefs[Keys.UNIT_SYSTEM]?.let { runCatching { UnitSystem.valueOf(it) }.getOrNull() } ?: defaults.unitSystem,
                 appFont        = prefs[Keys.APP_FONT]?.let { runCatching { AppFont.valueOf(it) }.getOrNull() } ?: defaults.appFont,
                 showWeather    = prefs[Keys.SHOW_WEATHER]     ?: defaults.showWeather,
@@ -130,6 +139,11 @@ class SettingsRepository(private val context: Context) {
                 compassOffset    = prefs[Keys.COMPASS_OFFSET]    ?: defaults.compassOffset,
                 showSoundboard   = prefs[Keys.SHOW_SOUNDBOARD]   ?: defaults.showSoundboard,
                 showMap          = prefs[Keys.SHOW_MAP]          ?: defaults.showMap,
+                showConnectivity = prefs[Keys.SHOW_CONNECTIVITY] ?: defaults.showConnectivity,
+                showDestinations = prefs[Keys.SHOW_DESTINATIONS] ?: defaults.showDestinations,
+                showRadar = prefs[Keys.SHOW_RADAR] ?: defaults.showRadar,
+                homeDestination = prefs[Keys.HOME_DESTINATION] ?: defaults.homeDestination,
+                workDestination = prefs[Keys.WORK_DESTINATION] ?: defaults.workDestination,
                 soundboardPads   = prefs[Keys.SOUNDBOARD_PADS_JSON]?.let {
                     runCatching {
                         gson.fromJson<List<SoundPadConfig>>(it, object : com.google.gson.reflect.TypeToken<List<SoundPadConfig>>() {}.type)
@@ -165,6 +179,8 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.UI_SCALE]           = s.uiScale
             prefs[Keys.CLOCK_STYLE]        = s.clockStyle.name
             prefs[Keys.USE_12_HOUR_TIME]   = s.use12HourTime
+            prefs[Keys.CLOCK_SECONDS]      = s.showClockSeconds
+            prefs[Keys.CLOCK_DATE_FORMAT]  = s.clockDateFormat
             prefs[Keys.UNIT_SYSTEM]        = s.unitSystem.name
             prefs[Keys.APP_FONT]           = s.appFont.name
             prefs[Keys.SHOW_WEATHER]       = s.showWeather
@@ -192,6 +208,11 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.COMPASS_OFFSET]     = s.compassOffset
             prefs[Keys.SHOW_SOUNDBOARD]    = s.showSoundboard
             prefs[Keys.SHOW_MAP]           = s.showMap
+            prefs[Keys.SHOW_CONNECTIVITY]  = s.showConnectivity
+            prefs[Keys.SHOW_DESTINATIONS]  = s.showDestinations
+            prefs[Keys.SHOW_RADAR]         = s.showRadar
+            prefs[Keys.HOME_DESTINATION]   = s.homeDestination
+            prefs[Keys.WORK_DESTINATION]   = s.workDestination
             prefs[Keys.SOUNDBOARD_PADS_JSON] = gson.toJson(s.soundboardPads)
             prefs[Keys.VITALS_AS_BARS]     = s.vitalsAsBars
             prefs[Keys.SPEEDOMETER_DIGITAL_ONLY] = s.speedometerDigitalOnly
