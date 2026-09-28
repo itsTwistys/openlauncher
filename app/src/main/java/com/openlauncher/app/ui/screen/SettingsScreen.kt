@@ -247,19 +247,12 @@ fun SettingsScreen(
             SettingsDivider()
             SettingsButton(
                 label    = "Draw Over Other Apps",
-                sublabel = if (canDrawOverlays) "Granted — PIP overlay enabled" else "Required for PIP floating window",
+                sublabel = if (canDrawOverlays) "Granted. Does not enable embedding other apps." else "Allow Open Launcher to appear over other apps",
                 icon     = if (canDrawOverlays) Icons.Default.Layers else Icons.Default.LayersClear,
                 accent   = if (canDrawOverlays) accent else Color(0xFF993333),
                 onClick  = {
                     if (android.os.Build.VERSION.SDK_INT >= 23) {
-                        runCatching {
-                            context.startActivity(
-                                Intent(
-                                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                    Uri.parse("package:${context.packageName}")
-                                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            )
-                        }
+                        com.openlauncher.app.util.openOverlaySettings(context)
                     }
                 }
             )
@@ -422,6 +415,7 @@ fun SettingsScreen(
         }
 
         SettingsSection("Online Map") {
+            Text("The embedded map uses OpenStreetMap. For Google Maps or Waze instructions, enable Notification Access, start navigation on this head unit, then return Home. Route lines and CarPlay navigation are not imported.", fontSize = 11.sp)
             SettingsRow(
                 label = "Show Embedded Map",
                 sublabel = "Shares precise GPS location and map area with OpenStreetMap while the Map widget is visible",
@@ -433,6 +427,17 @@ fun SettingsScreen(
                     colors = switchColors(accent)
                 )
             }
+        }
+
+        SettingsSection("YouTube") {
+            var videoLink by remember(settings.youtubeUrl) { mutableStateOf(settings.youtubeUrl) }
+            val validLink = videoLink.isBlank() || com.openlauncher.app.util.youtubeVideoId(videoLink) != null
+            Text("Paste a YouTube video or live-stream link, then add YouTube from the widget library. Playback is for parked use and requires a tap. Some videos do not allow embedding.", fontSize = 11.sp)
+            OutlinedTextField(value = videoLink, onValueChange = { videoLink = it.take(2048) },
+                label = { Text("Video or live-stream URL") }, singleLine = true,
+                isError = !validLink, modifier = Modifier.fillMaxWidth())
+            if (!validLink) Text("Use a youtube.com/watch, /live, /shorts or youtu.be link.", fontSize = 11.sp)
+            TextButton(enabled = validLink, onClick = { onUpdate { copy(youtubeUrl = videoLink.trim()) } }) { Text("Save video") }
         }
 
         SettingsSection("Backup and Restore") {

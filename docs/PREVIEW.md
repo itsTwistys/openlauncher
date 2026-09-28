@@ -31,3 +31,13 @@ Use JDK 17, Android SDK 36.1, and the included Gradle wrapper:
 ```
 
 The GitHub workflow runs the same checks and publishes a development preview only after both succeed. Leaflet 1.9.4 is bundled with its license; no remote JavaScript is loaded by the map.
+
+## 0.0.7: overlay, navigation and YouTube
+
+- Update the installed **Open Launcher Preview** APK. In Settings > Permissions > Draw Over Other Apps, select **Open Launcher Preview** in Android's list and allow it. The manifest now declares the missing overlay permission. The status refreshes when you return. Vendor ROMs may expose a different settings page.
+- Overlay permission allows drawing the launcher's own UI above another app. It does not grant permission to embed another app's full screen. This build does not add privileged app embedding or change the head unit's system settings automatically.
+- For directions, grant **Notification Access**, start a Google Maps or Waze trip on the head unit, then return Home. The Map widget displays the title and text exposed by its navigation notification, alongside the existing interactive OpenStreetMap GPS map. Text varies by app version. No route polyline is imported. Directions running only on an iPhone through CarPlay/ZLINK are not available through this integration. Navigation text remains in memory and clears when its notification is removed or access disconnects.
+- In Settings > YouTube, paste a specific video/live-stream link and save it. Add **YouTube** from the widget library. Enlarge the card if prompted; the embedded player requires a minimum 200 x 200 viewport. Tap **I'm parked · Load player**, then use the YouTube play control. Channel /live links are not supported; use the stream's Share link.
+- YouTube uses its official web player with app identity supplied through its referrer. Network traffic goes to YouTube only after loading the player. Unavailable, private, age-restricted or non-embeddable videos may show a YouTube error; use **Open YouTube**. **Reload** retries a failed player. This does not mirror the installed YouTube app or its login.
+- Playback stops on leaving the launcher, entering edit mode, losing connectivity, or GPS detecting movement above approximately 5 km/h. GPS is not a parking-brake interlock; use video only while parked. No autoplay or background playback is added.
+- Physical-device verification is still required for the ROM's permission screen, Google Maps/Waze notification fields, WebView/YouTube playback and audio behavior.

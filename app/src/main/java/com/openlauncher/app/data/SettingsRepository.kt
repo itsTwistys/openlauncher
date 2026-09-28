@@ -57,6 +57,8 @@ class SettingsRepository(private val context: Context) {
         val SHOW_TRIP_TRACKER     = booleanPreferencesKey("show_trip_tracker")
         val COMPASS_OFFSET        = floatPreferencesKey("compass_offset")
         val SHOW_SOUNDBOARD       = booleanPreferencesKey("show_soundboard")
+        val SHOW_YOUTUBE = booleanPreferencesKey("show_youtube")
+        val YOUTUBE_URL = stringPreferencesKey("youtube_url")
         val SHOW_MAP            = booleanPreferencesKey("show_map")
         val ONLINE_MAP_ENABLED = booleanPreferencesKey("online_map_enabled")
         val SHOW_CONNECTIVITY   = booleanPreferencesKey("show_connectivity")
@@ -145,6 +147,8 @@ class SettingsRepository(private val context: Context) {
                 showTripTracker  = prefs[Keys.SHOW_TRIP_TRACKER] ?: defaults.showTripTracker,
                 compassOffset    = prefs[Keys.COMPASS_OFFSET]    ?: defaults.compassOffset,
                 showSoundboard   = prefs[Keys.SHOW_SOUNDBOARD]   ?: defaults.showSoundboard,
+                showYouTube = prefs[Keys.SHOW_YOUTUBE] ?: defaults.showYouTube,
+                youtubeUrl = prefs[Keys.YOUTUBE_URL] ?: defaults.youtubeUrl,
                 showMap          = prefs[Keys.SHOW_MAP]          ?: defaults.showMap,
                 onlineMapEnabled = prefs[Keys.ONLINE_MAP_ENABLED] ?: defaults.onlineMapEnabled,
                 showConnectivity = prefs[Keys.SHOW_CONNECTIVITY] ?: defaults.showConnectivity,
@@ -225,6 +229,8 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.SHOW_TRIP_TRACKER]  = s.showTripTracker
             prefs[Keys.COMPASS_OFFSET]     = s.compassOffset
             prefs[Keys.SHOW_SOUNDBOARD]    = s.showSoundboard
+            prefs[Keys.SHOW_YOUTUBE] = s.showYouTube
+            prefs[Keys.YOUTUBE_URL] = s.youtubeUrl
             prefs[Keys.SHOW_MAP]           = s.showMap
             prefs[Keys.ONLINE_MAP_ENABLED] = s.onlineMapEnabled
             prefs[Keys.SHOW_CONNECTIVITY]  = s.showConnectivity

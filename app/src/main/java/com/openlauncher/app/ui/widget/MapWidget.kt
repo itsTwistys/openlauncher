@@ -21,7 +21,7 @@ import com.openlauncher.app.util.LocationData
 
 /** Loads bundled map code once, then moves the marker without reloading the page. */
 @Composable
-fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolean,
+private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolean,
               networkAvailable: Boolean = true, modifier: Modifier = Modifier) {
     if (!onlineEnabled || location == null || isEditing) {
         Box(modifier.padding(12.dp), contentAlignment = Alignment.Center) {
@@ -45,7 +45,7 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
             settings.setGeolocationEnabled(false)
             settings.javaScriptCanOpenWindowsAutomatically = false
             settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-            settings.userAgentString += " OpenLauncher/0.0.6 (+https://github.com/itsTwistys/openlauncher)"
+            settings.userAgentString += " OpenLauncher/0.0.7 (+https://github.com/itsTwistys/openlauncher)"
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView, url: String) { ready = true }
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -84,5 +84,46 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW,
                 Uri.parse("geo:${pos.latitude},${pos.longitude}?q=${pos.latitude},${pos.longitude}"))) }
         }, modifier = Modifier.align(Alignment.TopEnd).padding(6.dp)) { Text("Open maps", fontSize = 10.sp) }
+    }
+}
+
+
+@Composable
+fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolean,
+              networkAvailable: Boolean = true, navigationPackage: String = "", modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val directions by com.openlauncher.app.service.MediaListenerService.navigation.collectAsState()
+    val connected by com.openlauncher.app.service.MediaListenerService.isConnected.collectAsState()
+    val navigation = directions.firstOrNull { navigationPackage.isBlank() || it.packageName == navigationPackage }
+    Column(modifier) {
+        if (!isEditing) {
+            Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                    if (navigation != null) {
+                        Text(if (navigation.packageName == "com.waze") "Waze navigation" else "Google Maps navigation", fontSize = 10.sp)
+                        Text(navigation.title, fontSize = 14.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        if (navigation.details.isNotBlank()) Text(navigation.details, fontSize = 11.sp,
+                            maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    } else {
+                        Text(if (connected) "Start Google Maps or Waze navigation on this device for directions here."
+                            else "Enable Notification Access for directions from Google Maps or Waze.", fontSize = 11.sp, maxLines = 2)
+                    }
+                    TextButton(contentPadding = PaddingValues(horizontal = 4.dp), onClick = {
+                        if (!connected) {
+                            runCatching { context.startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+                        } else {
+                            val opened = navigation?.openIntent?.let { runCatching { it.send() }.isSuccess } ?: false
+                            if (!opened) {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0"))
+                                if (navigationPackage.isNotBlank()) intent.setPackage(navigationPackage)
+                                if (runCatching { context.startActivity(intent) }.isFailure)
+                                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps"))) }
+                            }
+                        }
+                    }) { Text(if (!connected) "Enable access" else "Open navigation", fontSize = 11.sp) }
+                }
+            }
+        }
+        LocationMap(location, isEditing, onlineEnabled, networkAvailable, Modifier.fillMaxWidth().weight(1f))
     }
 }
