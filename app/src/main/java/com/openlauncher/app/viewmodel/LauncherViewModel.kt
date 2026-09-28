@@ -159,21 +159,37 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun updateWidgetConfig(id: String, spanX: Int, spanY: Int) {
         updateSettings {
-            val resized = widgetLayout.map { w ->
-                if (w.id == id) w.copy(
-                    spanX = spanX.coerceIn(1, GRID_COLS - w.gridX),
-                    spanY = spanY.coerceIn(1, GRID_ROWS - w.gridY)
-                ) else w
-            }
-            // Re-run collision resolution so enlarging a widget pushes neighbors
-            // aside instead of stacking on top of them
+            val width = spanX.coerceIn(1, GRID_COLS)
+            val height = spanY.coerceIn(1, GRID_ROWS)
             val activeIds = activeWidgetIds()
-            val active    = resized.filter { it.enabled && it.id in activeIds }
-            val inactive  = resized.filter { !it.enabled || it.id !in activeIds }
-            val target    = active.find { it.id == id }
-            copy(widgetLayout = if (target != null)
-                computeWidgetMove(active, id, target.gridX, target.gridY) + inactive
-            else resized)
+            val active = widgetLayout.filter { it.enabled && it.id in activeIds }
+            val inactive = widgetLayout.filter { !it.enabled || it.id !in activeIds }
+            val target = active.firstOrNull { it.id == id } ?: return@updateSettings this
+            // Try current position first, then nearby cells. Never persist an overlap.
+            val positions = (0..GRID_ROWS - height).flatMap { y ->
+                (0..GRID_COLS - width).map { x -> x to y }
+            }.sortedBy { (x, y) -> kotlin.math.abs(x - target.gridX) + kotlin.math.abs(y - target.gridY) }
+            val fitted = positions.firstNotNullOfOrNull { (x, y) ->
+                val candidate = active.map { w ->
+                    if (w.id == id) w.copy(gridX = x, gridY = y, spanX = width, spanY = height) else w
+                }
+                val moved = computeWidgetMove(candidate, id, x, y)
+                val valid = moved.all { w ->
+                    w.gridX >= 0 && w.gridY >= 0 &&
+                    w.gridX + w.spanX <= GRID_COLS && w.gridY + w.spanY <= GRID_ROWS
+                } && moved.indices.all { i ->
+                    (i + 1 until moved.size).all { j ->
+                        val left = moved[i]
+                        val right = moved[j]
+                        left.gridX + left.spanX <= right.gridX ||
+                            right.gridX + right.spanX <= left.gridX ||
+                            left.gridY + left.spanY <= right.gridY ||
+                            right.gridY + right.spanY <= left.gridY
+                    }
+                }
+                if (valid) moved else null
+            }
+            if (fitted == null) this else copy(widgetLayout = fitted + inactive)
         }
     }
 
