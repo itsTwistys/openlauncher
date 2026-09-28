@@ -64,6 +64,7 @@ private val ALL_WIDGET_TYPES = listOf(
     WidgetTypeInfo("SPEEDOMETER", "SPEED",       Icons.Default.Speed,         "GPS speed"),
     WidgetTypeInfo("VITALS",      "VITALS",      Icons.Default.Dns,           "Head Unit Health / Vitals"),
     WidgetTypeInfo("TRIP_TRACKER", "TRIP TRACKER", Icons.Default.Map,          "Trip logs & stats"),
+    WidgetTypeInfo("MAP",          "MAP",          Icons.Default.Place,        "Live map of your location"),
     WidgetTypeInfo("SOUNDBOARD",  "SOUNDBOARD",  Icons.Default.Piano,         "Custom sound pads")
 )
 
@@ -78,6 +79,7 @@ private fun canAddWidget(settings: com.openlauncher.app.data.AppSettings): Boole
         if (settings.showVitals) add("VITALS")
         if (settings.showTripTracker) add("TRIP_TRACKER")
         if (settings.showSoundboard) add("SOUNDBOARD")
+        if (settings.showMap) add("MAP")
     }
     val activeWidgets = settings.widgetLayout.filter { it.enabled && it.id in visibleIds }
     val occupied = buildSet<Pair<Int, Int>> {
@@ -243,6 +245,7 @@ fun HomeScreen(
                 if (settings.showVitals) add("VITALS")
                 if (settings.showTripTracker) add("TRIP_TRACKER")
                 if (settings.showSoundboard) add("SOUNDBOARD")
+        if (settings.showMap) add("MAP")
             }
 
             // Keep only visible widgets exactly as configured in settings, allowing explicit resizing to dictate layout
@@ -317,6 +320,7 @@ fun HomeScreen(
                     "ALTIMETER"   -> "ALTIMETER"
                     "SPEEDOMETER" -> "SPEED"
                     "TRIP_TRACKER" -> "TRIP"
+                    "MAP"         -> "MAP"
                     "SOUNDBOARD"  -> "SOUND"
                     else          -> w.id
                 }
@@ -398,6 +402,7 @@ fun HomeScreen(
                             style      = settings.clockStyle,
                             accent     = accent,
                             isDayMode  = isDayMode,
+                            use12HourTime = settings.use12HourTime,
                             modifier   = Modifier.fillMaxSize()
                         )
                         "WEATHER" -> WeatherWidget(
@@ -465,6 +470,11 @@ fun HomeScreen(
                             accent    = accent,
                             isDayMode = isDayMode,
                             modifier  = Modifier.fillMaxSize()
+                        )
+                        "MAP" -> MapWidget(
+                            location = location,
+                            isEditing = editMode,
+                            modifier = Modifier.fillMaxSize()
                         )
                         "SOUNDBOARD" -> SoundboardWidget(
                             pads      = settings.soundboardPads,
@@ -839,6 +849,7 @@ private fun WidgetLibraryDialog(
         if (settings.showVitals) add("VITALS")
         if (settings.showTripTracker) add("TRIP_TRACKER")
         if (settings.showSoundboard) add("SOUNDBOARD")
+        if (settings.showMap) add("MAP")
     }
     val canAdd = canAddWidget(settings)
 
