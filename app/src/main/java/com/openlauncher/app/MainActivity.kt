@@ -1,6 +1,7 @@
 package com.openlauncher.app
 
 import android.Manifest
+import com.openlauncher.app.data.withWidgetVisibility
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -71,10 +72,14 @@ class MainActivity : ComponentActivity() {
             val bearing     by vm.compassBearing.collectAsStateWithLifecycle()
             val isWifi      by vm.isWifi.collectAsStateWithLifecycle()
             val isData      by vm.isData.collectAsStateWithLifecycle()
+            val internetValidated by vm.internetValidated.collectAsStateWithLifecycle()
             val isDayModeVM by vm.isDayMode.collectAsStateWithLifecycle()
             val hardwareRadio by vm.hardwareRadio.collectAsStateWithLifecycle()
             val systemIsDark = isSystemInDarkTheme()
             val isDayMode = if (settings.dayNightMode == DayNightMode.SYSTEM) !systemIsDark else isDayModeVM
+            androidx.compose.runtime.LaunchedEffect(settings.autoDayNightProfiles, isDayMode, settings.layoutProfiles) {
+                if (settings.autoDayNightProfiles) vm.applyLayoutProfile(if (isDayMode) "Day" else "Night")
+            }
             val pickerSlot      by vm.shortcutPickerSlot.collectAsStateWithLifecycle()
             val appPickerTarget by vm.appPickerTarget.collectAsStateWithLifecycle()
 
@@ -194,6 +199,12 @@ class MainActivity : ComponentActivity() {
                                         nowPlaying          = nowPlaying,
                                         location            = location,
                                         bearing             = bearing,
+                                        internetValidated   = internetValidated,
+                                        onApplyProfile      = vm::applyLayoutProfile,
+                                        onRememberDestination = vm::rememberDestination,
+                                        onRestoreLayout = { profile -> vm.updateSettings {
+                                            copy(widgetLayout = profile.layout).withWidgetVisibility(profile.enabledIds.toSet())
+                                        } },
                                         isWifi              = isWifi,
                                         isData              = isData,
                                         isDayMode           = isDayMode,

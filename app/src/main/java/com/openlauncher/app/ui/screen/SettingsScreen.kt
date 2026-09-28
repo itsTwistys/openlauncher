@@ -26,6 +26,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.data.AppFont
+import com.openlauncher.app.data.SettingsBackup
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.openlauncher.app.data.AppSettings
 import com.openlauncher.app.data.DayNightMode
 import com.openlauncher.app.data.SidebarPosition
@@ -53,6 +56,55 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val backupScope = rememberCoroutineScope()
+    val latestSettings by rememberUpdatedState(settings)
+    var backupStatus by remember { mutableStateOf("") }
+    var pendingRestore by remember { mutableStateOf<AppSettings?>(null) }
+    val exportBackup = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) backupScope.launch {
+            backupStatus = runCatching {
+                val json = SettingsBackup.encode(latestSettings)
+                withContext(Dispatchers.IO) {
+                    requireNotNull(context.contentResolver.openOutputStream(uri)).bufferedWriter().use { it.write(json) }
+                }
+                "Backup saved. It includes your destination addresses."
+            }.getOrElse { "Could not save the backup. Try another location." }
+        }
+    }
+    val importBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) backupScope.launch {
+            runCatching {
+                val json = withContext(Dispatchers.IO) {
+                    requireNotNull(context.contentResolver.openInputStream(uri)).bufferedReader().use { reader ->
+                        val result = StringBuilder()
+                        val buffer = CharArray(4096)
+                        var count = reader.read(buffer)
+                        while (count >= 0) {
+                            result.append(buffer, 0, count)
+                            require(result.length <= 1_000_000) { "Backup too large" }
+                            count = reader.read(buffer)
+                        }
+                        result.toString()
+                    }
+                }
+                pendingRestore = SettingsBackup.decode(json)
+            }.onFailure { backupStatus = "That file is not a valid Open Launcher backup." }
+        }
+    }
+    pendingRestore?.let { restored ->
+        AlertDialog(
+            onDismissRequest = { pendingRestore = null },
+            title = { Text("Restore settings?") },
+            text = { Text("Replace layouts, shortcuts, destinations and appearance? Wallpaper/audio files are not included. Enable the online map again after restoring.") },
+            confirmButton = { TextButton(onClick = {
+                onUpdate { restored.copy(onboardingCompleted = onboardingCompleted) }
+                pendingRestore = null
+                backupStatus = "Settings restored. Reassign local wallpaper/audio files if needed."
+            }) { Text("Restore") } },
+            dismissButton = { TextButton(onClick = { pendingRestore = null }) { Text("Cancel") } }
+        )
+    }
+
     var showResetDialog       by remember { mutableStateOf(false) }
     var showAccentPicker      by remember { mutableStateOf(false) }
     var showBgPicker          by remember { mutableStateOf(false) }
@@ -383,7 +435,24 @@ fun SettingsScreen(
             }
         }
 
+        SettingsSection("Backup and Restore") {
+            Text("Export settings and destination addresses to a local JSON file.", fontSize = 11.sp)
+            Row {
+                TextButton(onClick = { exportBackup.launch("openlauncher-settings.json") }) { Text("Export backup") }
+                TextButton(onClick = { importBackup.launch(arrayOf("application/json", "text/plain")) }) { Text("Restore backup") }
+            }
+            if (backupStatus.isNotBlank()) Text(backupStatus, fontSize = 11.sp)
+        }
+
         SettingsSection("Destinations") {
+            Text("Preferred navigation app", fontSize = 12.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("Default" to "", "Google Maps" to "com.google.android.apps.maps", "Waze" to "com.waze").forEach { (label, pkg) ->
+                    FilterChip(selected = settings.navigationPackage == pkg,
+                        onClick = { onUpdate { copy(navigationPackage = pkg) } },
+                        label = { Text(label, fontSize = 10.sp) })
+                }
+            }
             listOf("Home" to settings.homeDestination, "Work" to settings.workDestination).forEach { (label, address) ->
                 var input by remember(address) { mutableStateOf(address) }
                 SettingsRow(label = label, sublabel = "Street address or place name", icon = if (label == "Home") Icons.Default.Home else Icons.Default.Work) {
@@ -408,6 +477,12 @@ fun SettingsScreen(
         }
 
         SettingsSection("Widget Layout Profiles") {
+            SettingsRow(label = "Automatic Day/Night Layout", sublabel = "Uses saved Day and Night layouts with the current display mode", icon = Icons.Default.Brightness6) {
+                Switch(checked = settings.autoDayNightProfiles,
+                    onCheckedChange = { enabled -> onUpdate { copy(autoDayNightProfiles = enabled) } },
+                    enabled = settings.layoutProfiles.any { it.name == "Day" } && settings.layoutProfiles.any { it.name == "Night" })
+            }
+            Text("Save both Day and Night layouts to enable automatic switching.", fontSize = 10.sp)
             Text("Save and restore Driving, Parked, Day, or Night layouts.",
                 fontSize = 10.sp, color = if (isDayMode) Color.DarkGray else Color.LightGray)
             listOf("Driving", "Parked", "Day", "Night").forEach { name ->
@@ -427,7 +502,7 @@ fun SettingsScreen(
                         if (saved != null) {
                             TextButton(onClick = {
                                 onUpdate {
-                                    copy(widgetLayout = saved.layout).withWidgetVisibility(saved.enabledIds.toSet())
+                                    copy(widgetLayout = saved.layout, activeLayoutProfile = name).withWidgetVisibility(saved.enabledIds.toSet())
                                 }
                             }) { Text("LOAD", fontSize = 10.sp) }
                         }
