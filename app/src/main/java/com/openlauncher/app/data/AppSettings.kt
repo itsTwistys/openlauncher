@@ -112,6 +112,7 @@ data class AppSettings(
     val showConnectivity: Boolean = false,
     val showDestinations: Boolean = false,
     val showRadar: Boolean = false,
+    val showTraffic: Boolean = false,
     val homeDestination: String = "",
     val workDestination: String = "",
     val layoutProfiles: List<LayoutProfile> = emptyList(),
@@ -150,6 +151,7 @@ fun AppSettings.activeWidgetIds(): Set<String> = buildSet {
     if (showConnectivity) add("CONNECTIVITY")
     if (showDestinations) add("DESTINATIONS")
     if (showRadar) add("RADAR")
+    if (showTraffic) add("TRAFFIC")
 }
 
 fun AppSettings.withWidgetVisibility(ids: Set<String>): AppSettings = copy(
@@ -159,7 +161,8 @@ fun AppSettings.withWidgetVisibility(ids: Set<String>): AppSettings = copy(
     showVitals = "VITALS" in ids, showTripTracker = "TRIP_TRACKER" in ids,
     showSoundboard = "SOUNDBOARD" in ids, showMap = "MAP" in ids,
     showConnectivity = "CONNECTIVITY" in ids,
-    showDestinations = "DESTINATIONS" in ids, showRadar = "RADAR" in ids
+    showDestinations = "DESTINATIONS" in ids, showRadar = "RADAR" in ids,
+    showTraffic = "TRAFFIC" in ids
 )
 
 /**
