@@ -1,147 +1,51 @@
 <div align="center">
-  <img width="256" height="256" alt="logoo" src="https://github.com/user-attachments/assets/4c5c4ddb-836d-4c59-8325-76b8c8d78bb3" />
+  <img width="192" height="192" alt="Open Launcher icon" src="https://github.com/user-attachments/assets/4c5c4ddb-836d-4c59-8325-76b8c8d78bb3" />
   <h1>Open Launcher</h1>
-  <p><strong>An open-source, offline-first Android launcher built specifically for aftermarket car head units.</strong></p>
-
-  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+  <p>A configurable Android home screen for aftermarket car head units.</p>
 </div>
 
----
+## Download the Android preview
 
-## Get the Android app
+<!-- preview-download:start -->
+**[Download Open Launcher 0.0.8-preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-e1aa48d/openlauncher-preview.apk)**
 
-Open Launcher is an Android home screen for aftermarket car head units, with customizable widgets, media controls, maps, and saved dashboard layouts.
+[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-e1aa48d) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-e1aa48d/docs/PREVIEW.md)
+<!-- preview-download:end -->
 
-**[Download Open Launcher Preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-e1aa48d/openlauncher-preview.apk)**
+This debug-signed preview installs as **Open Launcher Preview** alongside an existing launcher. Android build and 13 unit tests passed. The map and YouTube rendering changes still need confirmation on the QUZHIDA head unit.
 
-Version **0.0.8 preview** installs as **Open Launcher Preview** alongside your existing launcher. This is a development build with debug signing. The Android build and 13 unit tests passed; physical head-unit testing is still required.
+![Earlier Open Launcher dashboard screenshot; current preview layout and controls may differ](https://github.com/user-attachments/assets/a1bc63f3-2d4e-4ac0-bd56-b5d181681658)
 
-[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-e1aa48d) · [Installation guide](https://github.com/itsTwistys/openlauncher/blob/preview-e1aa48d/docs/PREVIEW.md) · [Source changes (PR #4)](https://github.com/itsTwistys/openlauncher/pull/4)
+## What is built
 
-New in 0.0.8: **Now Playing → source menu → YouTube video**, native frame sizing/clipping and stable widget identity, and map loading/error/reload controls. Remove the separate YouTube card to use the combined player. Close any floating window owned by the separate YouTube app. Head-unit verification of these rendering changes remains pending.
+- **Dashboard:** 3 × 2 grid with draggable, removable, resizable cards. The resize dialog previews placement and disables sizes that do not fit. Removal offers an eight-second Undo. Save Driving, Parked, Day and Night layouts, select them from Home, and optionally switch Day/Night layouts automatically.
+- **Time and display:** digital or analog clock, 12- or 24-hour time, optional seconds, compact/full date, light/dark/system/sunrise themes, text and UI scaling, accent and background options, sidebar position, and wallpaper dimming.
+- **Media:** Now Playing reads an Android media session through user-granted Notification Access and offers play/pause/skip. FM/AM Radio uses a supported head-unit MCU or assigned radio app; availability and controls depend on the device. The soundboard has configurable pads.
+- **YouTube:** save a specific video or live-stream URL and choose **YouTube video** from Now Playing's three-dot source menu, or add the separate YouTube card. The official embedded player loads on demand for parked use. Playback depends on the device WebView and whether the video allows embedding; it does not mirror the installed YouTube app.
+- **Driving:** GPS compass, speedometer, altimeter, trip distance and elapsed time, a 0–100 km/h timer, and head-unit CPU, memory and temperature readings. These depend on available device sensors.
+- **Maps and destinations:** an optional interactive OpenStreetMap GPS map with Follow, Recenter, Reload and offline/error states. When navigation runs in Google Maps or Waze **on the head unit**, the map card can display text from that app's navigation notification. Set Home/Work, choose a preferred navigation app and reuse recent destinations. No Google Maps route line or CarPlay/ZLINK route is embedded.
+- **Connectivity and weather:** WiFi/mobile and Android-validated internet state, online weather, and Radar/Traffic cards that open external views. The dashboard and local controls work without WiFi; map tiles, weather and YouTube require internet.
+- **Apps and recovery:** installed-app library, configurable shortcuts, first-run permission setup, and local versioned JSON settings backup/restore.
 
-Included from 0.0.7: corrected overlay permission setup, Google Maps/Waze navigation notification text beside the embedded GPS map, and a YouTube video/live-stream widget for parked use. Full navigation app screens and CarPlay routes are not mirrored.
+## Set up a preview
 
-The preview also includes smooth map tracking with Follow and Recenter, widget size previews and removal Undo, adaptive clock text, home-screen profile switching, optional Day/Night layouts, live internet status, preferred navigation apps and recent destinations, and local settings backup/restore.
+1. Install the APK and open **Open Launcher Preview**. Select it as Home when ready.
+2. Grant Location Access for GPS cards. Enable **Settings > Online Map > Show Embedded Map** only if you want the online map; while visible it sends precise GPS coordinates and the viewed map area to OpenStreetMap.
+3. Grant Notification Access to show media sessions and navigation notification text. Start Google Maps or Waze navigation on the head unit, then return Home for directions text.
+4. For YouTube, save a specific video Share link in **Settings > YouTube**. Use Now Playing's source menu, remove the separate YouTube card if combining them, enlarge the card if prompted, and load the player while parked.
 
-<img width="1200" alt="Open Launcher dashboard preview" src="https://github.com/user-attachments/assets/a1bc63f3-2d4e-4ac0-bd56-b5d181681658" />
+See the [preview guide](docs/PREVIEW.md) for update, permission and troubleshooting details. Draw Over Other Apps permission does not embed another app's entire window. An external YouTube floating window must be closed in that app.
 
-*Preview of the existing dashboard; it does not show every newly added feature.*
+## Status and development
 
-### Setup after installing a build
+This is a development preview. Android build and unit tests passed; browser checks used simulated map tiles and video responses. On one QUZHIDA head unit, Google Maps navigation text appeared but the embedded map remained blank and video appeared in an external floating window. Version 0.0.8 adds native WebView sizing and clipping, map diagnostics and Now Playing's YouTube mode. Confirm these rendering changes on hardware before treating them as resolved.
 
-1. Select Open Launcher as the Android home app.
-2. Grant location access for GPS widgets.
-3. Use the widget library to add, remove, and resize dashboard cards.
-4. For the embedded map, enable **Settings → Online Map → Show Embedded Map**. While visible, it shares precise GPS location and the displayed map area with OpenStreetMap.
+Use JDK 17 and Android SDK 36.1 to build from source:
 
----
+```sh
+./gradlew :app:testDebugUnitTest :app:assembleDebug
+```
 
-## 📖 Table of Contents
-- [Why Build Another Car Launcher?](#-why-build-another-car-launcher)
-- [The Philosophy](#-the-philosophy-offline-first--oem-aesthetics)
-- [Current Features](#-current-features)
-- [Roadmap & Future Plans](#️-roadmap--future-plans)
-- [Contributing](#-contributing-open-source-first)
-- [License](#-license)
+Each passing push to `main` or a feature/fix branch publishes a debug-signed prerelease with an APK and SHA-256 checksum. The workflow updates the README download after a successful `main` release. Pull requests run build and unit tests without publishing an APK.
 
----
-
-## 🛑 Why build another car launcher?
-
-I built this project for three simple reasons:
-
-1. **No Premium Paywalls:** I didn't want to pay someone for basic dashboard functionality.
-2. **Community-Driven:** I wanted it to be open-source. The car modding community is incredible, and I wanted to create a foundation that others could actually build upon, fork, and improve.
-3. **Clean Aesthetics:** Let's be honest—most Android launchers look like cheap video games, have zero functionality, or half the features are broken. This is built to look clean, professional, and integrated.
-
-## 🧠 The Philosophy: Offline-First & OEM+ Aesthetics
-
-Most modern head unit setups rely on wireless CarPlay or Android Auto for navigation and media. That means the head unit itself is offline 90% of the time.
-
-I designed this launcher around that reality. It is built to be functional without a Wi-Fi connection while remaining highly customizable. Whether you are installing this in a 2020 Corolla Hybrid or a custom project car, the goal is for the UI to look like it actually belongs in your car's interior—a true OEM+ aesthetic.
-
----
-
-## ✨ Current Features
-
-This project is currently in active development, but the core foundation is highly customizable:
-
-<img width="2400" height="896" alt="Screenshot_20260527-025436" src="https://github.com/user-attachments/assets/a1bc63f3-2d4e-4ac0-bd56-b5d181681658" />
-<img width="2400" height="896" alt="Screenshot_20260527-212602" src="https://github.com/user-attachments/assets/cf319144-0a06-4bc6-ab83-855ef8514a9c" />
-<img width="2400" height="896" alt="Screenshot_20260527-025446" src="https://github.com/user-attachments/assets/cc038c53-dcf5-4b4b-bd73-bfcd18bd82d2" />
-<img width="2400" height="896" alt="Screenshot_20260527-025451" src="https://github.com/user-attachments/assets/cc038c53-dcf5-4b4b-bd73-bfcd18bd82d2" />
-
-### 🧩 Modular Widget Grid
-The home screen is a fully drag-and-drop, resize-capable grid. Every widget pane can be moved, scaled, and stacked however you want. Nothing is locked to a fixed position. Add and remove widgets from the built-in library at any time.
-
-### 🎛️ Instrument Panel Widgets
-A growing library of purpose-built car widgets designed to look like they belong on a dash — not a phone:
-
-* **Smart Music Player** — pulls track metadata, album art, and playback controls from any local or streaming source. Detects when CarPlay or Android Auto is in use and switches into shortcut mode automatically.
-* **AM/FM Radio** — instrument panel-style digital display that mirrors your head unit's **real tuner**. On szchoiceway-based units it talks to the MCU directly (seek, FM1/FM2/FM3/AM band switching, direct-tune frequency presets with memory). On every other unit it mirrors and controls your vendor radio app through its media session — assign the app once from the widget and get live frequency/station readout plus seek controls. No simulated stations or fake static.
-* **Speedometer** — standalone GPS-based digital speed readout. Independent from the trip tracker so it can live anywhere on the grid.
-* **Altimeter** — live elevation tracking pulled from the device GPS.
-* **Trip Meter** — taxi-style rolling odometer display with trip distance and elapsed time. Includes a hidden **0–100 km/h timer** (tap the meter label to reveal it) that auto-starts from standstill and locks in your time at 100.
-* **Head Unit Vitals** — real-time CPU load, memory pressure, and temperature readouts for monitoring your head unit's thermals on long drives.
-* **Soundboard** — 6 fully assignable sound pads. Each pad can be set to a built-in synth type (HORN, BEEP, ALERT, KICK, SNARE, BASS, FART) or loaded with any custom audio file from device storage. Assignments persist across restarts.
-* **Dynamic Weather** — auto-detects connectivity. Shows live weather when online, hides cleanly when offline. No broken blank widgets.
-* **GPS Compass** — live bearing with calibrated heading display.
-
-### 🗂️ App Library
-Pulls every installed app, including system-level apps that most launchers miss — such as buried CarPlay and Android Auto receiver apps on head units that don't surface them normally.
-
-### 📌 Sidebar Shortcuts
-The sidebar holds your most-used app shortcuts. Drag to reorder, long-press to remap, and position the entire bar on the Left, Right, or Bottom of the screen to suit your driving hand or interior layout.
-
-### 🌗 Smart Day/Night Theme Engine
-Four distinct modes for head units that can't always pass the car's headlight signal to Android:
-* **Forced Dark / Forced Light** — static overrides.
-* **System Sync** — follows the head unit's native light/dark setting.
-* **Sunset Mode** — automatically switches at local sunrise/sunset using offline location calculations, no internet required.
-
-### 🛰️ GPS with Offline Calibration
-Speed and distance calculations use a rewritten GPS math layer with improved filtering. A calibration offset option is available for devices whose GPS chips report inaccurate baselines — accessible from the trip meter settings for reliable offline use.
-
-### 🎨 Deep Personalization
-Accent color, background color, gradient, wallpaper with adjustable dim, font weight, text scale, UI scale, and app font — all tunable from the settings menu, which is organized into logical sections (Appearance, Layout, Widgets, System).
-
-### 📱 Picture-in-Picture (PiP) Overlay ⚠️ *Beta*
-Launch any app as a floating freeform window layered over the launcher.
-
-> **This feature is currently in beta and requires the special `openlauncher-test-pip` build.** It relies on AOSP platform-level signing to access the window embedding APIs. The standard APK does not include PiP — use the `test-pip` release asset if you want to try it. Expect rough edges: not all apps behave correctly in a freeform window, and compatibility varies heavily by head unit ROM. This is a work in progress.
-
-### 🔔 First-Run Onboarding
-A clean onboarding flow on first launch explains key permissions (location, notification listener, draw-over-apps) before requesting them, with direct links to the relevant system settings screens.
-
----
-
-## 🗺️ Roadmap & Future Plans
-
-The current priority is **stability and universal compatibility** — ensuring the launcher scales correctly across the wide range of aftermarket head unit resolutions and hardware specs.
-
-Remaining targets:
-
-- [ ] **Advanced Color Engine:** Per-element hex control for every surface in the UI — accent, text, borders, backgrounds — to precisely match a car's specific dashboard ambient lighting.
-- [ ] **Offline Weather via FM/RDS:** A highly experimental goal to pull local weather data directly from FM radio bands (RDS/TMC) using the car's physical antenna — bypassing Wi-Fi entirely.
-- [ ] **Universal Theming Engine:** A standardized platform for the community to build, share, and install full visual themes.
-
----
-
-## 🤝 Contributing (Open Source First)
-
-This project is open-source because it takes a community to build something that works across hundreds of different head unit models. Whether you are a developer, a designer, or just someone testing it in your car, your help is welcome!
-
-### How you can help:
-1. **Test on your hardware:** Install the APK on your specific head unit, break things, and submit Bug Reports in the [Issues tab](../../issues).
-2. **Feature Requests:** Have a cool idea? Open a discussion.
-3. **Pull Requests:** See a bug you can fix or a feature you want to add? Fork the repo and submit a PR. *(Please check the issues tab first to see what is currently being worked on!)*
-
----
-
-## Donate
-
-This app is fully free and open-source, a donation isn't required but would be greatly appreciated to help support the constant updates and fixes planned based on your suggestions!
-
-[![Donate with PayPal](https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png)](https://paypal.me/dw2lam)
+This public fork does not currently include a repository-level license file. The Leaflet map library retains its own bundled license in `app/src/main/assets/map/LICENSE`.
