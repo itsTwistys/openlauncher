@@ -31,6 +31,7 @@ window.setMapOptions = (zoom, up) => {
 };
 window.clearMotion = () => { heading = null; speedKmh = 0; updateMotionView(); renderStatus(); };
 let loading = false, failed = 0, loaded = 0, retries = 0, retryTimer = null, watchdog = null;
+let totalLoaded = 0, totalErrors = 0, totalTimeouts = 0;
 const followButton = document.getElementById('follow');
 const statusBox = document.getElementById('status');
 function message() {
@@ -71,11 +72,11 @@ map.on('zoomstart', () => { if (!programmaticZoom) autoZoomPaused = true; });
 tiles.on('loading', () => {
     loading = true; failed = 0; loaded = 0;
     clearTimeout(watchdog);
-    watchdog = setTimeout(() => { loading = false; failed = Math.max(1, failed); renderStatus(); scheduleRetry(); }, 15000);
+    watchdog = setTimeout(() => { loading = false; totalTimeouts++; failed = Math.max(1, failed); renderStatus(); scheduleRetry(); }, 15000);
     renderStatus();
 });
-tiles.on('tileerror', () => { failed++; renderStatus(); });
-tiles.on('tileload', () => { loaded++; });
+tiles.on('tileerror', () => { failed++; totalErrors++; renderStatus(); });
+tiles.on('tileload', () => { loaded++; totalLoaded++; });
 tiles.on('load', () => {
     loading = false; clearTimeout(watchdog);
     if (failed) scheduleRetry(); else { retries = 0; cancelRetry(); }
@@ -112,7 +113,7 @@ window.resumeMap = () => {
     if (online && started && (loading || failed || !loaded)) reloadTiles();
     renderStatus();
 };
-window.mapStatus = () => ({ message: message(), loading, failed, loaded, autoZoomPaused, headingUp, bearing: map.getBearing(), zoom: map.getZoom() });
+window.mapStatus = () => ({ message: message(), started, loading, failed, loaded, totalLoaded, totalErrors, totalTimeouts, autoZoomPaused, headingUp, bearing: map.getBearing(), zoom: map.getZoom() });
 if (window.ResizeObserver) new ResizeObserver(() => map.invalidateSize({ pan: false })).observe(document.body);
 window.addEventListener('resize', () => map.invalidateSize({ pan: false }));
 document.addEventListener('visibilitychange', () => {

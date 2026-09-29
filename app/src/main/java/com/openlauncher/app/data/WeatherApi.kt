@@ -8,7 +8,11 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 data class OpenMeteoResponse(
-    @SerializedName("current_weather") val currentWeather: CurrentWeather?
+    @SerializedName("current_weather") val currentWeather: CurrentWeather?,
+    val hourly: HourlyWeather? = null,
+    val daily: DailyWeather? = null,
+    @SerializedName("utc_offset_seconds") val utcOffsetSeconds: Long = 0
+
 )
 
 data class CurrentWeather(
@@ -18,6 +22,13 @@ data class CurrentWeather(
     @SerializedName("is_day")       val isDay: Int
 )
 
+data class HourlyWeather(val time: List<Long>?,
+    @SerializedName("temperature_2m") val temperature: List<Double?>?,
+    @SerializedName("apparent_temperature") val apparent: List<Double?>?,
+    @SerializedName("precipitation_probability") val rain: List<Int?>?)
+data class DailyWeather(@SerializedName("temperature_2m_max") val high: List<Double?>?,
+    @SerializedName("temperature_2m_min") val low: List<Double?>?)
+
 interface WeatherApiService {
     @GET("v1/forecast")
     suspend fun getForecast(
@@ -25,7 +36,12 @@ interface WeatherApiService {
         @Query("longitude")        longitude: Double,
         @Query("current_weather")  currentWeather: Boolean = true,
         @Query("temperature_unit") temperatureUnit: String = "celsius",
-        @Query("windspeed_unit")   windspeedUnit: String = "kmh"
+        @Query("windspeed_unit")   windspeedUnit: String = "kmh",
+        @Query("hourly") hourly: String = "temperature_2m,apparent_temperature,precipitation_probability",
+        @Query("daily") daily: String = "temperature_2m_max,temperature_2m_min",
+        @Query("timezone") timezone: String = "auto",
+        @Query("timeformat") timeformat: String = "unixtime",
+        @Query("forecast_days") days: Int = 2
     ): OpenMeteoResponse
 }
 

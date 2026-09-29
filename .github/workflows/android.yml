@@ -40,7 +40,9 @@ jobs:
         if: always()
         with:
           name: unit-test-results
-          path: app/build/reports/tests/testDebugUnitTest
+          path: |
+            app/build/reports/tests/testDebugUnitTest
+            app/build/outputs/ui-checks
   publish:
     if: github.event_name == 'push'
     needs: build

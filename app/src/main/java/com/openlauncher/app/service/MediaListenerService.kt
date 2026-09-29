@@ -14,25 +14,19 @@ import kotlinx.coroutines.flow.StateFlow
 class MediaListenerService : NotificationListenerService() {
 
     private val controllers = linkedMapOf<android.media.session.MediaSession.Token, MediaController>()
-    private val stateCache = MediaSessionStateCache<android.media.session.MediaSession.Token, NowPlayingState> {
-        MediaSignature(it.title, it.artist, it.isPlaying, it.artUri, it.albumArt != null)
-    }
+    private val callbacks = mutableMapOf<android.media.session.MediaSession.Token, MediaController.Callback>()
+    private val snapshots = com.openlauncher.app.util.SessionSnapshotCache<android.media.session.MediaSession.Token, List<Any?>, NowPlayingState>()
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private val sessionManager by lazy { getSystemService(MEDIA_SESSION_SERVICE) as MediaSessionManager }
     private val sessionsChanged = MediaSessionManager.OnActiveSessionsChangedListener { refreshNowPlaying() }
     private fun disconnectSessions() {
         runCatching { sessionManager.removeOnActiveSessionsChangedListener(sessionsChanged) }
-        controllers.values.forEach { runCatching { it.unregisterCallback(controllerCallback) } }
+        controllers.forEach { (token, controller) -> callbacks[token]?.let { runCatching { controller.unregisterCallback(it) } } }
+        callbacks.clear()
+        snapshots.clear()
         controllers.clear()
-        stateCache.clear()
         _sessions.value = emptyList()
         _nowPlaying.value = null
-    }
-
-    private val controllerCallback = object : MediaController.Callback() {
-        override fun onPlaybackStateChanged(state: PlaybackState?) = refreshNowPlaying()
-        override fun onMetadataChanged(metadata: MediaMetadata?)   = refreshNowPlaying()
-        override fun onSessionDestroyed()                          = refreshNowPlaying()
     }
 
     override fun onListenerConnected() {
@@ -97,33 +91,39 @@ class MediaListenerService : NotificationListenerService() {
         }.getOrDefault(emptyList())
     }
 
-    private fun refreshNowPlaying() {
+    private fun refreshNowPlaying(changedArtwork: android.media.session.MediaSession.Token? = null) {
         val active = runCatching {
             sessionManager.getActiveSessions(ComponentName(this, MediaListenerService::class.java))
         }.getOrDefault(emptyList())
         val tokens = active.map { it.sessionToken }.toSet()
-        stateCache.retainOnly(tokens)
         controllers.keys.filter { it !in tokens }.forEach { token ->
-            controllers.remove(token)?.unregisterCallback(controllerCallback)
+            val removed = controllers.remove(token)
+            callbacks.remove(token)?.let { runCatching { removed?.unregisterCallback(it) } }
         }
         active.forEach { controller ->
             if (controller.sessionToken !in controllers) {
                 controllers[controller.sessionToken] = controller
-                controller.registerCallback(controllerCallback, handler)
+                val token = controller.sessionToken
+                val callback = object : MediaController.Callback() {
+                    override fun onPlaybackStateChanged(state: PlaybackState?) = refreshNowPlaying()
+                    override fun onMetadataChanged(metadata: MediaMetadata?) = refreshNowPlaying(token)
+                    override fun onSessionDestroyed() = refreshNowPlaying()
+                }
+                callbacks[token] = callback
+                controller.registerCallback(callback, handler)
             }
         }
-        val states = active.mapNotNull { controller ->
-            controllers[controller.sessionToken]?.let {
-                stateCache.retain(controller.sessionToken, stateFromController(it))
-            }
-        }
+        snapshots.retain(tokens)
+        val states = active.mapNotNull { controllers[it.sessionToken]?.let { controller ->
+            stateFromController(controller, controller.sessionToken == changedArtwork)
+        } }
         if (_sessions.value != states) _sessions.value = states
         val selected = com.openlauncher.app.util.selectMediaSession(states, "",
             { it.controller?.packageName.orEmpty() }, { it.isPlaying })
         if (_nowPlaying.value != selected) _nowPlaying.value = selected
     }
 
-    private fun stateFromController(controller: MediaController): NowPlayingState {
+    private fun stateFromController(controller: MediaController, forceArtwork: Boolean): NowPlayingState {
         val meta = controller.metadata
         val title = meta?.getString(MediaMetadata.METADATA_KEY_TITLE)
             ?: meta?.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
@@ -146,14 +146,17 @@ class MediaListenerService : NotificationListenerService() {
             ?: meta?.getString(MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI)
         val isPlaying = controller.playbackState?.state == PlaybackState.STATE_PLAYING
 
-        return NowPlayingState(
+        val signature = listOf(title, artist, artUri, isPlaying, art != null,
+            meta?.getString(MediaMetadata.METADATA_KEY_MEDIA_ID), meta?.getString(MediaMetadata.METADATA_KEY_ALBUM),
+            meta?.getLong(MediaMetadata.METADATA_KEY_DURATION))
+        return snapshots.value(controller.sessionToken, signature, forceArtwork) { NowPlayingState(
             title      = title,
             artist     = artist,
             albumArt   = art,
             artUri     = artUri,
             isPlaying  = isPlaying,
             controller = controller
-        )
+        ) }
     }
 
     data class NavigationInfo(val packageName: String, val title: String, val details: String,
@@ -170,6 +173,6 @@ class MediaListenerService : NotificationListenerService() {
         val isConnected = MutableStateFlow(false)
 
         @Volatile private var instance: MediaListenerService? = null
-        fun requestRefresh() { instance?.refreshNowPlaying() }
+        fun requestRefresh() { instance?.let { service -> service.handler.post { service.refreshNowPlaying() } } }
     }
 }

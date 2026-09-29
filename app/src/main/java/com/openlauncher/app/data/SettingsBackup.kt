@@ -57,6 +57,13 @@ object SettingsBackup {
             require(p.layout.map { it.id }.distinct().size == p.layout.size) { "Duplicate widget in saved layout" }
             require(validWidgetLayout(p.layout.filter { it.enabled && it.id in p.enabledIds })) { "Invalid saved layout" }
         }
+        require(s.launcherBrightness == -1f || s.launcherBrightness in 0.05f..1f)
+        require(s.layoutHistory.size <= 8)
+        s.layoutHistory.forEach { p ->
+            require(p.name.length <= 100 && p.layout.size <= ids.size && p.layout.all { it.id in ids })
+            require(p.enabledIds.all { it in ids && p.layout.any { w -> w.id == it } })
+            require(validWidgetLayout(p.layout.filter { it.enabled && it.id in p.enabledIds }))
+        }
         require(s.shortcuts.size <= 128 && s.soundboardPads.size <= 6)
         require(s.shortcuts.all { it.defaultIcon in DefaultShortcutIcon.entries })
         // Device file grants cannot move between head units. Online location sharing is opt-in again.

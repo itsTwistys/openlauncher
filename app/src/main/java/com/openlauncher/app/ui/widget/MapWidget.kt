@@ -4,7 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
-import android.webkit.WebViewClient
+import com.openlauncher.app.data.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -43,6 +43,15 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
     var now by remember { mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
     val latestLocation by rememberUpdatedState(location)
     val latestNetwork by rememberUpdatedState(networkAvailable)
+    fun evaluate(web: WebView, script: String, callback: ((String) -> Unit)? = null) {
+        try { web.evaluateJavascript(script) { result -> if (view === web) callback?.invoke(result) } }
+        catch (_: RuntimeException) {
+            if (view === web) {
+                DashboardDiagnostics.engine(MapEngine.EVALUATION_FAILED)
+                failure = "Map script evaluation failed. Retrying…"
+            }
+        }
+    }
     fun reload() { ready = false; failure = null; view = null; attempt++ }
     DisposableEffect(owner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -59,7 +68,7 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
         if (networkAvailable && resumed) {
             autoRetries = 0
             if (failure != null) reload()
-            else if (ready) view?.evaluateJavascript("window.resumeMap && window.resumeMap();", null)
+            else if (ready) view?.let { evaluate(it, "window.resumeMap && window.resumeMap();") }
         }
     }
     LaunchedEffect(failure, resumed) {
@@ -72,39 +81,50 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
     LaunchedEffect(attempt, resumed) {
         if (resumed) {
             kotlinx.coroutines.delay(12_000)
-            if (!ready) failure = "Map engine unavailable. Check Android System WebView or tap Reload."
+            if (!ready && failure == null) {
+                DashboardDiagnostics.engine(MapEngine.TIMED_OUT)
+                failure = "Map engine unavailable. Check Android System WebView or tap Reload."
+            }
         }
     }
     // Re-send state after page creation, GPS updates and resume. Never inject text or URLs from apps.
     LaunchedEffect(ready, location, networkAvailable, resumed, autoZoom, headingUp) {
         if (ready && resumed) {
             val fix = latestLocation
-            view?.evaluateJavascript("window.setNetworkAvailable($latestNetwork); window.setMapOptions($autoZoom,$headingUp);", null)
+            view?.let { evaluate(it, "window.setNetworkAvailable($latestNetwork); window.setMapOptions($autoZoom,$headingUp);") }
             if (fix != null && fix.latitude.isFinite() && fix.longitude.isFinite()) {
                 val fresh = android.os.SystemClock.elapsedRealtime() - fix.elapsedRealtimeMs < 30_000
                 val speed = if (fresh && fix.speedMps.isFinite()) fix.speedMps.coerceAtLeast(0f) else 0f
                 val heading = fix.travelBearing?.takeIf { fresh && speed >= 2f && fix.accuracy <= 50f && it.isFinite() }
-                view?.evaluateJavascript("window.updatePosition(${fix.latitude},${fix.longitude},$speed,${heading ?: "null"});", null)
+                view?.let { evaluate(it, "window.updatePosition(${fix.latitude},${fix.longitude},$speed,${heading ?: "null"});") }
             }
         }
     }
     LaunchedEffect(ready, resumed, attempt) {
         if (ready && resumed) {
-            view?.evaluateJavascript("window.resumeMap();", null)
+            view?.let { evaluate(it, "window.resumeMap();") }
             while (true) {
                 now = android.os.SystemClock.elapsedRealtime()
                 val current = view
                 if (latestLocation?.let { now - it.elapsedRealtimeMs >= 30_000 } != false)
-                    current?.evaluateJavascript("window.clearMotion && window.clearMotion();", null)
-                current?.evaluateJavascript("window.mapStatus ? JSON.stringify(window.mapStatus()) : null") { result ->
+                    current?.let { evaluate(it, "window.clearMotion && window.clearMotion();") }
+                if (current != null) evaluate(current, "window.mapStatus ? JSON.stringify(window.mapStatus()) : null") { result ->
                     if (view === current) runCatching {
                         val value = org.json.JSONTokener(result).nextValue() as? String
-                        if (value != null) tileState = org.json.JSONObject(value).getString("message")
+                        if (value != null) {
+                            val status = org.json.JSONObject(value)
+                            tileState = status.getString("message")
+                            DashboardDiagnostics.tiles(status.getBoolean("started"), status.getBoolean("loading"),
+                                status.getInt("totalLoaded"), status.getInt("totalErrors"), status.getInt("totalTimeouts"))
+                        }
                     }
                 }
                 kotlinx.coroutines.delay(3000)
             }
         }
+    }
+    LaunchedEffect(failure, tileState) {
+        DashboardDiagnostics.mapStatus(failure ?: tileState)
     }
     val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(context,
         android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
@@ -137,7 +157,9 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
         if (failure != null) Text(failure!!, modifier = Modifier.padding(12.dp), fontSize = 14.sp)
         key(attempt) {
             EmbeddedWebFrame(Modifier.fillMaxWidth().weight(1f), create = {
-                WebView(context).apply {
+                DashboardDiagnostics.beginPage()
+                var created: WebView? = null
+                try { WebView(context).also { created = it }.apply {
                     view = this
                     setBackgroundColor(android.graphics.Color.rgb(230, 232, 230))
                     setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
@@ -147,28 +169,33 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                     settings.setGeolocationEnabled(false)
                     settings.javaScriptCanOpenWindowsAutomatically = false
                     settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                    settings.userAgentString += " OpenLauncher/0.0.11 (+https://github.com/itsTwistys/openlauncher)"
+                    settings.userAgentString += " OpenLauncher/0.0.12 (+https://github.com/itsTwistys/openlauncher)"
                     val assets = androidx.webkit.WebViewAssetLoader.Builder()
                         .addPathHandler("/assets/", androidx.webkit.WebViewAssetLoader.AssetsPathHandler(context)).build()
-                    webViewClient = object : WebViewClient() {
+                    val currentWeb = this
+                    webChromeClient = MapChromeDiagnostics(DashboardDiagnostics) { view === currentWeb }
+                    webViewClient = object : MapWebDiagnostics(DashboardDiagnostics, { view === it }, {
+                        failure = "Map page failed to load. Retrying…"
+                    }) {
                         override fun shouldInterceptRequest(web: WebView, request: WebResourceRequest): android.webkit.WebResourceResponse? =
                             assets.shouldInterceptRequest(request.url)
                         override fun onPageFinished(web: WebView, url: String) {
                             if (view !== web || url == "about:blank") return
-                            web.evaluateJavascript("typeof window.updatePosition === 'function'") { result ->
+                            evaluate(web, "typeof window.updatePosition === 'function' && typeof window.mapStatus === 'function'") { result ->
                                 if (view === web) {
                                     ready = result == "true"
+                                    DashboardDiagnostics.engine(if (ready) MapEngine.READY else MapEngine.SCRIPT_FAILED)
                                     failure = if (ready) null else "Map script did not initialize. Retrying…"
                                 }
                             }
                         }
-                        override fun onReceivedError(web: WebView, request: WebResourceRequest, error: android.webkit.WebResourceError) {
-                            if (request.isForMainFrame && view === web) failure = "Map engine failed: ${error.description}"
-                        }
                         override fun onRenderProcessGone(web: WebView, detail: android.webkit.RenderProcessGoneDetail): Boolean {
                             (web.parent as? android.view.ViewGroup)?.removeView(web)
                             web.destroy()
-                            if (view === web) { view = null; ready = false; failure = "Map renderer stopped. Recovering…" }
+                            if (view === web) {
+                                DashboardDiagnostics.engine(MapEngine.RENDERER_GONE)
+                                view = null; ready = false; failure = "Map renderer stopped. Recovering…"
+                            }
                             return true
                         }
                         override fun shouldOverrideUrlLoading(web: WebView, request: WebResourceRequest): Boolean {
@@ -179,8 +206,14 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                         }
                     }
                     loadUrl("https://appassets.androidplatform.net/assets/map/map.html")
+                } } catch (_: RuntimeException) {
+                    view = null
+                    runCatching { created?.destroy() }
+                    DashboardDiagnostics.engine(MapEngine.CREATE_FAILED)
+                    failure = "Map WebView could not initialize. Retrying…"
+                    null
                 }
-            })
+            }, onRelease = { released -> if (view === released) view = null })
         }
     }
 }

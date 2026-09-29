@@ -57,14 +57,14 @@ import com.openlauncher.app.util.LocationData
 
 private val WIDGET_RADIUS = RoundedCornerShape(0.dp)
 
-private data class WidgetTypeInfo(
+internal data class WidgetTypeInfo(
     val id: String,
     val label: String,
     val icon: ImageVector,
     val description: String
 )
 
-private val ALL_WIDGET_TYPES = listOf(
+internal val ALL_WIDGET_TYPES = listOf(
     WidgetTypeInfo("CLOCK",       "CLOCK + WEATHER", Icons.Default.AccessTime, "Time, date and local weather"),
     WidgetTypeInfo("NOW_PLAYING", "NOW PLAYING", Icons.Default.MusicNote,   "Media controls"),
     WidgetTypeInfo("TELEMETRY",   "COMPASS",     Icons.Default.Explore,     "Speed & heading"),
@@ -99,6 +99,15 @@ private fun canAddWidget(settings: com.openlauncher.app.data.AppSettings): Boole
 @Composable
 fun HomeScreen(
     settings: AppSettings,
+    trips: com.openlauncher.app.data.TripLog,
+    tripError: String?,
+    onToggleTrip: () -> Unit,
+    onResetTrip: () -> Unit,
+    onFinishTrip: () -> Unit,
+    onClearTrips: () -> Unit,
+    weatherError: String?,
+    onRefreshWeather: () -> Unit,
+    onSettings: (AppSettings.() -> AppSettings) -> Unit,
     weather: WeatherState?,
     nowPlaying: NowPlayingState?,
     mediaApps: List<com.openlauncher.app.model.AppInfo>,
@@ -164,6 +173,7 @@ fun HomeScreen(
     val statusIconColor   = if (isDayMode) Color(0xFF444444) else Color(0xFFBFC7D2)
     val controlIconColor  = if (isDayMode) Color(0xFF666666) else Color(0xFFBFC7D2)
 
+    var toolsPage by rememberSaveable { mutableStateOf<String?>(null) }
     var expandedWidget by rememberSaveable { mutableStateOf<String?>(null) }
     BackHandler(enabled = expandedWidget != null) { expandedWidget = null }
     LaunchedEffect(settings.activeWidgetIds()) {
@@ -222,6 +232,9 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
+            IconButton(onClick = { toolsPage = "Quick controls" }, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Default.Tune, "Dashboard controls", tint = controlIconColor, modifier = Modifier.size(18.dp))
             }
             AnimatedVisibility(visible = isWifi, enter = fadeIn(), exit = fadeOut()) {
                 Icon(Icons.Default.Wifi, "WiFi", tint = statusIconColor, modifier = Modifier.size(16.dp))
@@ -458,7 +471,7 @@ fun HomeScreen(
                             weather = weather,
                             metric = settings.unitSystem.name == "METRIC",
                             networkAvailable = isWifi || isData,
-                            modifier   = Modifier.fillMaxSize()
+                            modifier   = Modifier.fillMaxSize().combinedClickable(enabled = !editMode, onClick = { toolsPage = "Weather" }, onLongClick = { contextMenuId = "CLOCK" })
                         )
                         "WEATHER" -> WeatherWidget(
                             state      = weather,
@@ -524,6 +537,7 @@ fun HomeScreen(
                             modifier  = Modifier.fillMaxSize()
                         )
                         "TRIP_TRACKER" -> TripTrackerWidget(
+                            trip = trips.current, onToggleTrip = onToggleTrip, onResetTrip = onResetTrip, onFinishTrip = onFinishTrip,
                             location  = location,
                             isMetric  = settings.unitSystem == com.openlauncher.app.data.UnitSystem.METRIC,
                             accent    = accent,
@@ -614,6 +628,7 @@ fun HomeScreen(
             pipAppPackage       = settings.pipAppPackage,
             isDayMode           = isDayMode,
             onResize            = { contextMenuId = null; resizingId = id },
+            onArrange           = { contextMenuId = null; editMode = true },
             onRemove            = { contextMenuId = null; removeWithUndo(id) },
             onAssignCarPlay     = { contextMenuId = null; onAssignCarPlay() },
             onAssignAndroidAuto = { contextMenuId = null; onAssignAndroidAuto() },
@@ -647,19 +662,13 @@ fun HomeScreen(
         }
     }
 
+    toolsPage?.let { page -> DashboardTools(page, settings, weather, weatherError, location, internetValidated,
+        trips, tripError, onToggleTrip, onFinishTrip, onClearTrips, onRefreshWeather, onSettings, { toolsPage = null }) }
+
     // ── Widget library ────────────────────────────────────────────────────────
     if (widgetLibraryOpen) {
-        WidgetLibraryDialog(
-            settings  = settings,
-            accent    = accent,
-            isDayMode = isDayMode,
-            onAdd     = { id -> removedLayout = null; onAddWidget(id) },
-            onRemove  = { id -> removeWithUndo(id) },
-            onResize = { id, w, h -> removedLayout = null; onUpdateWidget(id, w, h) },
-            onRestoreDefault = { removedLayout = null; onRestoreDefault() },
-            onArrange = { widgetLibraryOpen = false; editMode = true },
-            onDismiss = { widgetLibraryOpen = false; editMode = false }
-        )
+        DashboardEditor(settings, onApply = { profile -> removedLayout = null; onRestoreLayout(profile) },
+            onDismiss = { widgetLibraryOpen = false; editMode = false })
     }
 }
 
@@ -675,6 +684,7 @@ private fun WidgetContextMenu(
     pipAppPackage: String = "",
     isDayMode: Boolean,
     onResize: () -> Unit,
+    onArrange: () -> Unit,
     onRemove: () -> Unit,
     onAssignCarPlay: () -> Unit,
     onAssignAndroidAuto: () -> Unit,
@@ -700,6 +710,8 @@ private fun WidgetContextMenu(
                 .width(200.dp)
         ) {
             val inactiveMenuTint = if (isDayMode) Color(0xFF777777) else Color(0xFF555555)
+            ContextRow("ARRANGE", Icons.Default.Dashboard, accent, onArrange, isDayMode = isDayMode)
+            HorizontalDivider(color = menuDivider)
             ContextRow("RESIZE", Icons.Default.OpenWith, accent, onResize, isDayMode = isDayMode)
             HorizontalDivider(color = menuDivider)
             ContextRow("REMOVE WIDGET", Icons.Default.Delete, Color(0xFF884444), onRemove, isDayMode = isDayMode)
@@ -953,151 +965,5 @@ private fun SpanRow(
                 )
             }
         }
-    }
-}
-
-// ── Widget Library ────────────────────────────────────────────────────────────
-
-@Composable
-private fun WidgetLibraryDialog(
-    settings: AppSettings,
-    accent: Color,
-    isDayMode: Boolean,
-    onAdd: (String) -> Unit,
-    onRemove: (String) -> Unit,
-    onResize: (String, Int, Int) -> Unit,
-    onRestoreDefault: () -> Unit,
-    onArrange: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    var confirmRestore by remember { mutableStateOf(false) }
-    val activeIds = settings.activeWidgetIds()
-    val canAdd = canAddWidget(settings)
-    Dialog(onDismissRequest = onDismiss,
-        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxWidth(0.94f).fillMaxHeight(0.94f), shape = RoundedCornerShape(16.dp),
-            color = if (isDayMode) Color.White else Color(0xFF15191F),
-            contentColor = if (isDayMode) Color(0xFF111111) else Color.White) {
-            Column(Modifier.padding(20.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Edit Dashboard", fontSize = 22.sp,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                        modifier = Modifier.weight(1f))
-                    TextButton(onClick = onArrange) { Text("Arrange", fontSize = 16.sp) }
-                    Button(onClick = onDismiss) { Text("Done", fontSize = 16.sp) }
-                }
-                Text("Changes save automatically. Choose a size below; Arrange lets you drag cards.", fontSize = 14.sp)
-                val active = settings.widgetLayout.filter { it.enabled && it.id in activeIds }
-                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    repeat(GRID_COLS) { x ->
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            repeat(GRID_ROWS) { y ->
-                                val card = active.firstOrNull { x in it.gridX until it.gridX + it.spanX && y in it.gridY until it.gridY + it.spanY }
-                                Box(Modifier.fillMaxWidth().height(32.dp).background(if (card == null) Color.Gray.copy(alpha = 0.15f) else accent.copy(alpha = 0.22f)), contentAlignment = Alignment.Center) {
-                                    Text(card?.id?.replace('_', ' ') ?: "Empty", fontSize = 12.sp, maxLines = 1)
-                                }
-                            }
-                        }
-                    }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (confirmRestore) "Replace this layout with Maps, Now Playing and Clock + Weather?" else "Restore changes only the dashboard layout.",
-                        fontSize = 14.sp, modifier = Modifier.weight(1f))
-                    if (confirmRestore) {
-                        TextButton(onClick = { confirmRestore = false }) { Text("Cancel") }
-                        Button(onClick = { onRestoreDefault(); confirmRestore = false }) { Text("Restore") }
-                    } else TextButton(onClick = { confirmRestore = true }) { Text("Restore Default") }
-                }
-                androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(ALL_WIDGET_TYPES.size) { index ->
-                        val info = ALL_WIDGET_TYPES[index]
-                        val isActive = info.id in activeIds
-                        val config = settings.widgetLayout.firstOrNull { it.id == info.id }
-                        Surface(tonalElevation = 3.dp, shape = RoundedCornerShape(8.dp)) {
-                            Column(Modifier.fillMaxWidth().padding(12.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text(info.label, fontSize = 17.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)
-                                        Text(info.description, fontSize = 13.sp)
-                                    }
-                                    TextButton(enabled = isActive || canAdd,
-                                        onClick = { if (isActive) onRemove(info.id) else onAdd(info.id) }) {
-                                        Text(if (isActive) "Remove" else "Add", fontSize = 16.sp)
-                                    }
-                                }
-                                if (isActive && config != null) {
-                                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        for (h in 1..GRID_ROWS) for (w in 1..GRID_COLS) {
-                                            FilterChip(selected = config.spanX == w && config.spanY == h,
-                                                enabled = settings.resizePreview(info.id, w, h) != null,
-                                                onClick = { onResize(info.id, w, h) },
-                                                label = { Text("$w × $h", fontSize = 15.sp) })
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if (!canAdd) Text("Dashboard full. Remove or shrink a card to add another.", fontSize = 14.sp)
-            }
-        }
-    }
-}
-
-@Composable
-private fun WidgetLibraryCard(
-    info: WidgetTypeInfo,
-    isActive: Boolean,
-    canAdd: Boolean,
-    accent: Color,
-    isDayMode: Boolean,
-    onToggle: () -> Unit
-) {
-    val enabled    = isActive || canAdd
-    val cardBorder = if (isActive) accent else if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF1A1A1A)
-    val cardBg     = if (isActive) accent.copy(alpha = 0.15f) else if (isDayMode) Color(0xFFFFFFFF) else Color(0xFF0E0E0E)
-    val iconTint   = if (isActive) accent else if (isDayMode) Color(0xFF495057) else Color(0xFF333333)
-    val labelColor = if (isActive) accent else if (isDayMode) Color(0xFF212529) else Color(0xFF3A3A3A)
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(4.dp))
-            .background(cardBg)
-            .border(1.dp, cardBorder, RoundedCornerShape(4.dp))
-            .clickable(enabled = enabled, onClick = onToggle)
-            .padding(6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(info.icon, null, tint = iconTint, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.height(5.dp))
-        Text(
-            text          = info.label,
-            color         = labelColor,
-            fontSize      = 7.sp,
-            letterSpacing = 1.sp,
-            textAlign     = TextAlign.Center,
-            maxLines      = 2,
-            lineHeight    = 9.sp
-        )
-        Spacer(Modifier.height(3.dp))
-        Text(
-            text          = when {
-                isActive -> "ACTIVE"
-                !canAdd  -> "FULL"
-                else     -> "ADD"
-            },
-            color         = when {
-                isActive -> accent.copy(alpha = 0.75f)
-                !canAdd  -> if (isDayMode) Color(0xFFADB5BD) else Color(0xFF282828)
-                else     -> if (isDayMode) Color(0xFF495057) else Color(0xFF3A3A3A)
-            },
-            fontSize      = 6.sp,
-            letterSpacing = 1.sp,
-            textAlign     = TextAlign.Center
-        )
     }
 }

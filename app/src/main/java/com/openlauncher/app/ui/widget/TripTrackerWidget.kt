@@ -30,6 +30,10 @@ import kotlinx.coroutines.delay
 @Composable
 fun TripTrackerWidget(
     location: LocationData?,
+    trip: com.openlauncher.app.data.TripRecord,
+    onToggleTrip: () -> Unit,
+    onResetTrip: () -> Unit,
+    onFinishTrip: () -> Unit,
     isMetric: Boolean,
     accent: Color,
     isDayMode: Boolean = false,
@@ -49,17 +53,10 @@ fun TripTrackerWidget(
     val teRed = Color(0xFFFF2D55) // Still useful for Reset/Stopped indicator
     val teGrey = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF2E3238)
 
-    var isRunning by rememberSaveable { mutableStateOf(false) }
-    var driveTimeSeconds by rememberSaveable { mutableLongStateOf(0L) }
-    var idleTimeSeconds by rememberSaveable { mutableLongStateOf(0L) }
-    var totalSpeedSum by rememberSaveable { mutableDoubleStateOf(0.0) }
-    var movingSecondsCount by rememberSaveable { mutableLongStateOf(0L) }
-    var tripDistanceMeters by rememberSaveable { mutableDoubleStateOf(0.0) }
-
-    // The trip loop is keyed on isRunning only, so it must read location through
-    // rememberUpdatedState — a plain parameter capture would freeze the GPS fix
-    // at the moment tracking started and the trip would record nothing.
-    val currentLocation by rememberUpdatedState(location)
+    val isRunning = trip.running
+    val driveTimeSeconds = trip.driveSeconds.toLong()
+    val idleTimeSeconds = trip.idleSeconds.toLong()
+    val tripDistanceMeters = trip.distanceMeters
 
     var activeMode by rememberSaveable { mutableStateOf("TRIP") } // "TRIP" or "0-100"
     
@@ -140,29 +137,7 @@ fun TripTrackerWidget(
         }
     }
 
-    // Trip update loop
-    LaunchedEffect(isRunning) {
-        var lastTickMs = android.os.SystemClock.elapsedRealtime()
-        while (isRunning) {
-            delay(1000)
-            val now = android.os.SystemClock.elapsedRealtime()
-            // Measure the real interval instead of assuming exactly 1 s per tick
-            val dtSeconds = ((now - lastTickMs) / 1000.0).coerceIn(0.0, 5.0)
-            lastTickMs = now
-            val currentSpeed = currentLocation?.speedMps ?: 0f
-            if (currentSpeed > 0.5f) {
-                driveTimeSeconds++
-                totalSpeedSum += currentSpeed
-                movingSecondsCount++
-                tripDistanceMeters += currentSpeed * dtSeconds
-            } else {
-                idleTimeSeconds++
-            }
-        }
-    }
-
-    // Calculations
-    val averageSpeedMps = if (movingSecondsCount > 0) totalSpeedSum / movingSecondsCount else 0.0
+    val averageSpeedMps = trip.averageMps
     val avgSpeedDisplay = if (isMetric) averageSpeedMps * 3.6 else averageSpeedMps * 2.23694
     val speedUnit = if (isMetric) "KM/H" else "MPH"
 
@@ -387,7 +362,7 @@ fun TripTrackerWidget(
                         accelStartTime = 0L
                         accelEndTime = 0L
                     } else {
-                        isRunning = !isRunning
+                        onToggleTrip()
                     }
                 },
                 isDayMode = isDayMode
@@ -412,11 +387,7 @@ fun TripTrackerWidget(
                         accelEndTime = 0L
                         bestAccelTime = null
                     } else {
-                        driveTimeSeconds = 0L
-                        idleTimeSeconds = 0L
-                        totalSpeedSum = 0.0
-                        movingSecondsCount = 0L
-                        tripDistanceMeters = 0.0
+                        onResetTrip()
                     }
                 },
                 isDayMode = isDayMode
@@ -436,11 +407,11 @@ fun TripTrackerWidget(
 
             // Button 4: SET
             TeTactileButton(
-                label = "SET",
+                label = "Save",
                 keyColor = teGrey,
                 active = false,
-                enabled = false,
-                onClick = {},
+                enabled = trip.startedAtMs > 0,
+                onClick = onFinishTrip,
                 isDayMode = isDayMode
             )
         }
