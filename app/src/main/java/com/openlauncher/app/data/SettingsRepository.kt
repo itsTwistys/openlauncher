@@ -41,6 +41,7 @@ class SettingsRepository(private val context: Context) {
         val LAYOUT_HISTORY = stringPreferencesKey("layout_history")
         val MAP_AUTO_ZOOM = booleanPreferencesKey("map_auto_zoom")
         val MAP_HEADING_UP = booleanPreferencesKey("map_heading_up")
+        val MAP_SOFTWARE_RENDERING = booleanPreferencesKey("map_software_rendering")
         val SHOW_NOW_PLAYING   = booleanPreferencesKey("show_now_playing")
         val SHOW_ALTIMETER     = booleanPreferencesKey("show_altimeter")
         val SHOW_SPEEDOMETER   = booleanPreferencesKey("show_speedometer")
@@ -119,6 +120,7 @@ class SettingsRepository(private val context: Context) {
                 preferredMediaPackage = prefs[Keys.PREFERRED_MEDIA] ?: "",
                 mapAutoZoom = prefs[Keys.MAP_AUTO_ZOOM] ?: true,
                 mapHeadingUp = prefs[Keys.MAP_HEADING_UP] ?: false,
+                mapSoftwareRendering = prefs[Keys.MAP_SOFTWARE_RENDERING] ?: true,
                 vehicleName    = prefs[Keys.VEHICLE_NAME]     ?: defaults.vehicleName,
                 accentColor    = prefs[Keys.ACCENT_COLOR]     ?: defaults.accentColor,
                 backgroundColor = prefs[Keys.BG_COLOR]        ?: defaults.backgroundColor,
@@ -206,6 +208,7 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.PREFERRED_MEDIA] = s.preferredMediaPackage
             prefs[Keys.MAP_AUTO_ZOOM] = s.mapAutoZoom
             prefs[Keys.MAP_HEADING_UP] = s.mapHeadingUp
+            prefs[Keys.MAP_SOFTWARE_RENDERING] = s.mapSoftwareRendering
             prefs[Keys.VEHICLE_NAME]       = s.vehicleName
             prefs[Keys.ACCENT_COLOR]       = s.accentColor
             prefs[Keys.BG_COLOR]           = s.backgroundColor

@@ -427,6 +427,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _weather = MutableStateFlow<WeatherState?>(null)
     val weather: StateFlow<WeatherState?> = _weather
 
+    private val weatherRepository = com.openlauncher.app.data.WeatherRepository(application)
+    init {
+        viewModelScope.launch {
+            val cached = weatherRepository.load()
+            // A slow disk read must never overwrite a newer network response.
+            if (_weather.value == null) _weather.value = cached
+        }
+    }
+
     private val _weatherError = MutableStateFlow<String?>(null)
     val weatherError: StateFlow<String?> = _weatherError
 
@@ -435,6 +444,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private var lastWeatherAttemptMs = 0L
 
     fun fetchWeather(lat: Double, lon: Double, metric: Boolean) {
+        if (!_networkAvailable.value) return
         if (weatherJob?.isActive == true) return
         lastWeatherAttemptMs = android.os.SystemClock.elapsedRealtime()
         weatherJob = viewModelScope.launch {
@@ -460,6 +470,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 }
                 lastWeatherSuccessMs = android.os.SystemClock.elapsedRealtime()
                 _weatherError.value = null
+                // Conditions stay usable if cache storage fails; refresh failures retain the cache.
+                val refreshed = requireNotNull(_weather.value)
+                try { weatherRepository.save(refreshed) }
+                catch (e: CancellationException) { throw e }
+                catch (_: Exception) { /* Optional cache; keep the successful online response. */ }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -496,6 +511,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _isData = MutableStateFlow(false)
     private val _internetValidated = MutableStateFlow(false)
     val internetValidated: StateFlow<Boolean> = _internetValidated
+    private val _networkAvailable = MutableStateFlow(false)
+    val networkAvailable: StateFlow<Boolean> = _networkAvailable
     private val connectivity by lazy { getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager }
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: android.net.Network) { refreshConnectivity() }
@@ -709,6 +726,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val caps = cm.getNetworkCapabilities(cm.activeNetwork)
             _internetValidated.value = caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+            _networkAvailable.value = com.openlauncher.app.util.networkCanLoadInternet(caps)
             _isWifi.value = caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
             _isData.value = caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
         } else {
@@ -720,6 +738,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             @Suppress("DEPRECATION")
             val type = info?.type
             _internetValidated.value = false // Android 5 cannot report validated internet
+            _networkAvailable.value = connected // Best available signal on Android 5, including Ethernet.
             _isWifi.value = connected && type == ConnectivityManager.TYPE_WIFI
             _isData.value = connected && type == ConnectivityManager.TYPE_MOBILE
         }
@@ -748,10 +767,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             merge(
                 locationMgr.location.filterNotNull(),
                 minuteTicker.mapNotNull { locationMgr.location.value },
-                _internetValidated.filter { it }.mapNotNull { locationMgr.location.value }
+                _networkAvailable.filter { it }.mapNotNull { locationMgr.location.value }
             ).collect { loc ->
                 val now = android.os.SystemClock.elapsedRealtime()
-                if ((lastWeatherSuccessMs == 0L || now - lastWeatherSuccessMs >= 30 * 60 * 1_000L) &&
+                if (_networkAvailable.value && (lastWeatherSuccessMs == 0L || now - lastWeatherSuccessMs >= 30 * 60 * 1_000L) &&
                     (lastWeatherAttemptMs == 0L || now - lastWeatherAttemptMs >= 60_000L)) {
                     fetchWeather(loc.latitude, loc.longitude, settings.value.unitSystem.name == "METRIC")
                 }

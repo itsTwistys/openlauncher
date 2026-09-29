@@ -47,6 +47,20 @@ const assert=require('node:assert/strict');
  await page.waitForTimeout(250);
  assert.equal(await page.evaluate(()=>map.getSize().x),400);
  assert.equal(await page.locator('#status').isVisible(),false);
+ // A head unit can lay out its WebView at zero height during ignition wake.
+ // Resume must use the restored bounds rather than retaining the hidden size.
+ await page.evaluate(()=>{document.getElementById('map').style.height='0px';window.resizeMap();});
+ await page.waitForTimeout(100);
+ await page.evaluate(()=>{document.getElementById('map').style.height='100%';window.resumeMap();});
+ await page.waitForFunction(()=>map.getSize().y===260);
+ const tileLoadsBeforeResize=await page.evaluate(()=>window.mapStatus().totalLoaded);
+ await page.setViewportSize({width:800,height:480});
+ await page.waitForFunction(()=>map.getSize().x===800&&map.getSize().y===480);
+ assert.ok(await page.evaluate(()=>window.mapStatus().totalLoaded)>=tileLoadsBeforeResize);
+ const zoomBounds=await page.locator('.leaflet-control-zoom-in').boundingBox();
+ assert.ok(zoomBounds.width>=48&&zoomBounds.height>=48,'Map zoom targets are at least 48px');
+ fs.mkdirSync('app/build/outputs/ui-checks',{recursive:true});
+ await page.screenshot({path:'app/build/outputs/ui-checks/map-recovered-landscape.png'});
  // Heading rotates map content; UI and gesture coordinates remain usable.
  await page.evaluate(()=>{window.setMapOptions(true,true);window.updatePosition(25.761,-80.191,15,90);});
  await page.waitForFunction(()=>Math.abs(map.getBearing()-270)<1);

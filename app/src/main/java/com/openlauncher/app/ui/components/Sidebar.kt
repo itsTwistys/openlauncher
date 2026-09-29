@@ -42,7 +42,7 @@ import com.openlauncher.app.model.NavDestination
 import com.openlauncher.app.ui.theme.LocalDayMode
 import kotlin.math.roundToInt
 
-private val ICON_SIZE   = 22.dp
+private val ICON_SIZE   = 28.dp
 private val SLOT_SIZE   = 52.dp
 
 @Composable
@@ -62,7 +62,7 @@ fun Sidebar(
     val isDayMode    = LocalDayMode.current
     val accent       = Color(settings.accentColor)
     val sidebarBg    = if (isDayMode) Color(0xFFE0E0E0) else Color.Black.copy(alpha = 0.4f)
-    val iconInactive = if (isDayMode) Color(0xFF777777) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+    val iconInactive = if (isDayMode) Color(0xFF777777) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
     val dividerColor = if (isDayMode) Color(0xFFCCCCCC) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
     val density      = LocalDensity.current
     val slotSizePx   = with(density) { SLOT_SIZE.toPx() }
@@ -361,7 +361,7 @@ private fun ShortcutSlot(
                 Icon(
                     imageVector        = Icons.Default.Add,
                     contentDescription = "Add shortcut",
-                    tint               = if (LocalDayMode.current) Color(0xFFBBBBBB) else Color(0xFF252525),
+                    tint               = if (LocalDayMode.current) Color(0xFFBBBBBB) else Color(0xFFAAAAAA),
                     modifier           = Modifier.size(ICON_SIZE)
                 )
             }
@@ -384,7 +384,7 @@ private fun ShortcutActionDialog(
                 .background(Color(0xFF111111))
                 .border(1.dp, Color(0xFF1E1E1E), RoundedCornerShape(4.dp))
                 .padding(vertical = 4.dp)
-                .width(180.dp)
+                .width(260.dp)
         ) {
             ActionRow("CHANGE APP",     Icons.Default.SwapHoriz, accent, onChangeApp)
             HorizontalDivider(color = Color(0xFF1A1A1A))
@@ -406,7 +406,7 @@ private fun ActionRow(label: String, icon: ImageVector, tint: Color, onClick: ()
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
-        Text(label, color = tint, fontSize = 10.sp, letterSpacing = 1.sp)
+        Text(label, color = tint, fontSize = 14.sp)
     }
 }
 
@@ -431,7 +431,7 @@ private fun IconPickerDialog(
             Text(
                 "CHOOSE ICON",
                 color         = Color(0xFF888888),
-                fontSize      = 9.sp,
+                fontSize      = 14.sp,
                 letterSpacing = 2.sp,
                 modifier      = Modifier.padding(bottom = 10.dp)
             )
@@ -451,7 +451,7 @@ private fun IconPickerDialog(
                     Text(
                         "NATIVE APP ICON",
                         color         = if (currentOverride == null) accent else Color(0xFF888888),
-                        fontSize      = 9.sp,
+                        fontSize      = 14.sp,
                         letterSpacing = 1.sp
                     )
                 }

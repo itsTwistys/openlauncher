@@ -168,6 +168,7 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                         Text("High ${temperatureText(w.highCelsius, metric)}   Low ${temperatureText(w.lowCelsius, metric)}")
                         val hours = w.hourly.filter { it.timeMs >= System.currentTimeMillis() - 3_600_000 }.take(12)
                         Text("Feels like ${temperatureText(hours.firstOrNull()?.feelsLikeCelsius, metric)}")
+                        Text(w.freshnessLabel(System.currentTimeMillis(), internet), fontSize = 14.sp)
                         Text("Updated ${DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(w.updatedAtMs))}", fontSize = 13.sp)
                         Text("Next 12 hours · temperature / rain chance", fontSize = 17.sp)
                         val formatter = remember(settings.use12HourTime, w.utcOffsetSeconds) {
