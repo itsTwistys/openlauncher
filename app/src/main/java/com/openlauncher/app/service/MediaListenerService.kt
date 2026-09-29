@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.StateFlow
 class MediaListenerService : NotificationListenerService() {
 
     private val controllers = linkedMapOf<android.media.session.MediaSession.Token, MediaController>()
+    private val stateCache = MediaSessionStateCache<android.media.session.MediaSession.Token, NowPlayingState> {
+        MediaSignature(it.title, it.artist, it.isPlaying, it.artUri, it.albumArt != null)
+    }
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private val sessionManager by lazy { getSystemService(MEDIA_SESSION_SERVICE) as MediaSessionManager }
     private val sessionsChanged = MediaSessionManager.OnActiveSessionsChangedListener { refreshNowPlaying() }
@@ -21,6 +24,7 @@ class MediaListenerService : NotificationListenerService() {
         runCatching { sessionManager.removeOnActiveSessionsChangedListener(sessionsChanged) }
         controllers.values.forEach { runCatching { it.unregisterCallback(controllerCallback) } }
         controllers.clear()
+        stateCache.clear()
         _sessions.value = emptyList()
         _nowPlaying.value = null
     }
@@ -98,6 +102,7 @@ class MediaListenerService : NotificationListenerService() {
             sessionManager.getActiveSessions(ComponentName(this, MediaListenerService::class.java))
         }.getOrDefault(emptyList())
         val tokens = active.map { it.sessionToken }.toSet()
+        stateCache.retainOnly(tokens)
         controllers.keys.filter { it !in tokens }.forEach { token ->
             controllers.remove(token)?.unregisterCallback(controllerCallback)
         }
@@ -107,10 +112,15 @@ class MediaListenerService : NotificationListenerService() {
                 controller.registerCallback(controllerCallback, handler)
             }
         }
-        val states = active.mapNotNull { controllers[it.sessionToken]?.let(::stateFromController) }
-        _sessions.value = states
-        _nowPlaying.value = com.openlauncher.app.util.selectMediaSession(states, "",
+        val states = active.mapNotNull { controller ->
+            controllers[controller.sessionToken]?.let {
+                stateCache.retain(controller.sessionToken, stateFromController(it))
+            }
+        }
+        if (_sessions.value != states) _sessions.value = states
+        val selected = com.openlauncher.app.util.selectMediaSession(states, "",
             { it.controller?.packageName.orEmpty() }, { it.isPlaying })
+        if (_nowPlaying.value != selected) _nowPlaying.value = selected
     }
 
     private fun stateFromController(controller: MediaController): NowPlayingState {
