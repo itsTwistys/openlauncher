@@ -23,6 +23,12 @@ class EmbeddedWebFrameTest {
     @get:Rule val compose = createComposeRule()
     private class TrackedWebView(context: Context) : WebView(context) {
         var destructions = 0
+        // Robolectric has no rendering provider. Model its exact-size measure contract
+        // so this checks FrameLayout ownership/sizing, not a simulated browser engine.
+        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+            setMeasuredDimension(android.view.View.MeasureSpec.getSize(widthMeasureSpec),
+                android.view.View.MeasureSpec.getSize(heightMeasureSpec))
+        }
         override fun destroy() { destructions++; super.destroy() }
     }
 
