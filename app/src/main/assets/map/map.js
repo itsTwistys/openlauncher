@@ -77,7 +77,7 @@ window.setNetworkAvailable = available => {
 window.resumeMap = () => {
     map.invalidateSize({ pan: false });
     retries = 0;
-    if (online && started && (failed || !loaded)) reloadTiles();
+    if (online && started && (loading || failed || !loaded)) reloadTiles();
     renderStatus();
 };
 window.mapStatus = () => ({ message: message(), loading, failed, loaded });
