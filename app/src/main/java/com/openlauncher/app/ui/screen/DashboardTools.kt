@@ -1,6 +1,5 @@
 package com.openlauncher.app.ui.screen
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
@@ -14,6 +13,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -42,7 +44,7 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
     val scope = rememberCoroutineScope()
     var page by remember(initialPage) { mutableStateOf(initialPage) }
     var message by remember { mutableStateOf<String?>(null) }
-    var pendingExport by remember { mutableStateOf("") }
+    var pendingExport by rememberSaveable { mutableStateOf("") }
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
         if (uri != null) scope.launch {
             message = runCatching { withContext(Dispatchers.IO) {
@@ -58,6 +60,10 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
     val info = remember { context.packageManager.getPackageInfo(context.packageName, 0) }
     val installed = info.versionName.orEmpty()
     DashboardPanel("Dashboard controls", onDismiss) {
+        val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
+        LaunchedEffect(settings.launcherBrightness, dialogWindow) {
+            dialogWindow?.let { it.attributes = it.attributes.apply { screenBrightness = settings.launcherBrightness } }
+        }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("Quick controls", "Nearby", "Trips", "Weather", "Diagnostics", "Updates").forEach { item ->
                 FilterChip(page == item, { page = item; message = null }, label = { Text(item) })
@@ -234,7 +240,7 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
 }
 
 private fun tripSummary(t: TripRecord, metric: Boolean): String {
-    val distance = t.distanceMeters / if (metric) 1000 else 1609.344
+    val distance = t.distanceMeters / (if (metric) 1000.0 else 1609.344)
     val speed = t.averageMps * if (metric) 3.6 else 2.236936
     val seconds = (t.driveSeconds + t.idleSeconds).toLong()
     return "%.2f %s · %d:%02d:%02d · avg %.1f %s".format(distance, if (metric) "km" else "mi",

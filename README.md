@@ -12,7 +12,7 @@
 [Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-595a3c5) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-595a3c5/docs/PREVIEW.md)
 <!-- preview-download:end -->
 
-This debug-signed preview installs as **Open Launcher Preview** alongside an existing launcher. The download above identifies its exact release. Source version 0.0.11 adds saved media-app selection, temporary card expansion and map orientation/automatic zoom, on top of map recovery, readability and the combined Clock + Weather card. It includes the YouTube removal from 0.0.9.
+This debug-signed preview installs as **Open Launcher Preview** alongside an existing launcher. The download above identifies its exact release. Source version 0.0.12 restores the compact widget editor and adds dashboard controls, saved trips, expanded forecast, nearby stops, diagnostics, updates and layout recovery. It includes saved media-app selection, temporary card expansion, map orientation/automatic zoom, map recovery and the combined Clock + Weather card. It includes the YouTube removal from 0.0.9.
 
 ![Earlier Open Launcher dashboard screenshot; current preview layout and controls may differ](https://github.com/user-attachments/assets/a1bc63f3-2d4e-4ac0-bd56-b5d181681658)
 

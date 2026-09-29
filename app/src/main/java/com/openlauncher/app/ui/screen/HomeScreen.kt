@@ -471,7 +471,7 @@ fun HomeScreen(
                             weather = weather,
                             metric = settings.unitSystem.name == "METRIC",
                             networkAvailable = isWifi || isData,
-                            modifier   = Modifier.fillMaxSize().clickable(enabled = !editMode) { toolsPage = "Weather" }
+                            modifier   = Modifier.fillMaxSize().combinedClickable(enabled = !editMode, onClick = { toolsPage = "Weather" }, onLongClick = { contextMenuId = "CLOCK" })
                         )
                         "WEATHER" -> WeatherWidget(
                             state      = weather,
@@ -628,6 +628,7 @@ fun HomeScreen(
             pipAppPackage       = settings.pipAppPackage,
             isDayMode           = isDayMode,
             onResize            = { contextMenuId = null; resizingId = id },
+            onArrange           = { contextMenuId = null; editMode = true },
             onRemove            = { contextMenuId = null; removeWithUndo(id) },
             onAssignCarPlay     = { contextMenuId = null; onAssignCarPlay() },
             onAssignAndroidAuto = { contextMenuId = null; onAssignAndroidAuto() },
@@ -683,6 +684,7 @@ private fun WidgetContextMenu(
     pipAppPackage: String = "",
     isDayMode: Boolean,
     onResize: () -> Unit,
+    onArrange: () -> Unit,
     onRemove: () -> Unit,
     onAssignCarPlay: () -> Unit,
     onAssignAndroidAuto: () -> Unit,
@@ -708,6 +710,8 @@ private fun WidgetContextMenu(
                 .width(200.dp)
         ) {
             val inactiveMenuTint = if (isDayMode) Color(0xFF777777) else Color(0xFF555555)
+            ContextRow("ARRANGE", Icons.Default.Dashboard, accent, onArrange, isDayMode = isDayMode)
+            HorizontalDivider(color = menuDivider)
             ContextRow("RESIZE", Icons.Default.OpenWith, accent, onResize, isDayMode = isDayMode)
             HorizontalDivider(color = menuDivider)
             ContextRow("REMOVE WIDGET", Icons.Default.Delete, Color(0xFF884444), onRemove, isDayMode = isDayMode)

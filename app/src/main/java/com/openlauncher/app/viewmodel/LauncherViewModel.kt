@@ -66,7 +66,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val tripError: StateFlow<String?> = _tripError
     private var tripsLoaded = false
     private var tripForeground = false
-    fun setTripForeground(value: Boolean) { tripForeground = value; if (!value) tripWrites.trySend(_trips.value) }
+    fun setTripForeground(value: Boolean) { tripForeground = value; if (!value && tripsLoaded) tripWrites.trySend(_trips.value) }
     private fun changeTrip(transform: (com.openlauncher.app.data.TripLog) -> com.openlauncher.app.data.TripLog) {
         if (!tripsLoaded) return
         _trips.value = transform(_trips.value)
