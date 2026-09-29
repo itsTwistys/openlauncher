@@ -1,43 +1,38 @@
-# Open Launcher 0.0.6 preview
+# Open Launcher preview: installation and testing
 
-## Install
+[Download the current preview APK](https://github.com/itsTwistys/openlauncher/releases) from the latest **Open Launcher development preview** release. Choose `openlauncher-preview.apk`, not a source archive. `SHA256SUMS.txt` accompanies each APK. The GitHub Actions build and unit tests must succeed before a preview is published.
 
-Download **openlauncher-preview.apk** from the preview release assets. This build uses the separate package `com.openlauncher.app.preview` and appears as **Open Launcher Preview**, so your existing launcher can remain installed.
+The preview is debug signed and installs as **Open Launcher Preview** (`com.openlauncher.app.preview`) alongside the original app. The signing certificate is cached between builds, but it is not a production key. If Android reports a signature mismatch after an update, export settings from the old preview before reinstalling. Settings and granted files do not automatically move between the original app and Preview.
 
-1. Open the APK on the Android head unit and allow installation from the app used to open it.
-2. Launch Open Launcher Preview and grant the permissions you want its widgets to use.
-3. Select it as the home app when ready. You can switch back in Android's default home-app settings.
+## Get started
 
-This is a development build signed with a debug certificate. It has not been tested on a physical head unit. Back up settings before updating previews; a changed debug certificate can require reinstalling the preview app.
+1. Install the APK on the Android head unit, then open **Open Launcher Preview**.
+2. Grant Location Access for GPS cards. Select the preview as the default Home app when ready. Android's default-app settings let you switch back.
+3. Use the widget library to add and remove cards. Long-press a card for Resize; unavailable sizes are disabled and the dialog previews placement. Undo after removal is available for eight seconds.
+4. To view the online map, add **Map** and turn on **Settings > Online Map > Show Embedded Map**. While the map is visible, OpenStreetMap receives precise GPS coordinates and the viewed map area. Map tiles require internet. The built-in Leaflet code is bundled locally.
+5. To show directions from **Google Maps or Waze on the head unit**, enable **Notification Access**, start navigation in that app, and return Home. The Map card can show the title and text exposed by its navigation notification. The map itself uses OpenStreetMap and GPS. It does not draw the other app's route or show directions running only on an iPhone through CarPlay/ZLINK.
+6. To use YouTube, paste a specific video or live-stream Share link in **Settings > YouTube**. Choose **YouTube video** from the three-dot source menu on **Now Playing**. Remove the separate YouTube card if you want the combined player, enlarge Now Playing if prompted, and tap **I'm parked · Load player**, then YouTube's play control. Some videos cannot be embedded. A channel `/live` address is not a video link. Video requires internet and a working Android System WebView.
+7. If a separate YouTube app opens a floating window, close that window using its own controls. The launcher cannot move another app's window into a widget. Video pauses when leaving the launcher, entering edit mode, losing connectivity, or detecting GPS movement above about 5 km/h. GPS is not a parking brake; play video only while parked.
 
-## New controls
+The Map card offers Follow, Recenter, Reload, an offline indicator, and a visible message if its script fails to load. **Draw Over Other Apps** is requested through Android settings where supported. Granting it does not enable embedding another app's whole interface.
 
-- **Map:** enable Online Map in Settings, then add Map through the widget library. The marker updates without reloading the page. Dragging stops Follow; Recenter resumes it. Map tiles need internet and share the viewed area with OpenStreetMap.
-- **Resize:** long-press a widget, choose Resize, and select an available size. Disabled sizes cannot fit. The grid preview shows placement before Apply.
-- **Remove:** use the widget menu or library; Undo is available for eight seconds.
-- **Layouts:** save Driving, Parked, Day, and Night in Settings. Switch saved layouts from the home header. Automatic Day/Night switching becomes available after both layouts are saved; it follows the display mode.
-- **Navigation:** enter Home and Work, select Default, Google Maps, or Waze, then use Destinations. Successful navigation handoffs appear in the recent list.
-- **Network:** the widget distinguishes the connected network from Android's verified internet state. Android 5 cannot verify internet using this API.
-- **Backup:** export or restore a versioned JSON file from Settings. Destination addresses are included. Local wallpaper/audio files and their access grants are not included; assign those again after restoring. Online maps need a fresh opt-in after restore.
+## More controls
 
-Radar and Traffic remain links that open external live views. ETA is displayed by the navigation app.
+- Save Driving, Parked, Day and Night widget layouts. Switch saved layouts from Home; automatic Day/Night requires both profiles to be saved.
+- Set 12-hour time, clock seconds and date format in Settings. Use Home and Work destinations, pick a preferred navigation app, and choose recent successful destinations.
+- The connectivity card distinguishes WiFi/mobile connection from Android's validated internet status where available. Radar and Traffic open external views.
+- Export/restore a versioned JSON settings backup. Addresses are included. File grants for wallpaper/audio cannot be transferred; assign those assets again. Restoring requires a fresh opt-in for the online map.
 
-## Build
+## Verification status
 
-Use JDK 17, Android SDK 36.1, and the included Gradle wrapper:
+The Android debug build and 13 unit tests passed. Browser checks covered map marker updates, Follow/Recenter/offline states and YouTube frame bounds with simulated responses. User photos confirmed Google Maps navigation notification text but also showed a blank embedded map and floating video on a QUZHIDA unit. Version 0.0.8 addresses widget identity, native WebView clipping, map rendering and diagnostics. The actual fix and YouTube playback **have not yet been confirmed on that head unit**.
+
+## Build from source
+
+Use JDK 17, Android SDK 36.1 and the included Gradle wrapper:
 
 ```sh
 ./gradlew :app:testDebugUnitTest :app:assembleDebug
 ```
 
-The GitHub workflow runs the same checks and publishes a development preview only after both succeed. Leaflet 1.9.4 is bundled with its license; no remote JavaScript is loaded by the map.
-
-## 0.0.7: overlay, navigation and YouTube
-
-- Update the installed **Open Launcher Preview** APK. In Settings > Permissions > Draw Over Other Apps, select **Open Launcher Preview** in Android's list and allow it. The manifest now declares the missing overlay permission. The status refreshes when you return. Vendor ROMs may expose a different settings page.
-- Overlay permission allows drawing the launcher's own UI above another app. It does not grant permission to embed another app's full screen. This build does not add privileged app embedding or change the head unit's system settings automatically.
-- For directions, grant **Notification Access**, start a Google Maps or Waze trip on the head unit, then return Home. The Map widget displays the title and text exposed by its navigation notification, alongside the existing interactive OpenStreetMap GPS map. Text varies by app version. No route polyline is imported. Directions running only on an iPhone through CarPlay/ZLINK are not available through this integration. Navigation text remains in memory and clears when its notification is removed or access disconnects.
-- In Settings > YouTube, paste a specific video/live-stream link and save it. Add **YouTube** from the widget library. Enlarge the card if prompted; the embedded player requires a minimum 200 x 200 viewport. Tap **I'm parked · Load player**, then use the YouTube play control. Channel /live links are not supported; use the stream's Share link.
-- YouTube uses its official web player with app identity supplied through its referrer. Network traffic goes to YouTube only after loading the player. Unavailable, private, age-restricted or non-embeddable videos may show a YouTube error; use **Open YouTube**. **Reload** retries a failed player. This does not mirror the installed YouTube app or its login.
-- Playback stops on leaving the launcher, entering edit mode, losing connectivity, or GPS detecting movement above approximately 5 km/h. GPS is not a parking-brake interlock; use video only while parked. No autoplay or background playback is added.
-- Physical-device verification is still required for the ROM's permission screen, Google Maps/Waze notification fields, WebView/YouTube playback and audio behavior.
+The workflow builds the same targets on pull requests and publishes a prerelease APK after a successful push. The development preview is for testing, not a production signing or device compatibility guarantee.
