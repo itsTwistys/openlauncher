@@ -7,9 +7,9 @@
 ## Download the Android preview
 
 <!-- preview-download:start -->
-**[Download Open Launcher 0.0.12-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-07c6d98/openlauncher-preview.apk)**
+**[Download Open Launcher 0.0.13-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-c7ac551/openlauncher-preview.apk)**
 
-[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-07c6d98) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-07c6d98/docs/PREVIEW.md)
+[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-c7ac551) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-c7ac551/docs/PREVIEW.md)
 <!-- preview-download:end -->
 
 This debug-signed preview installs as **Open Launcher Preview** alongside an existing launcher. The download above identifies its exact release. Source version 0.0.12 restores the compact widget editor and adds dashboard controls, saved trips, expanded forecast, nearby stops, diagnostics, updates and layout recovery. It includes saved media-app selection, temporary card expansion, map orientation/automatic zoom, map recovery and the combined Clock + Weather card. It includes the YouTube removal from 0.0.9.
