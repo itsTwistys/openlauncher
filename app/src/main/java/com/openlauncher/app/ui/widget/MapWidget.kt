@@ -35,55 +35,85 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
     }
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
-    val latestLocation by rememberUpdatedState(location)
     var ready by remember { mutableStateOf(false) }
-    val view = remember(context) {
-        WebView(context).apply {
-            settings.javaScriptEnabled = true
-            settings.allowFileAccess = false
-            settings.allowContentAccess = false
-            settings.setGeolocationEnabled(false)
-            settings.javaScriptCanOpenWindowsAutomatically = false
-            settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-            settings.userAgentString += " OpenLauncher/0.0.7 (+https://github.com/itsTwistys/openlauncher)"
-            webViewClient = object : WebViewClient() {
-                override fun onPageFinished(view: WebView, url: String) { ready = true }
-                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                    if (request.hasGesture() && request.url.scheme == "https") {
-                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, request.url)) }
-                    }
-                    return true
-                }
-            }
-            val html = context.assets.open("map/map.html").bufferedReader().use { it.readText() }
-                .replace("/*LEAFLET_CSS*/", context.assets.open("map/leaflet.css").bufferedReader().use { it.readText() })
-                .replace("/*LEAFLET_JS*/", context.assets.open("map/leaflet.js").bufferedReader().use { it.readText() })
-            loadDataWithBaseURL("https://appassets.androidplatform.net/", html, "text/html", "UTF-8", null)
-        }
-    }
+    var failure by remember { mutableStateOf<String?>(null) }
+    var attempt by remember { mutableIntStateOf(0) }
+    var view by remember { mutableStateOf<WebView?>(null) }
     DisposableEffect(view, owner) {
+        val current = view
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) view.onResume()
-            if (event == Lifecycle.Event.ON_PAUSE) view.onPause()
+            if (event == Lifecycle.Event.ON_RESUME) current?.onResume()
+            if (event == Lifecycle.Event.ON_PAUSE) current?.onPause()
         }
         owner.lifecycle.addObserver(observer)
-        onDispose { owner.lifecycle.removeObserver(observer); view.stopLoading(); view.destroy() }
+        onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(attempt) {
+        kotlinx.coroutines.delay(10_000)
+        if (!ready) failure = "Map engine did not start. Try Reload; check Android System WebView if it persists."
     }
     LaunchedEffect(ready, location.latitude, location.longitude) {
         if (ready && location.latitude.isFinite() && location.longitude.isFinite()) {
-            view.evaluateJavascript("window.updatePosition(${location.latitude},${location.longitude});", null)
+            view?.evaluateJavascript("window.updatePosition(${location.latitude},${location.longitude});", null)
         }
     }
     LaunchedEffect(ready, networkAvailable) {
-        if (ready) view.evaluateJavascript("window.setNetworkAvailable($networkAvailable);", null)
+        if (ready) view?.evaluateJavascript("window.setNetworkAvailable($networkAvailable);", null)
     }
-    Box(modifier) {
-        AndroidView(factory = { view }, modifier = Modifier.fillMaxSize())
-        FilledTonalButton(onClick = {
-            val pos = latestLocation ?: return@FilledTonalButton
-            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW,
-                Uri.parse("geo:${pos.latitude},${pos.longitude}?q=${pos.latitude},${pos.longitude}"))) }
-        }, modifier = Modifier.align(Alignment.TopEnd).padding(6.dp)) { Text("Open maps", fontSize = 10.sp) }
+    Column(modifier) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(if (!networkAvailable) "Map offline" else if (ready) "Live GPS map" else "Loading map…",
+                fontSize = 10.sp, modifier = Modifier.weight(1f).padding(start = 8.dp))
+            TextButton(onClick = { ready = false; failure = null; view = null; attempt++ }) {
+                Text("Reload", fontSize = 11.sp)
+            }
+        }
+        if (failure != null) {
+            Text(failure!!, modifier = Modifier.padding(8.dp), fontSize = 12.sp)
+        } else {
+            key(attempt) {
+                EmbeddedWebFrame(Modifier.fillMaxWidth().weight(1f), create = {
+                    WebView(context).apply {
+                        view = this
+                        setBackgroundColor(android.graphics.Color.rgb(230, 232, 230))
+                        // Maps need no video surface; software rendering avoids vendor GPU compositing issues.
+                        setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+                        settings.javaScriptEnabled = true
+                        settings.allowFileAccess = false
+                        settings.allowContentAccess = false
+                        settings.setGeolocationEnabled(false)
+                        settings.javaScriptCanOpenWindowsAutomatically = false
+                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                        settings.userAgentString += " OpenLauncher/0.0.8 (+https://github.com/itsTwistys/openlauncher)"
+                        webViewClient = object : WebViewClient() {
+                            override fun onPageFinished(web: WebView, url: String) {
+                                web.evaluateJavascript("typeof window.updatePosition === 'function'") { result ->
+                                    if (view === web) {
+                                        ready = result == "true"
+                                        if (!ready) failure = "Map script failed to initialize. Reload or update Android System WebView."
+                                    }
+                                }
+                            }
+                            override fun onReceivedError(web: WebView, request: WebResourceRequest,
+                                error: android.webkit.WebResourceError) {
+                                if (request.isForMainFrame && view === web)
+                                    failure = "Map could not load: ${error.description}"
+                            }
+                            override fun shouldOverrideUrlLoading(web: WebView, request: WebResourceRequest): Boolean {
+                                if (!request.isForMainFrame) return false
+                                if (request.hasGesture() && request.url.scheme == "https")
+                                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, request.url)) }
+                                return true
+                            }
+                        }
+                        val html = context.assets.open("map/map.html").bufferedReader().use { it.readText() }
+                            .replace("/*LEAFLET_CSS*/", context.assets.open("map/leaflet.css").bufferedReader().use { it.readText() })
+                            .replace("/*LEAFLET_JS*/", context.assets.open("map/leaflet.js").bufferedReader().use { it.readText() })
+                        loadDataWithBaseURL("https://appassets.androidplatform.net/", html, "text/html", "UTF-8", null)
+                    }
+                })
+            }
+        }
     }
 }
 

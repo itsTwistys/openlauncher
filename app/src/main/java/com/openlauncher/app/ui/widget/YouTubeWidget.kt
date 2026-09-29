@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -39,7 +40,10 @@ fun YouTubeWidget(url: String, isEditing: Boolean, moving: Boolean,
     }
     BoxWithConstraints(modifier) {
         // The official player requires at least a 200 x 200 CSS-pixel viewport.
-        val fits = maxWidth >= 200.dp && maxHeight >= 248.dp
+        val density = LocalDensity.current.density
+        val webDensity = context.resources.displayMetrics.density
+        val fits = maxWidth.value * density / webDensity >= 200f &&
+            (maxHeight.value - 48f) * density / webDensity >= 200f
         if (id == null || isEditing || moving || !networkAvailable || !fits || !parkedPlayback) {
             Column(Modifier.fillMaxSize().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center) {
@@ -73,8 +77,9 @@ fun YouTubeWidget(url: String, isEditing: Boolean, moving: Boolean,
 @Composable
 private fun YouTubePlayer(id: String, modifier: Modifier) {
     val context = LocalContext.current
-    val view = remember(id, context) {
+    EmbeddedWebFrame(modifier = modifier, create = {
         WebView(context).apply {
+            setBackgroundColor(android.graphics.Color.BLACK)
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.mediaPlaybackRequiresUserGesture = true
@@ -94,19 +99,9 @@ private fun YouTubePlayer(id: String, modifier: Modifier) {
             val origin = "https://${context.packageName}"
             val html = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
                 <meta name="referrer" content="strict-origin-when-cross-origin">
-                <style>html,body,iframe{margin:0;width:100%;height:100%;border:0;background:black;overflow:hidden}</style>
-                </head><body><iframe title="YouTube video player" src="https://www.youtube.com/embed/$id?playsinline=1&amp;autoplay=0&amp;fs=0&amp;origin=$origin" allow="encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe></body></html>"""
+                <style>html,body{margin:0;width:100%;height:100%;background:black;overflow:hidden}iframe{position:absolute;inset:0;display:block;width:100%;height:100%;border:0}</style>
+                </head><body><iframe title="YouTube video player" src="https://www.youtube.com/embed/$id?playsinline=1&amp;autoplay=0&amp;fs=0&amp;origin=$origin" allow="encrypted-media" referrerpolicy="strict-origin-when-cross-origin"></iframe></body></html>"""
             loadDataWithBaseURL("$origin/", html, "text/html", "UTF-8", null)
         }
-    }
-    DisposableEffect(view) {
-        onDispose {
-            view.onPause()
-            view.stopLoading()
-            view.loadUrl("about:blank")
-            view.removeAllViews()
-            view.destroy()
-        }
-    }
-    AndroidView(factory = { view }, modifier = modifier)
+    })
 }

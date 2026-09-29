@@ -329,6 +329,7 @@ fun HomeScreen(
             }
 
             rendered.forEach { w ->
+                key(w.id) {
                 val xOff   = (cellW + gap) * w.gridX
                 val yOff   = (cellH + gap) * w.gridY
                 val width  = cellW * w.spanX + gap * (w.spanX - 1)
@@ -444,6 +445,10 @@ fun HomeScreen(
                         )
                         "NOW_PLAYING" -> NowPlayingWidget(
                             state               = nowPlaying,
+                            youtubeUrl = settings.youtubeUrl,
+                            videoMoving = (location?.speedMps ?: 0f) > 1.4f,
+                            videoNetworkAvailable = isWifi || isData,
+                            standaloneYouTubeActive = rendered.any { it.id == "YOUTUBE" },
                             accent              = accent,
                             carPlayPackage      = settings.carPlayPackage,
                             androidAutoPackage  = settings.androidAutoPackage,
@@ -537,6 +542,7 @@ fun HomeScreen(
 
                     // Label — hide when album art fills the widget background
                     val labelColor = when {
+                        w.id in setOf("NOW_PLAYING", "YOUTUBE", "MAP") -> Color.Transparent
                         isGhost -> Color.Transparent
                         w.id == "NOW_PLAYING" && nowPlaying?.albumArt != null && nowPlaying.title.isNotEmpty() -> Color.Transparent
                         isDayMode -> Color(0xFF999999)
@@ -553,6 +559,7 @@ fun HomeScreen(
                             .padding(start = 10.dp, top = 7.dp)
                     )
                 }
+                } // Stable identity keeps native views with their widget during edits.
             }
         }
     }
