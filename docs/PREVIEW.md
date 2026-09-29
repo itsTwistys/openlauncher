@@ -1,5 +1,19 @@
 # Open Launcher preview: installation and testing
 
+## Dashboard reliability and readability in 0.0.13
+
+- Map settings now live in **Map options**. Auto zoom, Heading up, GPS/tile status and Reload are available in a scrollable dialog; the dashboard keeps navigation and exceptional status messages visible.
+- **Compatibility rendering** preserves the earlier software-rendering default. While parked, if diagnostics show loaded tiles but the map is visibly blank, switch it off to try Android's default accelerated rendering. Changing this saved setting recreates only the map. Switching it back restores compatibility rendering. This is a troubleshooting choice, not confirmed QUZHIDA certification.
+- Map resizing waits for nonzero bounds after wake or expansion; zoom buttons have larger touch targets. Sidebar icons, dashboard controls and resize controls are easier to see and tap.
+- The last successful conditions and up to 48 forecast hours are cached atomically on the device, without coordinates. The original update time is retained after restart; age, offline, stale (30+ minutes) and expired (48+ hours) states are explicit. Expired or corrupt saved forecasts are ignored at startup. The cache is separate from settings backups and does not add offline map tiles.
+- Android 6+ map/weather internet availability uses the validated default network, including Ethernet and VPN. A hotspot without validated internet is shown offline. Android 5 uses its connected-network signal because it cannot report validation.
+
+### Verification for this release
+
+CI runs Android lint, unit/Compose tests, APK assembly and map browser checks with simulated tiles. Browser checks include reconnect/error recovery and zero-height/restored map bounds. Tests cover weather restart/power-loss restoration, cache validity/freshness, Ethernet/VPN and captive portals, map options at 600×360 dp with enlarged text, and native map-frame resize/recreation/release.
+
+Physical QUZHIDA rendering and ignition behavior still require a head-unit check. While parked, verify cold start, switching from navigation back to Home, map expansion/collapse, hotspot reconnection and ignition sleep/wake. For a blank map, export diagnostics before and after changing Compatibility rendering, using the existing evidence procedure below. Browser tiles are simulated; passing CI does not prove live tile delivery or physical head-unit pixels.
+
 Use the [current preview download on the main README](https://github.com/itsTwistys/openlauncher#download-the-android-preview). It points to the tested release for that APK. Choose `openlauncher-preview.apk`, not a source archive. `SHA256SUMS.txt` accompanies each APK. The GitHub Actions build and unit tests must succeed before a preview is published.
 
 The preview is debug signed and installs as **Open Launcher Preview** (`com.openlauncher.app.preview`) alongside the original app. The signing certificate is cached between builds, but it is not a production key. If Android reports a signature mismatch after an update, export settings from the old preview before reinstalling. Settings and granted files do not automatically move between the original app and Preview.

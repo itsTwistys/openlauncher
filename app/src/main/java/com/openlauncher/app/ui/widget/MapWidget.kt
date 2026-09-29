@@ -266,14 +266,12 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
         if (!isEditing && navigation != null) {
             Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                    if (navigation != null) {
-                        Text(navigation.title, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 24.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                        if (navigation.details.isNotBlank()) Text(navigation.details, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, fontSize = 16.sp,
-                            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                    } else {
-                        Text(if (connected) "Start Google Maps or Waze navigation on this device for directions here."
-                            else "Enable Notification Access for directions from Google Maps or Waze.", fontSize = 14.sp, maxLines = 2)
-                    }
+                    Text(navigation.title, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 24.sp,
+                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    if (navigation.details.isNotBlank()) Text(navigation.details,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, fontSize = 16.sp,
+                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
             }
         }

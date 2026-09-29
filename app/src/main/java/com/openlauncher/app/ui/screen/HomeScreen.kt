@@ -666,7 +666,8 @@ fun HomeScreen(
     }
 
     toolsPage?.let { page -> DashboardTools(page, settings, weather, weatherError, location, internetValidated,
-        trips, tripError, onToggleTrip, onFinishTrip, onClearTrips, onRefreshWeather, onSettings, { toolsPage = null }) }
+        trips, tripError, onToggleTrip, onFinishTrip, onClearTrips, onRefreshWeather, onSettings, { toolsPage = null },
+        networkAvailable = networkAvailable) }
 
     // ── Widget library ────────────────────────────────────────────────────────
     if (widgetLibraryOpen) {

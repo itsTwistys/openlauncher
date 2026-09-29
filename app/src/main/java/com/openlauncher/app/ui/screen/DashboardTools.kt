@@ -39,7 +39,7 @@ import kotlin.math.roundToInt
 internal fun DashboardTools(initialPage: String, settings: AppSettings, weather: WeatherState?, weatherError: String?,
     location: LocationData?, internet: Boolean, trips: TripLog, tripError: String?, onToggleTrip: () -> Unit, onFinishTrip: () -> Unit,
     onClearTrips: () -> Unit, onRefreshWeather: () -> Unit, onSettings: (AppSettings.() -> AppSettings) -> Unit,
-    onDismiss: () -> Unit) {
+    onDismiss: () -> Unit, networkAvailable: Boolean = internet) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var page by remember(initialPage) { mutableStateOf(initialPage) }
@@ -155,11 +155,11 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                 "Weather" -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Local forecast", Modifier.weight(1f), fontSize = 20.sp)
-                        OutlinedButton(onClick = onRefreshWeather, enabled = location != null && internet) { Text("Refresh") }
+                        OutlinedButton(onClick = onRefreshWeather, enabled = location != null && networkAvailable) { Text("Refresh") }
                     }
                     when {
                         location == null -> Text("Waiting for GPS location.")
-                        !internet -> Text("Offline. Showing the last available forecast.")
+                        !networkAvailable -> Text(if (weather == null) "Offline. No saved forecast yet." else "Offline. Showing the last available forecast.")
                         weatherError != null -> Text("Could not refresh weather. Try again.")
                         weather == null -> Text("Loading forecast…")
                     }
@@ -168,7 +168,7 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                         Text("High ${temperatureText(w.highCelsius, metric)}   Low ${temperatureText(w.lowCelsius, metric)}")
                         val hours = w.hourly.filter { it.timeMs >= System.currentTimeMillis() - 3_600_000 }.take(12)
                         Text("Feels like ${temperatureText(hours.firstOrNull()?.feelsLikeCelsius, metric)}")
-                        Text(w.freshnessLabel(System.currentTimeMillis(), internet), fontSize = 14.sp)
+                        Text(w.freshnessLabel(System.currentTimeMillis(), networkAvailable), fontSize = 14.sp)
                         Text("Updated ${DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(w.updatedAtMs))}", fontSize = 13.sp)
                         Text("Next 12 hours · temperature / rain chance", fontSize = 17.sp)
                         val formatter = remember(settings.use12HourTime, w.utcOffsetSeconds) {
@@ -232,8 +232,8 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                             catch (e: Exception) { message = e.message ?: "Update check failed. Try again." }
                             finally { loading = false }
                         }
-                    }, enabled = !loading && internet) { Text(if (loading) "Checking…" else "Check for updates") }
-                    if (!internet) Text("Connect to Wi-Fi to check for updates.")
+                    }, enabled = !loading && networkAvailable) { Text(if (loading) "Checking…" else "Check for updates") }
+                    if (!networkAvailable) Text("Connect to the internet to check for updates.")
                     result?.let { r ->
                         Text(r.version, fontSize = 20.sp)
                         Text(r.notes.ifBlank { "No release notes provided." })
