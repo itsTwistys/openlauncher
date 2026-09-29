@@ -1,9 +1,9 @@
 package com.openlauncher.app.ui
 
 import android.graphics.Bitmap
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.ui.graphics.asAndroidBitmap
+import com.openlauncher.app.ui.theme.OpenLauncherTheme
+import android.graphics.Canvas
+import org.robolectric.shadows.ShadowDialog
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.openlauncher.app.data.*
@@ -26,7 +26,7 @@ class DashboardEditorTest {
     @Test fun cancelDiscardsDraftAndEditorFitsLandscape() {
         var applied: LayoutProfile? = null
         var dismissed = false
-        compose.setContent { MaterialTheme(colorScheme = darkColorScheme()) {
+        compose.setContent { OpenLauncherTheme(appFont = AppFont.SYSTEM, textScale = 1.2f) {
             DashboardEditor(AppSettings(), { applied = it }, { dismissed = true })
         } }
         compose.onNodeWithText("Apply").assertIsDisplayed()
@@ -38,16 +38,22 @@ class DashboardEditorTest {
 
     @Test fun resizingAppliesValidLayoutAndCapturesEditor() {
         var applied: LayoutProfile? = null
-        compose.setContent { MaterialTheme(colorScheme = darkColorScheme()) {
+        compose.setContent { OpenLauncherTheme(appFont = AppFont.SYSTEM, textScale = 1.2f) {
             DashboardEditor(AppSettings(), { applied = it }, {})
         } }
         // Clock is the initial selection. Select the Map from the visible picker.
         compose.onAllNodesWithText("MAP").onLast().performClick()
         compose.onNodeWithText("2 × 1").performClick()
-        val image = compose.onAllNodes(isRoot()).onLast().captureToImage().asAndroidBitmap()
-        val file = File("build/outputs/ui-checks/dashboard-editor-landscape.png")
-        file.parentFile.mkdirs()
-        file.outputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        // Draw the dialog directly: Compose PixelCopy waits for a hardware frame in JVM tests.
+        compose.runOnIdle {
+            val view = requireNotNull(ShadowDialog.getLatestDialog().window).decorView
+            assertTrue(view.width > 0 && view.height > 0)
+            val image = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            view.draw(Canvas(image))
+            val file = File("build/outputs/ui-checks/dashboard-editor-landscape.png")
+            file.parentFile.mkdirs()
+            file.outputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }
         compose.onNodeWithText("Apply").performClick()
         compose.runOnIdle {
             val saved = requireNotNull(applied)
@@ -58,7 +64,7 @@ class DashboardEditorTest {
 
     @Test @Config(qualifiers = "w600dp-h360dp-land-mdpi")
     fun controlsRemainVisibleOnSmallHeadUnit() {
-        compose.setContent { MaterialTheme(colorScheme = darkColorScheme()) {
+        compose.setContent { OpenLauncherTheme(appFont = AppFont.SYSTEM, textScale = 1.2f) {
             DashboardEditor(AppSettings(), {}, {})
         } }
         compose.onNodeWithText("Apply").assertIsDisplayed()

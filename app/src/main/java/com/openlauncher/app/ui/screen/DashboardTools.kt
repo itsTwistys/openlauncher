@@ -45,13 +45,19 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
     var page by remember(initialPage) { mutableStateOf(initialPage) }
     var message by remember { mutableStateOf<String?>(null) }
     var pendingExport by rememberSaveable { mutableStateOf("") }
-    val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+    val saveExport: (Uri?) -> Unit = { uri ->
         if (uri != null) scope.launch {
-            message = runCatching { withContext(Dispatchers.IO) {
-                requireNotNull(context.contentResolver.openOutputStream(uri)).bufferedWriter().use { it.write(pendingExport) }
-            }; "Export saved" }.getOrElse { "Could not save export: ${it.message}" }
+            try {
+                withContext(Dispatchers.IO) {
+                    requireNotNull(context.contentResolver.openOutputStream(uri)).bufferedWriter().use { it.write(pendingExport) }
+                }
+                message = "Export saved"
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) { message = "Could not save export: ${e.message}" }
         }
     }
+    val exportText = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain"), saveExport)
+    val exportCsv = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv"), saveExport)
     fun open(url: String) {
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
             .onFailure { message = "No app can open this link." }
@@ -131,18 +137,20 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                     if (trips.history.isEmpty()) Text("Saved trips will appear here.")
                     var confirmClear by remember { mutableStateOf(false) }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { pendingExport = tripsCsv(trips.history); export.launch("openlauncher-trips.csv") }, enabled = trips.history.isNotEmpty()) { Text("Export CSV") }
+                        OutlinedButton(onClick = { pendingExport = tripsCsv(trips.history); exportCsv.launch("openlauncher-trips.csv") }, enabled = trips.history.isNotEmpty()) { Text("Export CSV") }
                         TextButton(onClick = { confirmClear = true }, enabled = trips.history.isNotEmpty()) { Text("Clear history") }
                     }
                     if (confirmClear) {
                         Text("Delete all saved trips? Your current trip is kept.")
                         Row { TextButton(onClick = { onClearTrips(); confirmClear = false }) { Text("Delete history") }; TextButton(onClick = { confirmClear = false }) { Text("Cancel") } }
                     }
-                    trips.history.forEach { trip ->
+                    var visibleTrips by remember { mutableIntStateOf(20) }
+                    trips.history.take(visibleTrips).forEach { trip ->
                         HorizontalDivider()
                         Text(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(trip.startedAtMs)))
                         Text(tripSummary(trip, metric))
                     }
+                    if (trips.history.size > visibleTrips) TextButton(onClick = { visibleTrips += 20 }) { Text("Show more trips") }
                 }
                 "Weather" -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -208,7 +216,7 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                         "Weather" to (weatherError?.let { "Refresh failed" } ?: if (weather != null) "Available" else "Waiting"))
                     lines.forEach { (name, value) -> Text("$name: $value") }
                     Text("Export contains these status details only, without coordinates, destinations or media titles.", fontSize = 13.sp)
-                    OutlinedButton(onClick = { pendingExport = lines.joinToString("\n") { "${it.first}: ${it.second}" }; export.launch("openlauncher-diagnostics.txt") }) { Text("Export diagnostics") }
+                    OutlinedButton(onClick = { pendingExport = lines.joinToString("\n") { "${it.first}: ${it.second}" }; exportText.launch("openlauncher-diagnostics.txt") }) { Text("Export diagnostics") }
                 }
                 "Updates" -> {
                     var loading by remember { mutableStateOf(false) }

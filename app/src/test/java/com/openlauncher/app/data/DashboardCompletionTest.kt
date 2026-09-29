@@ -7,12 +7,15 @@ import org.junit.Test
 class DashboardCompletionTest {
     @Test fun recoveryIsBoundedAndPreservesAppearance() {
         var s = AppSettings(vehicleName = "My vehicle", weatherBackground = true, launcherBrightness = 0.6f)
-        repeat(12) { i ->
+        val layouts = (1..3).flatMap { w -> (1..2).flatMap { h ->
+            (0..3-w).flatMap { x -> (0..2-h).map { y -> WidgetConfig("MAP", x, y, w, h) } }
+        } }
+        layouts.forEachIndexed { i, widget ->
             val before = s
-            s = s.copy(widgetLayout = listOf(WidgetConfig("MAP", i % 3, 0))).withWidgetVisibility(setOf("MAP"))
+            s = s.copy(widgetLayout = listOf(widget)).withWidgetVisibility(setOf("MAP"))
                 .rememberLayoutBefore(before, i.toLong())
         }
-        assertTrue(s.layoutHistory.size <= 8)
+        assertEquals(8, s.layoutHistory.size)
         assertEquals("My vehicle", s.vehicleName)
         assertTrue(s.weatherBackground)
         val noChange = s.rememberLayoutBefore(s, 999)

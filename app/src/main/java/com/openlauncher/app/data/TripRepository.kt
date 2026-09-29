@@ -39,7 +39,7 @@ class TripRepository(private val context: Context) {
     private val key = stringPreferencesKey("log")
     private val gson = Gson()
     suspend fun load(): TripLog = context.tripStore.data.map { prefs ->
-        runCatching { gson.fromJson(prefs[key], TripLog::class.java) }.getOrNull() ?: TripLog()
+        prefs[key]?.let { json -> requireNotNull(gson.fromJson(json, TripLog::class.java)) { "Invalid trip history" } } ?: TripLog()
     }.first().let { it.copy(current = it.current.copy(running = false)) }
     suspend fun save(log: TripLog) { context.tripStore.edit { it[key] = gson.toJson(log) } }
 }
