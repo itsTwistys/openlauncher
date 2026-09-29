@@ -42,6 +42,12 @@ class DashboardPolishTest {
             assertEquals("Asia/Shanghai", TimeZone.getDefault().id)
         } finally { TimeZone.setDefault(original) }
     }
+    @Test fun timezoneSurvivesBackupAndOlderBackupsUseAuto() {
+        assertEquals("America/New_York", SettingsBackup.decode(SettingsBackup.encode(AppSettings(clockTimeZone = "America/New_York"))).clockTimeZone)
+        val older = com.google.gson.JsonParser.parseString(SettingsBackup.encode(AppSettings())).asJsonObject
+        older.getAsJsonObject("settings").remove("clockTimeZone")
+        assertEquals("AUTO", SettingsBackup.decode(older.toString()).clockTimeZone)
+    }
     @Test fun gpsQualityPreventsNetworkJumpsButAcceptsRecovery() {
         val fix = LocationData(25.0, -80.0, 0.0, 8f, elapsedRealtimeMs = 100_000)
         assertFalse(acceptLocationFix(fix, 99_000, 5f))

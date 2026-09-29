@@ -25,8 +25,8 @@ val ChromeSidebarIcon = ImageVector.Builder("Chrome", 24.dp, 24.dp, 24f, 24f).ap
 val SpotifySidebarIcon = ImageVector.Builder("Spotify", 24.dp, 24.dp, 24f, 24f).apply {
     path(stroke = SolidColor(Color.Black), strokeLineWidth = 1.8f, strokeLineCap = StrokeCap.Round) {
         moveTo(22f,12f); arcTo(10f,10f,0f,true,true,2f,12f); arcTo(10f,10f,0f,true,true,22f,12f); close()
-        moveTo(6f,9f); cubicTo(10f,7.4f,15f,8f,18f,10f)
-        moveTo(7f,12.5f); cubicTo(10f,11.3f,14.5f,11.8f,17f,13.3f)
-        moveTo(8f,16f); cubicTo(10.5f,15f,13.5f,15.4f,16f,16.5f)
+        moveTo(6f,9f); curveTo(10f,7.4f,15f,8f,18f,10f)
+        moveTo(7f,12.5f); curveTo(10f,11.3f,14.5f,11.8f,17f,13.3f)
+        moveTo(8f,16f); curveTo(10.5f,15f,13.5f,15.4f,16f,16.5f)
     }
 }.build()

@@ -87,7 +87,7 @@ private fun DigitalClock(cal: Calendar, contentColor: Color, subColor: Color, us
     val time = clockDigits(cal, use12HourTime, showSeconds)
     val compactDate = maxWidth < 240.dp
     val scale = androidx.compose.ui.platform.LocalDensity.current.fontScale
-    val clockSize = minOf(48f, (maxWidth.value - if (use12HourTime) 88f else 28f) / (time.length * 0.65f * scale),
+    val clockSize = minOf(48f, (maxWidth.value - 100f) / (time.length * 0.65f * scale),
         (maxHeight.value - 42f) / scale).coerceAtLeast(12f)
     Column(
         modifier            = Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 10.dp),
@@ -98,11 +98,11 @@ private fun DigitalClock(cal: Calendar, contentColor: Color, subColor: Color, us
             Text(time, maxLines = 1, color = contentColor, fontSize = clockSize.sp,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)
-            Column(Modifier.padding(bottom = 4.dp)) {
+            Column(Modifier.width(64.dp).padding(bottom = 4.dp)) {
                 if (use12HourTime) Text(clockPeriod(cal), color = contentColor, fontSize = 20.sp,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                 Text(cal.timeZone.getDisplayName(cal.timeZone.inDaylightTime(cal.time), TimeZone.SHORT),
-                    color = subColor, fontSize = 11.sp)
+                    color = subColor, fontSize = 11.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
         }
         Text(
