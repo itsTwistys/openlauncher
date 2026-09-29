@@ -164,7 +164,7 @@ fun NowPlayingWidget(
                 modifier = Modifier.background(dropdownBg)
             ) {
                 DropdownMenuItem(
-                    text = { Text("Any Player", color = dropdownText, fontSize = 11.sp) },
+                    text = { Text("Any Player", color = dropdownText, fontSize = 15.sp, fontFamily = FontFamily.SansSerif) },
                     onClick = {
                         selectedSource = "Any Player"
                         menuExpanded = false
@@ -172,7 +172,7 @@ fun NowPlayingWidget(
                     leadingIcon = { Icon(Icons.Default.MusicNote, null, tint = accent, modifier = Modifier.size(14.dp)) }
                 )
                 DropdownMenuItem(
-                    text = { Text("FM/AM Radio", color = dropdownText, fontSize = 11.sp) },
+                    text = { Text("FM/AM Radio", color = dropdownText, fontSize = 15.sp, fontFamily = FontFamily.SansSerif) },
                     onClick = {
                         selectedSource = "FM/AM Radio"
                         menuExpanded = false
@@ -223,7 +223,7 @@ private fun RadioDeck(
             Text(
                 "NO RADIO SOURCE",
                 color = contentColor.copy(alpha = 0.85f),
-                fontSize = 9.sp, fontFamily = FontFamily.Monospace,
+                fontSize = 12.sp, fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp
             )
             Spacer(Modifier.height(3.dp))
@@ -534,7 +534,7 @@ private fun StandardMinimalPlayer(
     val idleIconColor = if (isDayMode) Color(0xFF555555) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.30f)
     val idleTextColor = if (isDayMode) Color(0xFF555555) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.30f)
     val contentTextColor = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
-    val subTextColor = if (isDayMode) Color(0xFF666666) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.30f)
+    val subTextColor = if (isDayMode) Color(0xFF444444) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f)
 
     Box(modifier = modifier) {
         if (!hasContent) {
@@ -617,7 +617,7 @@ private fun StandardMinimalPlayer(
             val useDarkTheme = hasAlbumArt || !isDayMode
 
             val currentTextColor = if (hasAlbumArt) Color.White else if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
-            val currentSubTextColor = if (hasAlbumArt) Color.White.copy(alpha = 0.6f) else if (isDayMode) Color(0xFF666666) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+            val currentSubTextColor = if (hasAlbumArt) Color.White.copy(alpha = 0.9f) else if (isDayMode) Color(0xFF666666) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             val currentProgressColor = if (useDarkTheme) accent else if (isDayMode) Color(0xFF111111) else accent
             val currentProgressTrack = currentTextColor.copy(alpha = 0.15f)
             val currentIconColor = currentTextColor.copy(alpha = 0.75f)
@@ -644,7 +644,7 @@ private fun StandardMinimalPlayer(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.25f))
+                        .background(Color.Black.copy(alpha = 0.60f))
                 )
             }
 
@@ -667,7 +667,7 @@ private fun StandardMinimalPlayer(
                         color = currentTextColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        fontSize = 14.sp
+                        fontSize = 20.sp, fontFamily = FontFamily.SansSerif
                     )
                     Text(
                         text = nonNullState.artist.ifEmpty { "Unknown" },
@@ -675,7 +675,7 @@ private fun StandardMinimalPlayer(
                         color = currentSubTextColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        fontSize = 11.sp
+                        fontSize = 15.sp, fontFamily = FontFamily.SansSerif
                     )
                 }
 
@@ -692,8 +692,8 @@ private fun StandardMinimalPlayer(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(formatMs(positionMs), style = MaterialTheme.typography.labelSmall, color = currentSubTextColor.copy(alpha = 0.75f), fontSize = 9.sp)
-                            Text(formatMs(durationMs), style = MaterialTheme.typography.labelSmall, color = currentSubTextColor.copy(alpha = 0.75f), fontSize = 9.sp)
+                            Text(formatMs(positionMs), style = MaterialTheme.typography.labelSmall, color = currentSubTextColor.copy(alpha = 0.75f), fontSize = 12.sp)
+                            Text(formatMs(durationMs), style = MaterialTheme.typography.labelSmall, color = currentSubTextColor.copy(alpha = 0.75f), fontSize = 12.sp)
                         }
                     }
 

@@ -145,7 +145,7 @@ class SettingsRepository(private val context: Context) {
                 showTripTracker  = prefs[Keys.SHOW_TRIP_TRACKER] ?: defaults.showTripTracker,
                 compassOffset    = prefs[Keys.COMPASS_OFFSET]    ?: defaults.compassOffset,
                 showSoundboard   = prefs[Keys.SHOW_SOUNDBOARD]   ?: defaults.showSoundboard,
-                showMap          = prefs[Keys.SHOW_MAP]          ?: defaults.showMap,
+                showMap          = prefs[Keys.SHOW_MAP]          ?: (if (widgetJson != null) widgets.any { it.id == "MAP" && it.enabled } else defaults.showMap),
                 onlineMapEnabled = prefs[Keys.ONLINE_MAP_ENABLED] ?: defaults.onlineMapEnabled,
                 showConnectivity = prefs[Keys.SHOW_CONNECTIVITY] ?: defaults.showConnectivity,
                 showDestinations = prefs[Keys.SHOW_DESTINATIONS] ?: defaults.showDestinations,
@@ -171,7 +171,7 @@ class SettingsRepository(private val context: Context) {
                 speedometerDigitalOnly = prefs[Keys.SPEEDOMETER_DIGITAL_ONLY] ?: defaults.speedometerDigitalOnly,
                 gradientDirection = prefs[Keys.GRADIENT_DIRECTION]?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() } ?: defaults.gradientDirection,
                 useCustomBackgroundColor = prefs[Keys.USE_CUSTOM_BG_COLOR] ?: defaults.useCustomBackgroundColor
-            ).withoutRetiredWidgets()
+            ).withoutRetiredWidgets().withMergedClockWeather()
     }
 
     suspend fun saveSettings(s: AppSettings) {

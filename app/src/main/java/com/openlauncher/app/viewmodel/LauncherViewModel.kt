@@ -386,9 +386,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val weatherError: StateFlow<String?> = _weatherError
 
     private var weatherJob: Job? = null
+    private var lastWeatherSuccessMs = 0L
+    private var lastWeatherAttemptMs = 0L
 
     fun fetchWeather(lat: Double, lon: Double, metric: Boolean) {
-        weatherJob?.cancel()
+        if (weatherJob?.isActive == true) return
+        lastWeatherAttemptMs = android.os.SystemClock.elapsedRealtime()
         weatherJob = viewModelScope.launch {
             try {
                 // Always request celsius — the state stores celsius and the widget
@@ -403,7 +406,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         isDay             = cw.isDay == 1
                     )
                 }
+                lastWeatherSuccessMs = android.os.SystemClock.elapsedRealtime()
                 _weatherError.value = null
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _weatherError.value = e.message
             }
@@ -685,14 +691,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         // Fetch weather on first location fix, then every 30 minutes.
         // The minute ticker covers the parked case where no location updates arrive.
         viewModelScope.launch {
-            var lastFetchMs = 0L
             merge(
                 locationMgr.location.filterNotNull(),
-                minuteTicker.mapNotNull { locationMgr.location.value }
+                minuteTicker.mapNotNull { locationMgr.location.value },
+                _internetValidated.filter { it }.mapNotNull { locationMgr.location.value }
             ).collect { loc ->
-                val now = System.currentTimeMillis()
-                if (now - lastFetchMs >= 30 * 60 * 1_000L) {
-                    lastFetchMs = now
+                val now = android.os.SystemClock.elapsedRealtime()
+                if ((lastWeatherSuccessMs == 0L || now - lastWeatherSuccessMs >= 30 * 60 * 1_000L) &&
+                    (lastWeatherAttemptMs == 0L || now - lastWeatherAttemptMs >= 60_000L)) {
                     fetchWeather(loc.latitude, loc.longitude, settings.value.unitSystem.name == "METRIC")
                 }
             }

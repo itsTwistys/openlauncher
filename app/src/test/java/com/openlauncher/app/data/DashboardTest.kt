@@ -45,7 +45,7 @@ class DashboardTest {
     }
     @Test(expected = IllegalArgumentException::class)
     fun backupRejectsOverlappingWidgets() {
-        val bad = AppSettings(widgetLayout = listOf(WidgetConfig("CLOCK", 0, 0), WidgetConfig("WEATHER", 0, 0)))
+        val bad = AppSettings(widgetLayout = listOf(WidgetConfig("CLOCK", 0, 0), WidgetConfig("NOW_PLAYING", 0, 0)))
         SettingsBackup.decode(SettingsBackup.encode(bad))
     }
     @Test(expected = IllegalArgumentException::class)

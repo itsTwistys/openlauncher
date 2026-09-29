@@ -8,7 +8,7 @@ The preview is debug signed and installs as **Open Launcher Preview** (`com.open
 
 1. Install the APK on the Android head unit, then open **Open Launcher Preview**.
 2. Grant Location Access for GPS cards. Select the preview as the default Home app when ready. Android's default-app settings let you switch back.
-3. Use the widget library to add and remove cards. Long-press a card for Resize; unavailable sizes are disabled and the dialog previews placement. Undo after removal is available for eight seconds.
+3. Tap the pencil for **Edit Dashboard**. Add/remove cards and choose sizes in that screen; unavailable sizes are disabled. **Arrange** enables drag placement on the dashboard. **Restore Default** sets a large Map beside Now Playing and Clock + Weather after confirmation. It preserves personal settings and saved profiles, and stops automatic profile switching until re-enabled. Existing separate Weather cards merge into Clock on upgrade. Undo after removal remains available for eight seconds.
 4. To view the online map, add **Map** and turn on **Settings > Online Map > Show Embedded Map**. While the map is visible, OpenStreetMap receives precise GPS coordinates and the viewed map area. Map tiles require internet. The built-in Leaflet code is bundled locally.
 5. To show directions from **Google Maps or Waze on the head unit**, enable **Notification Access**, start navigation in that app, and return Home. The Map card can show the title and text exposed by its navigation notification. The map itself uses OpenStreetMap and GPS. It does not draw the other app's route or show directions running only on an iPhone through CarPlay/ZLINK.
 
@@ -20,6 +20,12 @@ The Map card offers Follow, Recenter, Reload, an offline indicator, and a visibl
 - Set 12-hour time, clock seconds and date format in Settings. Use Home and Work destinations, pick a preferred navigation app, and choose recent successful destinations.
 - The connectivity card distinguishes WiFi/mobile connection from Android's validated internet status where available. Radar and Traffic open external views.
 - Export/restore a versioned JSON settings backup. Addresses are included. File grants for wallpaper/audio cannot be transferred; assign those assets again. Restoring requires a fresh opt-in for the online map.
+
+## Map recovery and readability
+
+The engine loads bundled assets before a GPS fix. Status distinguishes missing permission, location disabled, waiting/stale GPS, map engine loading, tile loading and offline/failure. Tiles retry up to three times with backoff, then retry on reconnection or resume. Renderer/engine failures get up to two automatic rebuilds per recovery cycle; Reload remains available. GPS registration renews on resume and an older cached fix cannot replace a newer fix. Weather failures retry on subsequent updates rather than waiting a full 30 minutes.
+
+Directions, media titles and trip data use larger sans-serif text and stronger contrast. Clock includes temperature and conditions; a separate weather card is no longer offered. Fresh installs use the map-first layout and system font. Online Map remains opt-in.
 
 ## Verification status
 

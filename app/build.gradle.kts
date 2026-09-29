@@ -14,8 +14,8 @@ android {
         manifestPlaceholders["appLabel"] = "Open Launcher"
         minSdk         = 21
         targetSdk      = 36
-        versionCode    = 10
-        versionName    = "0.0.9-preview"
+        versionCode    = 11
+        versionName    = "0.0.10-preview"
     }
 
     buildTypes {
@@ -45,6 +45,8 @@ android {
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.09.00")
     implementation(composeBom)
+
+    implementation("androidx.webkit:webkit:1.12.1")
 
     // Core
     implementation("androidx.core:core-ktx:1.15.0")

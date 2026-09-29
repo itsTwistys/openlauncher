@@ -38,7 +38,7 @@ object SettingsBackup {
             "gradientDirection" to GradientDirection.entries.map { it.name }
         )
         enumOptions.forEach { (key, values) -> require(merged.get(key).asString in values) { "Invalid display option" } }
-        val s = gson.fromJson(merged, AppSettings::class.java).withoutRetiredWidgets()
+        val s = gson.fromJson(merged, AppSettings::class.java).withoutRetiredWidgets().withMergedClockWeather()
         require(s.uiScale in 0.6f..2f && s.textScale in 0.6f..2f && s.wallpaperDim in 0f..1f) { "Invalid display scale" }
         require(s.vehicleName.length <= 100 && s.homeDestination.length <= 500 && s.workDestination.length <= 500)
         require(s.clockDateFormat in setOf("LONG", "SHORT"))

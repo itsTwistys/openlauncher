@@ -28,6 +28,9 @@ fun ClockWidget(
     use12HourTime: Boolean = false,
     showSeconds: Boolean = false,
     dateFormat: String = "LONG",
+    weather: com.openlauncher.app.model.WeatherState? = null,
+    metric: Boolean = true,
+    networkAvailable: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     var calendar by remember { mutableStateOf(Calendar.getInstance()) }
@@ -40,12 +43,28 @@ fun ClockWidget(
     }
 
     val contentColor = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
-    val subColor     = if (isDayMode) Color(0xFF888888) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+    val subColor     = if (isDayMode) Color(0xFF444444) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f)
 
-    Box(modifier = modifier) {
-        when (style) {
-            ClockStyle.DIGITAL -> DigitalClock(calendar, contentColor, subColor, use12HourTime, showSeconds, dateFormat)
-            ClockStyle.ANALOG  -> AnalogClock(calendar, accent, isDayMode)
+    Column(modifier = modifier.padding(bottom = 10.dp)) {
+        Box(Modifier.fillMaxWidth().weight(1f)) {
+            when (style) {
+                ClockStyle.DIGITAL -> DigitalClock(calendar, contentColor, subColor, use12HourTime, showSeconds, dateFormat)
+                ClockStyle.ANALOG -> AnalogClock(calendar, accent, isDayMode)
+            }
+        }
+        androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 14.dp), color = subColor.copy(alpha = 0.25f))
+        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (weather != null) {
+                Text(weather.temperatureDisplay(metric), fontSize = 24.sp,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    color = contentColor, maxLines = 1)
+                Text(weather.conditionLabel + if (!networkAvailable) " · offline" else "", fontSize = 14.sp,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    color = subColor, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            } else Text(if (networkAvailable) "Weather unavailable · needs location" else "Weather offline",
+                fontSize = 14.sp, color = subColor,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)
         }
     }
 }
@@ -74,7 +93,8 @@ private fun DigitalClock(cal: Calendar, contentColor: Color, subColor: Color, us
             maxLines = 1,
             color         = contentColor,
             fontSize      = clockSize.sp,
-            fontWeight    = androidx.compose.ui.text.font.FontWeight.Light,
+            fontWeight    = androidx.compose.ui.text.font.FontWeight.Medium,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
             letterSpacing = 1.sp
         )
         Text(
@@ -126,7 +146,7 @@ private fun AnalogClock(cal: Calendar, accent: Color, isDayMode: Boolean = false
                 drawLine(
                     color       = when {
                         isQuarter -> accent.copy(alpha = 0.9f)
-                        isHour    -> if (isDayMode) Color(0xFF888888) else Color(0xFF555555)
+                        isHour    -> if (isDayMode) Color(0xFF444444) else Color(0xFF555555)
                         else      -> if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF2E2E2E)
                     },
                     start       = Offset(cx + cos(angle) * radius * inner, cy + sin(angle) * radius * inner),
