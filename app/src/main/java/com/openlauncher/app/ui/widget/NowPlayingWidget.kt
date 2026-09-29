@@ -59,10 +59,6 @@ fun NowPlayingWidget(
     onTapToOpenApp: () -> Unit,
     modifier: Modifier = Modifier,
     isEditing: Boolean = false,
-    youtubeUrl: String = "",
-    videoMoving: Boolean = false,
-    videoNetworkAvailable: Boolean = true,
-    standaloneYouTubeActive: Boolean = false,
     isDayMode: Boolean = false,
     hardwareRadio: com.openlauncher.app.viewmodel.LauncherViewModel.HardwareRadioState? = null,
     onLaunchHardwareRadio: () -> Unit = {},
@@ -119,16 +115,6 @@ fun NowPlayingWidget(
                     modifier = Modifier.fillMaxSize()
                 )
             }
-        } else if (selectedSource == "YouTube") {
-            Box(Modifier.fillMaxSize().padding(top = 32.dp)) {
-                if (standaloneYouTubeActive) {
-                    Text("Remove the separate YouTube card to play video here.",
-                        modifier = Modifier.align(Alignment.Center).padding(12.dp), fontSize = 12.sp)
-                } else {
-                    YouTubeWidget(url = youtubeUrl, isEditing = isEditing, moving = videoMoving,
-                        networkAvailable = videoNetworkAvailable, modifier = Modifier.fillMaxSize())
-                }
-            }
         } else {
             // Standard Elegant Modern Media Player
             StandardMinimalPlayer(
@@ -184,11 +170,6 @@ fun NowPlayingWidget(
                         menuExpanded = false
                     },
                     leadingIcon = { Icon(Icons.Default.MusicNote, null, tint = accent, modifier = Modifier.size(14.dp)) }
-                )
-                DropdownMenuItem(
-                    text = { Text("YouTube video", color = dropdownText, fontSize = 11.sp) },
-                    onClick = { selectedSource = "YouTube"; menuExpanded = false },
-                    leadingIcon = { Icon(Icons.Default.PlayArrow, null, tint = accent, modifier = Modifier.size(14.dp)) }
                 )
                 DropdownMenuItem(
                     text = { Text("FM/AM Radio", color = dropdownText, fontSize = 11.sp) },

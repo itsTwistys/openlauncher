@@ -8,7 +8,7 @@ import com.google.gson.JsonParser
 object SettingsBackup {
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val ids = setOf("CLOCK", "WEATHER", "NOW_PLAYING", "TELEMETRY", "ALTIMETER", "SPEEDOMETER",
-        "VITALS", "TRIP_TRACKER", "SOUNDBOARD", "MAP", "CONNECTIVITY", "DESTINATIONS", "RADAR", "TRAFFIC", "YOUTUBE")
+        "VITALS", "TRIP_TRACKER", "SOUNDBOARD", "MAP", "CONNECTIVITY", "DESTINATIONS", "RADAR", "TRAFFIC")
 
     fun encode(settings: AppSettings): String = gson.toJson(JsonObject().apply {
         addProperty("format", "openlauncher-settings")
@@ -38,7 +38,7 @@ object SettingsBackup {
             "gradientDirection" to GradientDirection.entries.map { it.name }
         )
         enumOptions.forEach { (key, values) -> require(merged.get(key).asString in values) { "Invalid display option" } }
-        val s = gson.fromJson(merged, AppSettings::class.java)
+        val s = gson.fromJson(merged, AppSettings::class.java).withoutRetiredWidgets()
         require(s.uiScale in 0.6f..2f && s.textScale in 0.6f..2f && s.wallpaperDim in 0f..1f) { "Invalid display scale" }
         require(s.vehicleName.length <= 100 && s.homeDestination.length <= 500 && s.workDestination.length <= 500)
         require(s.clockDateFormat in setOf("LONG", "SHORT"))
@@ -55,7 +55,6 @@ object SettingsBackup {
             require(p.layout.map { it.id }.distinct().size == p.layout.size) { "Duplicate widget in saved layout" }
             require(validWidgetLayout(p.layout.filter { it.enabled && it.id in p.enabledIds })) { "Invalid saved layout" }
         }
-        require(s.youtubeUrl.isBlank() || com.openlauncher.app.util.youtubeVideoId(s.youtubeUrl) != null) { "Invalid YouTube link" }
         require(s.shortcuts.size <= 128 && s.soundboardPads.size <= 6)
         require(s.shortcuts.all { it.defaultIcon in DefaultShortcutIcon.entries })
         // Device file grants cannot move between head units. Online location sharing is opt-in again.
