@@ -33,6 +33,7 @@ internal open class MapWebDiagnostics(
     private val active: (WebView) -> Boolean,
     private val mainFrameFailed: () -> Unit
 ) : WebViewClient() {
+    @androidx.annotation.RequiresApi(android.os.Build.VERSION_CODES.M)
     override fun onReceivedError(web: WebView, request: WebResourceRequest, error: WebResourceError) {
         if (!active(web)) return
         diagnostics.failure(MapFailure.NETWORK, mapResource(request.url, request.isForMainFrame), error.errorCode)

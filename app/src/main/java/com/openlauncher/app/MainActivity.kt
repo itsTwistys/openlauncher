@@ -82,6 +82,7 @@ class MainActivity : ComponentActivity() {
             val isWifi      by vm.isWifi.collectAsStateWithLifecycle()
             val isData      by vm.isData.collectAsStateWithLifecycle()
             val internetValidated by vm.internetValidated.collectAsStateWithLifecycle()
+            val networkAvailable by vm.networkAvailable.collectAsStateWithLifecycle()
             val isDayModeVM by vm.isDayMode.collectAsStateWithLifecycle()
             val hardwareRadio by vm.hardwareRadio.collectAsStateWithLifecycle()
             val systemIsDark = isSystemInDarkTheme()
@@ -212,6 +213,7 @@ class MainActivity : ComponentActivity() {
                             ) { destination ->
                                 when (destination) {
                                     NavDestination.HOME -> HomeScreen(
+                                        networkAvailable = networkAvailable,
                                         settings            = settings,
                                         trips = trips, tripError = tripError, onToggleTrip = vm::toggleTrip, onResetTrip = vm::resetTrip,
                                         onFinishTrip = vm::finishTrip, onClearTrips = vm::clearTripHistory,

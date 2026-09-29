@@ -25,7 +25,7 @@ data class LocationData(
     val travelBearing: Float? = null
 )
 
-class LocationCompassManager(context: Context) {
+class LocationCompassManager(private val context: Context) {
 
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val sensorManager   = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -125,6 +125,13 @@ class LocationCompassManager(context: Context) {
         }
 
         // Location — Robust offline-first registration
+        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED &&
+            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            _location.value = null
+            return
+        }
         // GPS Provider (Works 100% offline, sat-based)
         try {
             if (locationManager.allProviders.contains(LocationManager.GPS_PROVIDER)) {
@@ -135,7 +142,8 @@ class LocationCompassManager(context: Context) {
                     locationListener.onLocationChanged(it)
                 }
             }
-        } catch (_: Exception) {}
+        } catch (_: SecurityException) { /* Permission may be revoked after the check. */ }
+        catch (_: Exception) {}
 
         // Network Provider (Works online, cell/wifi-based)
         try {
@@ -147,7 +155,8 @@ class LocationCompassManager(context: Context) {
                     locationListener.onLocationChanged(it)
                 }
             }
-        } catch (_: Exception) {}
+        } catch (_: SecurityException) { /* Permission may be revoked after the check. */ }
+        catch (_: Exception) {}
     }
 
     fun stop() {

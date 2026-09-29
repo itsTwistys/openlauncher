@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.data.ClockStyle
+import com.openlauncher.app.model.freshnessLabel
 import kotlinx.coroutines.delay
 import java.util.*
 import kotlin.math.cos
@@ -59,9 +60,14 @@ fun ClockWidget(
                 Text(weather.temperatureDisplay(metric), fontSize = 24.sp,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                     color = contentColor, maxLines = 1)
-                Text(weather.conditionLabel + if (!networkAvailable) " · offline" else "", fontSize = 14.sp,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                    color = subColor, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Column(Modifier.weight(1f)) {
+                    Text(weather.conditionLabel, fontSize = 16.sp,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                        color = subColor, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    Text(weather.freshnessLabel(calendar.timeInMillis, networkAvailable), fontSize = 12.sp,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                        color = subColor, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                }
             } else Text(if (networkAvailable) "Weather unavailable · needs location" else "Weather offline",
                 fontSize = 14.sp, color = subColor,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)

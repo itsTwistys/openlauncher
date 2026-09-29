@@ -5,6 +5,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -117,6 +118,7 @@ fun HomeScreen(
     location: LocationData?,
     bearing: Float,
     internetValidated: Boolean,
+    networkAvailable: Boolean,
     onApplyProfile: (String) -> Unit,
     onRestoreLayout: (LayoutProfile) -> Unit,
     onRestoreDefault: () -> Unit,
@@ -222,7 +224,7 @@ fun HomeScreen(
             if (settings.layoutProfiles.isNotEmpty() && expandedWidget == null) {
                 Box {
                     TextButton(onClick = { profileMenu = true }) {
-                        Text(settings.activeLayoutProfile.ifBlank { "Layouts" }, fontSize = 11.sp)
+                        Text(settings.activeLayoutProfile.ifBlank { "Layouts" }, fontSize = 14.sp)
                     }
                     DropdownMenu(expanded = profileMenu, onDismissRequest = { profileMenu = false }) {
                         settings.layoutProfiles.forEach { profile ->
@@ -234,7 +236,7 @@ fun HomeScreen(
                 }
             }
             IconButton(onClick = { toolsPage = "Quick controls" }, modifier = Modifier.size(48.dp)) {
-                Icon(Icons.Default.Tune, "Dashboard controls", tint = controlIconColor, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Tune, "Dashboard controls", tint = controlIconColor, modifier = Modifier.size(24.dp))
             }
             AnimatedVisibility(visible = isWifi, enter = fadeIn(), exit = fadeOut()) {
                 Icon(Icons.Default.Wifi, "WiFi", tint = statusIconColor, modifier = Modifier.size(16.dp))
@@ -254,7 +256,7 @@ fun HomeScreen(
                             imageVector        = Icons.Default.Dashboard,
                             contentDescription = "Widget library",
                             tint               = controlIconColor,
-                            modifier           = Modifier.size(15.dp)
+                            modifier           = Modifier.size(24.dp)
                         )
                     }
                     Spacer(Modifier.width(2.dp))
@@ -267,7 +269,7 @@ fun HomeScreen(
                         imageVector        = Icons.Default.Edit,
                         contentDescription = if (editMode) "Finish arranging" else "Edit Dashboard",
                         tint               = if (editMode) accent else controlIconColor,
-                        modifier           = Modifier.size(15.dp)
+                        modifier           = Modifier.size(24.dp)
                     )
                 }
             }
@@ -470,7 +472,7 @@ fun HomeScreen(
                             dateFormat = settings.clockDateFormat,
                             weather = weather,
                             metric = settings.unitSystem.name == "METRIC",
-                            networkAvailable = isWifi || isData,
+                            networkAvailable = networkAvailable,
                             modifier   = Modifier.fillMaxSize().combinedClickable(enabled = !editMode, onClick = { toolsPage = "Weather" }, onLongClick = { contextMenuId = "CLOCK" })
                         )
                         "WEATHER" -> WeatherWidget(
@@ -547,12 +549,14 @@ fun HomeScreen(
                         "MAP" -> MapWidget(
                             autoZoom = settings.mapAutoZoom,
                             headingUp = settings.mapHeadingUp,
+                            softwareRendering = settings.mapSoftwareRendering,
+                            onSoftwareRendering = { value -> onSettings { copy(mapSoftwareRendering = value) } },
                             onMapOptions = onMapOptions,
                             location = location,
                             isEditing = editMode,
                             onlineEnabled = settings.onlineMapEnabled,
                             navigationPackage = settings.navigationPackage,
-                            networkAvailable = isWifi || isData,
+                            networkAvailable = networkAvailable,
                             modifier = Modifier.fillMaxSize()
                         )
                         "CONNECTIVITY" -> ConnectivityWidget(
@@ -663,7 +667,8 @@ fun HomeScreen(
     }
 
     toolsPage?.let { page -> DashboardTools(page, settings, weather, weatherError, location, internetValidated,
-        trips, tripError, onToggleTrip, onFinishTrip, onClearTrips, onRefreshWeather, onSettings, { toolsPage = null }) }
+        trips, tripError, onToggleTrip, onFinishTrip, onClearTrips, onRefreshWeather, onSettings, { toolsPage = null },
+        networkAvailable = networkAvailable) }
 
     // ── Widget library ────────────────────────────────────────────────────────
     if (widgetLibraryOpen) {
@@ -707,9 +712,11 @@ private fun WidgetContextMenu(
                 .background(menuBg)
                 .border(1.dp, menuBorder, RoundedCornerShape(4.dp))
                 .padding(vertical = 4.dp)
-                .width(200.dp)
+                .width(280.dp)
+                .heightIn(max = 320.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            val inactiveMenuTint = if (isDayMode) Color(0xFF777777) else Color(0xFF555555)
+            val inactiveMenuTint = if (isDayMode) Color(0xFF666666) else Color(0xFFAAAAAA)
             ContextRow("ARRANGE", Icons.Default.Dashboard, accent, onArrange, isDayMode = isDayMode)
             HorizontalDivider(color = menuDivider)
             ContextRow("RESIZE", Icons.Default.OpenWith, accent, onResize, isDayMode = isDayMode)
@@ -799,24 +806,25 @@ private fun ContextRow(
     val finalTint = if (isDayMode) {
         if (tint == Color(0xFF884444)) {
             tint
-        } else if (tint == Color(0xFF777777)) {
-            Color(0xFF888888)
+        } else if (tint == Color(0xFF666666)) {
+            Color(0xFF666666)
         } else {
             Color(0xFF111111)
         }
     } else {
-        tint
+        if (tint == Color(0xFF884444)) Color(0xFFEF9A9A) else tint
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Icon(icon, null, tint = finalTint, modifier = Modifier.size(16.dp))
-        Text(label, color = finalTint, fontSize = 10.sp, letterSpacing = 1.sp)
+        Text(label, color = finalTint, fontSize = 14.sp)
     }
 }
 
@@ -886,12 +894,12 @@ private fun WidgetResizeDialog(
         },
         confirmButton = {
             TextButton(enabled = preview != null, onClick = { onConfirm(spanX, spanY) }) {
-                Text("APPLY", color = accent, fontSize = 11.sp, letterSpacing = 1.sp)
+                Text("APPLY", color = accent, fontSize = 16.sp)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("CANCEL", color = cancelColor, fontSize = 11.sp, letterSpacing = 1.sp)
+                Text("CANCEL", color = cancelColor, fontSize = 16.sp)
             }
         },
         containerColor    = dialogBg,
@@ -927,10 +935,10 @@ private fun SpanRow(
         )
         IconButton(
             onClick  = { if (value > min) onChange(value - 1) },
-            modifier = Modifier.size(32.dp)
+            modifier = Modifier.size(48.dp)
         ) {
             Icon(
-                Icons.Default.Remove, null,
+                Icons.Default.Remove, "Decrease $label",
                 tint     = if (value > min) textColor else disabledC,
                 modifier = Modifier.size(16.dp)
             )
@@ -944,10 +952,10 @@ private fun SpanRow(
         )
         IconButton(
             onClick  = { if (value < max) onChange(value + 1) },
-            modifier = Modifier.size(32.dp)
+            modifier = Modifier.size(48.dp)
         ) {
             Icon(
-                Icons.Default.Add, null,
+                Icons.Default.Add, "Increase $label",
                 tint     = if (value < max) accent else disabledC,
                 modifier = Modifier.size(16.dp)
             )

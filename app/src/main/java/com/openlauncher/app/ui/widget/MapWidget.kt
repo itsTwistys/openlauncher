@@ -6,14 +6,17 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import com.openlauncher.app.data.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -23,10 +26,15 @@ import com.openlauncher.app.util.LocationData
 @Composable
 private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolean,
               autoZoom: Boolean, headingUp: Boolean, onMapOptions: (Boolean, Boolean) -> Unit,
+              softwareRendering: Boolean, onSoftwareRendering: (Boolean) -> Unit,
+              navigationAction: String, onOpenNavigation: () -> Unit,
               networkAvailable: Boolean = true, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     if (!onlineEnabled || isEditing) {
-        Box(modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+        Column(modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
+            if (!isEditing) TextButton(onClick = onOpenNavigation, modifier = Modifier.heightIn(min = 56.dp)) {
+                Text(navigationAction, fontSize = 16.sp)
+            }
             Text(if (isEditing) "Map · drag to move" else "Enable Settings → Online Map → Show Embedded Map",
                 fontSize = 16.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)
         }
@@ -41,6 +49,8 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
     var view by remember { mutableStateOf<WebView?>(null) }
     var tileState by remember { mutableStateOf("Loading map engine…") }
     var now by remember { mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
+    var optionsOpen by remember { mutableStateOf(false) }
+    var previousRendering by remember { mutableStateOf(softwareRendering) }
     val latestLocation by rememberUpdatedState(location)
     val latestNetwork by rememberUpdatedState(networkAvailable)
     fun evaluate(web: WebView, script: String, callback: ((String) -> Unit)? = null) {
@@ -53,6 +63,13 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
         }
     }
     fun reload() { ready = false; failure = null; view = null; attempt++ }
+    LaunchedEffect(softwareRendering) {
+        if (previousRendering != softwareRendering) {
+            previousRendering = softwareRendering
+            autoRetries = 0
+            reload()
+        }
+    }
     DisposableEffect(owner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) { resumed = true; autoRetries = 0 }
@@ -139,22 +156,30 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
         now - location.elapsedRealtimeMs > 30_000 -> "GPS stale · showing last location"
         else -> "GPS ±${location.accuracy.toInt()} m"
     }
+    val needsGps = !hasPermission || !locationEnabled || location == null || now - location.elapsedRealtimeMs > 30_000
+    val status = when {
+        failure != null -> failure
+        !networkAvailable -> "Offline · waiting for internet"
+        needsGps -> gpsText
+        !ready -> "Loading map…"
+        else -> null // Tile failures remain visible in the map's status overlay.
+    }
     Column(modifier) {
-        Row(Modifier.fillMaxWidth().padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(gpsText, fontSize = 14.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)
-                Text(if (!networkAvailable) "Offline · reconnecting automatically" else tileState,
-                    fontSize = 12.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onOpenNavigation, modifier = Modifier.heightIn(min = 56.dp)) {
+                Text(navigationAction, fontSize = 16.sp)
             }
-            TextButton(onClick = { autoRetries = 0; reload() }) { Text("Reload", fontSize = 14.sp) }
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = { optionsOpen = true }, modifier = Modifier.heightIn(min = 56.dp)) {
+                Text("Map options", fontSize = 16.sp)
+            }
         }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = autoZoom, onClick = { onMapOptions(!autoZoom, headingUp) },
-                label = { Text(if (autoZoom) "Auto zoom on" else "Auto zoom off", fontSize = 14.sp) })
-            FilterChip(selected = headingUp, onClick = { onMapOptions(autoZoom, !headingUp) },
-                label = { Text(if (headingUp) "Heading up" else "North up", fontSize = 14.sp) })
-        }
-        if (failure != null) Text(failure!!, modifier = Modifier.padding(12.dp), fontSize = 14.sp)
+        status?.let { Text(it, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp), fontSize = 14.sp,
+            maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+        if (optionsOpen) MapOptionsDialog(autoZoom, headingUp, softwareRendering, gpsText,
+            failure ?: if (!networkAvailable) "Offline · waiting for internet" else tileState,
+            onMapOptions, onSoftwareRendering, onReload = { autoRetries = 0; reload(); optionsOpen = false },
+            onDismiss = { optionsOpen = false })
         key(attempt) {
             EmbeddedWebFrame(Modifier.fillMaxWidth().weight(1f), create = {
                 DashboardDiagnostics.beginPage()
@@ -162,17 +187,26 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                 try { WebView(context).also { created = it }.apply {
                     view = this
                     setBackgroundColor(android.graphics.Color.rgb(230, 232, 230))
-                    setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+                    setLayerType(if (softwareRendering) android.view.View.LAYER_TYPE_SOFTWARE
+                        else android.view.View.LAYER_TYPE_NONE, null)
                     settings.javaScriptEnabled = true
                     settings.allowFileAccess = false
                     settings.allowContentAccess = false
                     settings.setGeolocationEnabled(false)
                     settings.javaScriptCanOpenWindowsAutomatically = false
                     settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                    settings.userAgentString += " OpenLauncher/0.0.12 (+https://github.com/itsTwistys/openlauncher)"
+                    settings.userAgentString += " OpenLauncher/${com.openlauncher.app.BuildConfig.VERSION_NAME} (+https://github.com/itsTwistys/openlauncher)"
                     val assets = androidx.webkit.WebViewAssetLoader.Builder()
                         .addPathHandler("/assets/", androidx.webkit.WebViewAssetLoader.AssetsPathHandler(context)).build()
                     val currentWeb = this
+                    // WebView may resume before Compose has assigned its final bounds.
+                    addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+                        if (right > left && bottom > top &&
+                            (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop)) {
+                            post { if (view === currentWeb && ready && resumed)
+                                evaluate(currentWeb, "window.resizeMap && window.resizeMap();") }
+                        }
+                    }
                     webChromeClient = MapChromeDiagnostics(DashboardDiagnostics) { view === currentWeb }
                     webViewClient = object : MapWebDiagnostics(DashboardDiagnostics, { view === it }, {
                         failure = "Map page failed to load. Retrying…"
@@ -222,25 +256,27 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
 fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolean,
               autoZoom: Boolean = true, headingUp: Boolean = false,
               onMapOptions: (Boolean, Boolean) -> Unit = { _, _ -> },
+              softwareRendering: Boolean = true, onSoftwareRendering: (Boolean) -> Unit = {},
               networkAvailable: Boolean = true, navigationPackage: String = "", modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val directions by com.openlauncher.app.service.MediaListenerService.navigation.collectAsState()
     val connected by com.openlauncher.app.service.MediaListenerService.isConnected.collectAsState()
     val navigation = directions.firstOrNull { navigationPackage.isBlank() || it.packageName == navigationPackage }
     Column(modifier) {
-        if (!isEditing) {
+        if (!isEditing && navigation != null) {
             Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                    if (navigation != null) {
-                        Text(if (navigation.packageName == "com.waze") "Waze navigation" else "Google Maps navigation", fontSize = 14.sp)
-                        Text(navigation.title, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 20.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                        if (navigation.details.isNotBlank()) Text(navigation.details, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, fontSize = 16.sp,
-                            maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                    } else {
-                        Text(if (connected) "Start Google Maps or Waze navigation on this device for directions here."
-                            else "Enable Notification Access for directions from Google Maps or Waze.", fontSize = 14.sp, maxLines = 2)
-                    }
-                    TextButton(contentPadding = PaddingValues(horizontal = 4.dp), onClick = {
+                    Text(navigation.title, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 24.sp,
+                        maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    if (navigation.details.isNotBlank()) Text(navigation.details,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, fontSize = 16.sp,
+                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                }
+            }
+        }
+        LocationMap(location, isEditing, onlineEnabled, autoZoom, headingUp, onMapOptions,
+            softwareRendering, onSoftwareRendering, if (connected) "Open navigation" else "Enable directions", onOpenNavigation = {
                         if (!connected) {
                             runCatching { context.startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
                         } else {
@@ -252,10 +288,37 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
                                     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps"))) }
                             }
                         }
-                    }) { Text(if (!connected) "Enable access" else "Open navigation", fontSize = 14.sp) }
-                }
+            }, networkAvailable = networkAvailable, modifier = Modifier.fillMaxWidth().weight(1f))
+    }
+}
+
+@Composable
+internal fun MapOptionsDialog(autoZoom: Boolean, headingUp: Boolean, softwareRendering: Boolean,
+    gpsStatus: String, mapStatus: String, onMapOptions: (Boolean, Boolean) -> Unit,
+    onSoftwareRendering: (Boolean) -> Unit, onReload: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Map options") }, text = {
+        Column(Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            MapOptionSwitch("Auto zoom", autoZoom) { onMapOptions(it, headingUp) }
+            MapOptionSwitch("Heading up", headingUp) { onMapOptions(autoZoom, it) }
+            HorizontalDivider()
+            MapOptionSwitch("Compatibility rendering", softwareRendering, onSoftwareRendering)
+            Text("If tiles load but the map looks blank, try changing this. The map reloads automatically.", fontSize = 14.sp)
+            Text(gpsStatus, fontSize = 16.sp)
+            Text(mapStatus, fontSize = 14.sp)
+            OutlinedButton(onClick = onReload, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                Text("Reload map", fontSize = 16.sp)
             }
         }
-        LocationMap(location, isEditing, onlineEnabled, autoZoom, headingUp, onMapOptions, networkAvailable, Modifier.fillMaxWidth().weight(1f))
+    }, confirmButton = { TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 56.dp)) {
+        Text("Done", fontSize = 16.sp)
+    } })
+}
+
+@Composable
+private fun MapOptionSwitch(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.weight(1f), fontSize = 16.sp)
+        Switch(checked, onCheckedChange, modifier = Modifier.semantics { contentDescription = label })
     }
 }

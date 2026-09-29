@@ -107,15 +107,25 @@ window.setNetworkAvailable = available => {
     }
     renderStatus();
 };
+let resizeFrame = null;
+window.resizeMap = () => {
+    if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = null;
+        // A zero-sized AndroidView during wake/expansion must not become the cached map size.
+        const bounds = document.getElementById('map').getBoundingClientRect();
+        if (bounds.width > 0 && bounds.height > 0) map.invalidateSize({ pan: false, animate: false });
+    });
+};
 window.resumeMap = () => {
-    map.invalidateSize({ pan: false });
+    window.resizeMap();
     retries = 0;
     if (online && started && (loading || failed || !loaded)) reloadTiles();
     renderStatus();
 };
 window.mapStatus = () => ({ message: message(), started, loading, failed, loaded, totalLoaded, totalErrors, totalTimeouts, autoZoomPaused, headingUp, bearing: map.getBearing(), zoom: map.getZoom() });
-if (window.ResizeObserver) new ResizeObserver(() => map.invalidateSize({ pan: false })).observe(document.body);
-window.addEventListener('resize', () => map.invalidateSize({ pan: false }));
+if (window.ResizeObserver) new ResizeObserver(() => window.resizeMap()).observe(document.body);
+window.addEventListener('resize', () => window.resizeMap());
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) { cancelRetry(); clearTimeout(watchdog); }
     else window.resumeMap();
