@@ -7,9 +7,9 @@
 ## Download the Android preview
 
 <!-- preview-download:start -->
-**[Download Open Launcher 0.0.8-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-595a3c5/openlauncher-preview.apk)**
+**[Download Open Launcher 0.0.11-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-5e134e0/openlauncher-preview.apk)**
 
-[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-595a3c5) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-595a3c5/docs/PREVIEW.md)
+[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-5e134e0) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-5e134e0/docs/PREVIEW.md)
 <!-- preview-download:end -->
 
 This debug-signed preview installs as **Open Launcher Preview** alongside an existing launcher. The download above identifies its exact release. Source version 0.0.11 adds saved media-app selection, temporary card expansion and map orientation/automatic zoom, on top of map recovery, readability and the combined Clock + Weather card. It includes the YouTube removal from 0.0.9.
