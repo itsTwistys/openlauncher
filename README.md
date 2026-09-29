@@ -7,9 +7,9 @@
 ## Download the Android preview
 
 <!-- preview-download:start -->
-**[Download Open Launcher 0.0.8-preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-c24b872/openlauncher-preview.apk)**
+**[Download Open Launcher 0.0.8-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-595a3c5/openlauncher-preview.apk)**
 
-[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-c24b872) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-c24b872/docs/PREVIEW.md)
+[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-595a3c5) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-595a3c5/docs/PREVIEW.md)
 <!-- preview-download:end -->
 
 This debug-signed preview installs as **Open Launcher Preview** alongside an existing launcher. Android build and 13 unit tests passed. The map and YouTube rendering changes still need confirmation on the QUZHIDA head unit. This 0.0.8 preview comes from [PR #4](https://github.com/itsTwistys/openlauncher/pull/4); the code on `main` is still 0.0.7 until that PR is merged.
