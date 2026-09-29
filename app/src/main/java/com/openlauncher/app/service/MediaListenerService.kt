@@ -13,7 +13,21 @@ import kotlinx.coroutines.flow.StateFlow
 
 class MediaListenerService : NotificationListenerService() {
 
-    private var activeController: MediaController? = null
+    private val controllers = linkedMapOf<android.media.session.MediaSession.Token, MediaController>()
+    private val stateCache = MediaSessionStateCache<android.media.session.MediaSession.Token, NowPlayingState> {
+        MediaSignature(it.title, it.artist, it.isPlaying, it.artUri, it.albumArt != null)
+    }
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val sessionManager by lazy { getSystemService(MEDIA_SESSION_SERVICE) as MediaSessionManager }
+    private val sessionsChanged = MediaSessionManager.OnActiveSessionsChangedListener { refreshNowPlaying() }
+    private fun disconnectSessions() {
+        runCatching { sessionManager.removeOnActiveSessionsChangedListener(sessionsChanged) }
+        controllers.values.forEach { runCatching { it.unregisterCallback(controllerCallback) } }
+        controllers.clear()
+        stateCache.clear()
+        _sessions.value = emptyList()
+        _nowPlaying.value = null
+    }
 
     private val controllerCallback = object : MediaController.Callback() {
         override fun onPlaybackStateChanged(state: PlaybackState?) = refreshNowPlaying()
@@ -25,6 +39,8 @@ class MediaListenerService : NotificationListenerService() {
         super.onListenerConnected()
         instance = this
         isConnected.value = true
+        runCatching { sessionManager.addOnActiveSessionsChangedListener(sessionsChanged,
+            ComponentName(this, MediaListenerService::class.java), handler) }
         refreshNowPlaying()
         refreshNavigation()
     }
@@ -33,7 +49,7 @@ class MediaListenerService : NotificationListenerService() {
         super.onListenerDisconnected()
         instance = null
         isConnected.value = false
-        clearController()
+        disconnectSessions()
         _nowPlaying.value = null
         _navigation.value = emptyList()
     }
@@ -49,7 +65,7 @@ class MediaListenerService : NotificationListenerService() {
 
     override fun onDestroy() {
         instance = null
-        clearController()
+        disconnectSessions()
         // Clear the static flow so the UI doesn't keep showing a dead session
         // (and pinning its album-art bitmap) after the service is killed
         _nowPlaying.value = null
@@ -81,45 +97,33 @@ class MediaListenerService : NotificationListenerService() {
         }.getOrDefault(emptyList())
     }
 
-    private fun clearController() {
-        activeController?.unregisterCallback(controllerCallback)
-        activeController = null
-    }
-
     private fun refreshNowPlaying() {
-        val msm = getSystemService(MEDIA_SESSION_SERVICE) as? MediaSessionManager ?: return
-        val sessions: List<MediaController> = try {
-            msm.getActiveSessions(ComponentName(this, MediaListenerService::class.java))
-        } catch (_: SecurityException) {
-            emptyList()
+        val active = runCatching {
+            sessionManager.getActiveSessions(ComponentName(this, MediaListenerService::class.java))
+        }.getOrDefault(emptyList())
+        val tokens = active.map { it.sessionToken }.toSet()
+        stateCache.retainOnly(tokens)
+        controllers.keys.filter { it !in tokens }.forEach { token ->
+            controllers.remove(token)?.unregisterCallback(controllerCallback)
         }
-
-        val active = sessions.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
-            ?: sessions.firstOrNull()
-
-        if (active == null) {
-            clearController()
-            _nowPlaying.value = null
-            return
+        active.forEach { controller ->
+            if (controller.sessionToken !in controllers) {
+                controllers[controller.sessionToken] = controller
+                controller.registerCallback(controllerCallback, handler)
+            }
         }
-
-        // getActiveSessions returns NEW MediaController instances on every call —
-        // compare session tokens, not references, or we churn callbacks and
-        // recompose the UI on every notification system-wide.
-        if (active.sessionToken != activeController?.sessionToken) {
-            clearController()
-            activeController = active
-            active.registerCallback(
-                controllerCallback,
-                android.os.Handler(android.os.Looper.getMainLooper())
-            )
+        val states = active.mapNotNull { controller ->
+            controllers[controller.sessionToken]?.let {
+                stateCache.retain(controller.sessionToken, stateFromController(it))
+            }
         }
-
-        updateFromController(activeController)
+        if (_sessions.value != states) _sessions.value = states
+        val selected = com.openlauncher.app.util.selectMediaSession(states, "",
+            { it.controller?.packageName.orEmpty() }, { it.isPlaying })
+        if (_nowPlaying.value != selected) _nowPlaying.value = selected
     }
 
-    private fun updateFromController(controller: MediaController?) {
-        if (controller == null) { _nowPlaying.value = null; return }
+    private fun stateFromController(controller: MediaController): NowPlayingState {
         val meta = controller.metadata
         val title = meta?.getString(MediaMetadata.METADATA_KEY_TITLE)
             ?: meta?.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
@@ -142,18 +146,7 @@ class MediaListenerService : NotificationListenerService() {
             ?: meta?.getString(MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI)
         val isPlaying = controller.playbackState?.state == PlaybackState.STATE_PLAYING
 
-        // Skip redundant emissions: metadata bitmaps parcel into fresh instances on
-        // every read, so a plain data-class compare would never match and every
-        // notification would force a recomposition + art redraw.
-        val prev = _nowPlaying.value
-        if (prev != null &&
-            prev.controller?.sessionToken == controller.sessionToken &&
-            prev.title == title && prev.artist == artist &&
-            prev.isPlaying == isPlaying && prev.artUri == artUri &&
-            (prev.albumArt != null) == (art != null)
-        ) return
-
-        _nowPlaying.value = NowPlayingState(
+        return NowPlayingState(
             title      = title,
             artist     = artist,
             albumArt   = art,
@@ -172,6 +165,8 @@ class MediaListenerService : NotificationListenerService() {
         val navigation: StateFlow<List<NavigationInfo>> = _navigation
         private val _nowPlaying = MutableStateFlow<NowPlayingState?>(null)
         val nowPlaying: StateFlow<NowPlayingState?> = _nowPlaying
+        private val _sessions = MutableStateFlow<List<NowPlayingState>>(emptyList())
+        val sessions: StateFlow<List<NowPlayingState>> = _sessions
         val isConnected = MutableStateFlow(false)
 
         @Volatile private var instance: MediaListenerService? = null

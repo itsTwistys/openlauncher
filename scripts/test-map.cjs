@@ -31,7 +31,7 @@ const assert=require('node:assert/strict');
  await page.locator('#center').click();
  assert.equal(await page.locator('#follow').getAttribute('aria-pressed'),'true');
  fail=true;
- await page.evaluate(()=>{window.setNetworkAvailable(false);window.setNetworkAvailable(true);});
+ await page.evaluate(()=>{window.setNetworkAvailable(false);window.updatePosition(26.76,-81.19);window.setNetworkAvailable(true);});
  await page.waitForFunction(()=>window.mapStatus().failed>0&&!window.mapStatus().loading);
  assert.match(await page.locator('#status').innerText(),/unavailable/);
  fail=false;
@@ -41,7 +41,36 @@ const assert=require('node:assert/strict');
  await page.waitForTimeout(250);
  assert.equal(await page.evaluate(()=>map.getSize().x),400);
  assert.equal(await page.locator('#status').isVisible(),false);
+ // Heading rotates map content; UI and gesture coordinates remain usable.
+ await page.evaluate(()=>{window.setMapOptions(true,true);window.updatePosition(25.761,-80.191,15,90);});
+ await page.waitForFunction(()=>Math.abs(map.getBearing()-270)<1);
+ await page.locator('#center').click();
+ assert.equal(await page.evaluate(()=>map.getZoom()),16);
+ // Faster speeds widen the view; boundaries resist small speed fluctuations.
+ await page.evaluate(()=>{lastZoomChange=0;window.updatePosition(25.761,-80.191,30,0);});
+ assert.equal(await page.evaluate(()=>map.getZoom()),15);
+ await page.evaluate(()=>{lastZoomChange=0;window.updatePosition(25.761,-80.191,22,0);});
+ assert.equal(await page.evaluate(()=>map.getZoom()),15);
+ // Manual zoom remains intact until recenter, which restores speed-based zoom.
+ await page.evaluate(()=>map.setZoom(18,{animate:false}));
+ await page.evaluate(()=>window.updatePosition(25.761,-80.191,30,0));
+ assert.equal(await page.evaluate(()=>map.getZoom()),18);
+ assert.equal(await page.evaluate(()=>window.mapStatus().autoZoomPaused),true);
+ await page.locator('#center').click();
+ assert.equal(await page.evaluate(()=>map.getZoom()),15);
+ // Heading 0 is valid. Missing/stale heading returns to north-up.
+ await page.waitForFunction(()=>Math.abs(map.getBearing())<1);
+ await page.evaluate(()=>window.updatePosition(25.761,-80.191,15,90));
+ await page.waitForFunction(()=>Math.abs(map.getBearing()-270)<1);
+ await page.evaluate(()=>window.clearMotion());
+ assert.equal(await page.evaluate(()=>map.getBearing()),0);
+ await page.evaluate(()=>window.setMapOptions(false,false));
+ await page.evaluate(()=>map.setZoom(18,{animate:false}));
+ await page.evaluate(()=>window.updatePosition(25.761,-80.191,30,90));
+ assert.equal(await page.evaluate(()=>map.getZoom()),18);
+ assert.equal(await page.evaluate(()=>map.getBearing()),0);
  assert.deepEqual(errors,[]);
- console.log('Map checks passed: local assets/CSP, waiting GPS, offline, follow/recenter, tile failure/resume recovery, resize.');
+
+ console.log('Map checks passed: local assets/CSP, waiting GPS, offline, follow/recenter, tile failure/resume recovery, resize, heading rotation, speed zoom, hysteresis and manual override.');
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});

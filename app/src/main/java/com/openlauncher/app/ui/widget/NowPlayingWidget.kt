@@ -59,6 +59,10 @@ fun NowPlayingWidget(
     onTapToOpenApp: () -> Unit,
     modifier: Modifier = Modifier,
     isEditing: Boolean = false,
+    preferredPackage: String = "",
+    mediaApps: List<com.openlauncher.app.model.AppInfo> = emptyList(),
+    onSelectMedia: (String) -> Unit = {},
+    onOpenSelectedMedia: () -> Unit = {},
     isDayMode: Boolean = false,
     hardwareRadio: com.openlauncher.app.viewmodel.LauncherViewModel.HardwareRadioState? = null,
     onLaunchHardwareRadio: () -> Unit = {},
@@ -76,24 +80,16 @@ fun NowPlayingWidget(
     val hasAutoApp  = androidAutoPackage.isNotEmpty()
     val hasContent  = state != null && state.title.isNotEmpty()
 
-    var selectedSource by rememberSaveable { mutableStateOf("Any Player") }
-
-    // Auto-switch to radio view when hardware radio is detected.
-    // Keyed on presence (not the state object) so freq/RDS updates don't
-    // keep forcing the radio view after the user picks "Any Player".
-    val hasHardwareRadio = hardwareRadio != null
-    LaunchedEffect(hasHardwareRadio) {
-        if (hasHardwareRadio) selectedSource = "FM/AM Radio"
-        else if (selectedSource == "FM/AM Radio") selectedSource = "Any Player"
-    }
+    val radioSelected = preferredPackage == "@radio"
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(4.dp))
     ) {
+        Box(Modifier.fillMaxSize().padding(top = 56.dp)) {
         // 1. CONDITIONAL VIEW TOGGLE
-        if (selectedSource == "FM/AM Radio") {
+        if (radioSelected) {
             // Real-tuner radio deck — mirrors the MCU or the radio app's session
             Box(
                 modifier = Modifier
@@ -114,6 +110,26 @@ fun NowPlayingWidget(
                     onAssignRadio = onAssignRadio,
                     modifier = Modifier.fillMaxSize()
                 )
+            }
+        } else if (!isConnected || (preferredPackage.isNotBlank() && state == null)) {
+            val installed = mediaApps.any { it.packageName == preferredPackage }
+            Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(when {
+                    !isConnected -> "Media access disconnected"
+                    !installed -> "Selected app is not installed"
+                    else -> "Player disconnected"
+                }, fontSize = 18.sp, fontFamily = FontFamily.SansSerif)
+                Text(when {
+                    !isConnected -> "Enable Notification Access to receive media controls."
+                    !installed -> "Choose another player or reinstall this app."
+                    else -> "Open the selected app and start playback. Your preference is saved."
+                },
+                    fontSize = 14.sp, fontFamily = FontFamily.SansSerif)
+                TextButton(enabled = !isConnected || installed, onClick = {
+                    if (!isConnected) runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+                    else onOpenSelectedMedia()
+                }) { Text(if (!isConnected) "Enable access" else "Open app", fontSize = 16.sp) }
             }
         } else {
             // Standard Elegant Modern Media Player
@@ -136,50 +152,38 @@ fun NowPlayingWidget(
             )
         }
 
-        // 2. FLOATING MULTI-SOURCE SELECTOR (Top-Right, always overlayed)
-        var menuExpanded by remember { mutableStateOf(false) }
-        val selectorIconColor = if (isDayMode) Color.Black.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-        
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(end = 4.dp, top = 4.dp)
-        ) {
-            IconButton(
-                onClick = { menuExpanded = true },
-                modifier = Modifier.size(24.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Source Selector",
-                    tint = selectorIconColor,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-            val dropdownBg   = if (isDayMode) Color(0xFFF0F0F0) else MaterialTheme.colorScheme.background
-            val dropdownText = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false },
-                modifier = Modifier.background(dropdownBg)
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Any Player", color = dropdownText, fontSize = 15.sp, fontFamily = FontFamily.SansSerif) },
-                    onClick = {
-                        selectedSource = "Any Player"
-                        menuExpanded = false
-                    },
-                    leadingIcon = { Icon(Icons.Default.MusicNote, null, tint = accent, modifier = Modifier.size(14.dp)) }
-                )
-                DropdownMenuItem(
-                    text = { Text("FM/AM Radio", color = dropdownText, fontSize = 15.sp, fontFamily = FontFamily.SansSerif) },
-                    onClick = {
-                        selectedSource = "FM/AM Radio"
-                        menuExpanded = false
-                    },
-                    leadingIcon = { Icon(Icons.Default.Radio, null, tint = accent, modifier = Modifier.size(14.dp)) }
-                )
-            }
+        }
+        // Source preference is stored in DataStore and remains selected when its app disconnects.
+        var pickerOpen by remember { mutableStateOf(false) }
+        val sourceLabel = when (preferredPackage) {
+            "" -> "Automatic"
+            "@radio" -> "FM/AM Radio"
+            else -> mediaApps.firstOrNull { it.packageName == preferredPackage }?.appName ?: preferredPackage
+        }
+        TextButton(onClick = { pickerOpen = true }, modifier = Modifier.align(Alignment.TopStart).fillMaxWidth().height(56.dp)) {
+            Text("$sourceLabel ▾", fontSize = 16.sp, fontFamily = FontFamily.SansSerif,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (pickerOpen) {
+            var query by remember { mutableStateOf("") }
+            AlertDialog(onDismissRequest = { pickerOpen = false }, title = { Text("Choose media app") },
+                text = {
+                    Column {
+                        Text("The app must expose Android media controls while playing.", fontSize = 14.sp)
+                        OutlinedTextField(value = query, onValueChange = { query = it }, label = { Text("Find installed app") }, singleLine = true)
+                        androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 360.dp)) {
+                            item { TextButton(onClick = { onSelectMedia(""); pickerOpen = false }) { Text("Automatic · any playing app") } }
+                            item { TextButton(onClick = { onSelectMedia("@radio"); pickerOpen = false }) { Text("FM/AM Radio") } }
+                            val choices = mediaApps.filter { it.appName.contains(query, true) || it.packageName.contains(query, true) }.sortedBy { it.appName.lowercase() }
+                            items(choices.size) { index ->
+                                val app = choices[index]
+                                TextButton(onClick = { onSelectMedia(app.packageName); pickerOpen = false }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                                    Text(app.appName + if (app.packageName == preferredPackage) " · selected" else "", fontSize = 16.sp)
+                                }
+                            }
+                        }
+                    }
+                }, confirmButton = { TextButton(onClick = { pickerOpen = false }) { Text("Close") } })
         }
     }
 }
@@ -218,7 +222,7 @@ private fun RadioDeck(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(Icons.Default.Radio, null, tint = dimColor, modifier = Modifier.size(22.dp))
+            Icon(Icons.Default.Radio, null, tint = dimColor, modifier = Modifier.size(34.dp))
             Spacer(Modifier.height(6.dp))
             Text(
                 "NO RADIO SOURCE",
@@ -595,7 +599,7 @@ private fun StandardMinimalPlayer(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(Icons.Default.MusicNote, null, tint = idleIconColor, modifier = Modifier.size(24.dp))
-                        Text("NO MEDIA PLAYING", color = idleTextColor, fontSize = 7.sp, letterSpacing = 1.sp)
+                        Text("NO MEDIA PLAYING", color = idleTextColor, fontSize = 14.sp, letterSpacing = 0.sp)
                     }
                 }
             }
@@ -702,27 +706,27 @@ private fun StandardMinimalPlayer(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        IconButton(onClick = { if (!isEditing) onPrev() }, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.SkipPrevious, "Prev", tint = currentIconColor, modifier = Modifier.size(20.dp))
+                        IconButton(enabled = !isEditing && nonNullState.controller != null, onClick = onPrev, modifier = Modifier.size(64.dp)) {
+                            Icon(Icons.Default.SkipPrevious, "Prev", tint = currentIconColor, modifier = Modifier.size(30.dp))
                         }
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .size(42.dp)
+                                .size(72.dp)
                                 .clip(CircleShape)
                                 .background(currentPlayBgColor)
                         ) {
-                            IconButton(onClick = { if (!isEditing) onPlayPause() }, modifier = Modifier.size(42.dp)) {
+                            IconButton(enabled = !isEditing && nonNullState.controller != null, onClick = onPlayPause, modifier = Modifier.size(72.dp)) {
                                 Icon(
                                     imageVector = if (nonNullState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                     contentDescription = if (nonNullState.isPlaying) "Pause" else "Play",
                                     tint = currentPlayIconColor,
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(34.dp)
                                 )
                             }
                         }
-                        IconButton(onClick = { if (!isEditing) onNext() }, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.SkipNext, "Next", tint = currentIconColor, modifier = Modifier.size(20.dp))
+                        IconButton(enabled = !isEditing && nonNullState.controller != null, onClick = onNext, modifier = Modifier.size(64.dp)) {
+                            Icon(Icons.Default.SkipNext, "Next", tint = currentIconColor, modifier = Modifier.size(30.dp))
                         }
                     }
                 }

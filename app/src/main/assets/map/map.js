@@ -1,10 +1,35 @@
 'use strict';
-const map = L.map('map', { attributionControl: true }).setView([0, 0], 2);
+const map = L.map('map', { attributionControl: true, rotate: true, rotateControl: false, dragRotate: false, touchRotate: false, shiftKeyRotate: false }).setView([0, 0], 2);
 const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 });
 let marker = null, follow = true, last = null, started = false, online = true;
+let autoZoom = true, headingUp = false, autoZoomPaused = false, programmaticZoom = false;
+let speedKmh = 0, heading = null, zoomTier = 17, lastZoomChange = 0;
+function withProgrammaticZoom(action) { programmaticZoom = true; try { action(); } finally { programmaticZoom = false; } }
+function updateMotionView(force = false) {
+    if (headingUp && Number.isFinite(heading)) map.setHeading(heading);
+    else { map.stopHeadingUp(); map.setBearing(0); }
+    if (!last || !follow || !autoZoom || autoZoomPaused) return;
+    // Hysteresis prevents repeated zoom changes around the speed boundaries.
+    let target = zoomTier;
+    if (force) target = speedKmh < 35 ? 17 : speedKmh < 80 ? 16 : 15;
+    else if (zoomTier === 17 && speedKmh > 40) target = speedKmh > 85 ? 15 : 16;
+    else if (zoomTier === 16) target = speedKmh < 30 ? 17 : speedKmh > 85 ? 15 : 16;
+    else if (zoomTier === 15 && speedKmh < 75) target = speedKmh < 30 ? 17 : 16;
+    if (force || (target !== zoomTier && Date.now() - lastZoomChange >= 5000)) {
+        zoomTier = target; lastZoomChange = Date.now();
+        withProgrammaticZoom(() => map.setZoom(target, { animate: false }));
+    }
+}
+window.setMapOptions = (zoom, up) => {
+    const changed = zoom !== autoZoom;
+    autoZoom = zoom; headingUp = up;
+    if (changed) autoZoomPaused = false;
+    updateMotionView(changed); renderStatus();
+};
+window.clearMotion = () => { heading = null; speedKmh = 0; updateMotionView(); renderStatus(); };
 let loading = false, failed = 0, loaded = 0, retries = 0, retryTimer = null, watchdog = null;
 const followButton = document.getElementById('follow');
 const statusBox = document.getElementById('status');
@@ -14,6 +39,8 @@ function message() {
     if (loading) return 'Loading map tiles…';
     if (failed) return 'Some map tiles unavailable · check internet';
     if (!loaded) return 'Waiting for map tiles…';
+    if (headingUp && !Number.isFinite(heading)) return 'Heading unavailable · north up';
+    if (autoZoom && autoZoomPaused) return 'Manual zoom · Recenter resumes auto zoom';
     return 'Map ready';
 }
 function renderStatus() {
@@ -37,9 +64,10 @@ function setFollow(value) {
     followButton.classList.toggle('active', value);
     followButton.setAttribute('aria-pressed', value);
 }
-followButton.onclick = () => { setFollow(!follow); if (follow && last) map.panTo(last); };
-document.getElementById('center').onclick = () => { setFollow(true); if (last) map.panTo(last); };
+followButton.onclick = () => { setFollow(!follow); if (follow && last) { autoZoomPaused = false; map.panTo(last); updateMotionView(true); } };
+document.getElementById('center').onclick = () => { setFollow(true); autoZoomPaused = false; if (last) map.panTo(last); updateMotionView(true); renderStatus(); };
 map.on('dragstart', () => setFollow(false));
+map.on('zoomstart', () => { if (!programmaticZoom) autoZoomPaused = true; });
 tiles.on('loading', () => {
     loading = true; failed = 0; loaded = 0;
     clearTimeout(watchdog);
@@ -53,13 +81,17 @@ tiles.on('load', () => {
     if (failed) scheduleRetry(); else { retries = 0; cancelRetry(); }
     renderStatus();
 });
-window.updatePosition = (lat, lon) => {
+window.updatePosition = (lat, lon, speedMps = 0, travelHeading = null) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
+    speedKmh = Number.isFinite(speedMps) ? Math.max(0, speedMps) * 3.6 : 0;
+    heading = Number.isFinite(travelHeading) && speedKmh >= 7.2 ? ((travelHeading % 360) + 360) % 360 : null;
+    const first = !last;
     last = [lat, lon];
     if (!marker) {
-        map.setView(last, 15);
+        withProgrammaticZoom(() => map.setView(last, autoZoom ? 17 : 15, { animate: false }));
         marker = L.circleMarker(last, { radius: 10, color: '#fff', weight: 3, fillColor: '#1769e0', fillOpacity: 1 }).addTo(map);
     } else { marker.setLatLng(last); if (follow) map.panTo(last, { animate: true, duration: 0.6 }); }
+    updateMotionView(first);
     if (!started && online) { started = true; tiles.addTo(map); }
     renderStatus();
 };
@@ -80,7 +112,7 @@ window.resumeMap = () => {
     if (online && started && (loading || failed || !loaded)) reloadTiles();
     renderStatus();
 };
-window.mapStatus = () => ({ message: message(), loading, failed, loaded });
+window.mapStatus = () => ({ message: message(), loading, failed, loaded, autoZoomPaused, headingUp, bearing: map.getBearing(), zoom: map.getZoom() });
 if (window.ResizeObserver) new ResizeObserver(() => map.invalidateSize({ pan: false })).observe(document.body);
 window.addEventListener('resize', () => map.invalidateSize({ pan: false }));
 document.addEventListener('visibilitychange', () => {

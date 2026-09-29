@@ -364,19 +364,20 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     // ── Now Playing ───────────────────────────────────────────────────────────
-    val nowPlaying: StateFlow<NowPlayingState?> = MediaListenerService.nowPlaying
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    val nowPlaying: StateFlow<NowPlayingState?> = combine(MediaListenerService.sessions, settings) { sessions, s ->
+        com.openlauncher.app.util.selectMediaSession(sessions, s.preferredMediaPackage.takeUnless { it == "@radio" }.orEmpty(),
+            { it.controller?.packageName.orEmpty() }, { it.isPlaying })
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    fun playPause() { nowPlaying.value?.controller?.also { ctrl ->
-        val state = ctrl.playbackState?.state
-        if (state == android.media.session.PlaybackState.STATE_PLAYING)
-            ctrl.transportControls?.pause()
-        else
-            ctrl.transportControls?.play()
-    }}
-
-    fun skipNext() { nowPlaying.value?.controller?.transportControls?.skipToNext() }
-    fun skipPrev() { nowPlaying.value?.controller?.transportControls?.skipToPrevious() }
+    private fun selectedMediaController() = nowPlaying.value?.controller?.takeIf {
+        settings.value.preferredMediaPackage.isBlank() || it.packageName == settings.value.preferredMediaPackage
+    }
+    fun playPause() { selectedMediaController()?.let { ctrl -> runCatching {
+        if (ctrl.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING) ctrl.transportControls.pause()
+        else ctrl.transportControls.play()
+    } } }
+    fun skipNext() { selectedMediaController()?.let { runCatching { it.transportControls.skipToNext() } } }
+    fun skipPrev() { selectedMediaController()?.let { runCatching { it.transportControls.skipToPrevious() } } }
 
     // ── Weather ───────────────────────────────────────────────────────────────
     private val _weather = MutableStateFlow<WeatherState?>(null)
@@ -566,11 +567,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // MCU backend wins when present; otherwise mirror the radio app's session
     val hardwareRadio: StateFlow<HardwareRadioState?> =
-        combine(_mcuRadio, nowPlaying, settings) { mcu, np, _ ->
-            mcu ?: np?.let { parseSessionRadio(it) }
+        combine(_mcuRadio, MediaListenerService.sessions, settings) { mcu, sessions, _ ->
+            mcu ?: sessions.firstNotNullOfOrNull { parseSessionRadio(it) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    private fun radioSessionController() = nowPlaying.value?.controller?.takeIf { c ->
+    private fun radioSessionController() = MediaListenerService.sessions.value.firstOrNull {
+        it.controller?.packageName?.let(::isRadioSessionPackage) == true
+    }?.controller?.takeIf { c ->
         c.packageName?.let { isRadioSessionPackage(it) } == true
     }
 
