@@ -87,6 +87,9 @@ data class AppSettings(
     val showClock: Boolean = true,
     val showTelemetry: Boolean = false,
     val showNowPlaying: Boolean = true,
+    val preferredMediaPackage: String = "", // Empty = automatic; @radio = hardware radio
+    val mapAutoZoom: Boolean = true,
+    val mapHeadingUp: Boolean = false,
     val shortcuts: List<ShortcutConfig> = defaultShortcuts(),
     val widgetLayout: List<WidgetConfig> = defaultWidgetLayout(),
     val carPlayPackage: String = "",

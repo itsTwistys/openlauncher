@@ -22,6 +22,7 @@ import com.openlauncher.app.util.LocationData
 /** Local map assets load independently of GPS; position and connectivity are synchronized after resume. */
 @Composable
 private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolean,
+              autoZoom: Boolean, headingUp: Boolean, onMapOptions: (Boolean, Boolean) -> Unit,
               networkAvailable: Boolean = true, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     if (!onlineEnabled || isEditing) {
@@ -75,12 +76,15 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
         }
     }
     // Re-send state after page creation, GPS updates and resume. Never inject text or URLs from apps.
-    LaunchedEffect(ready, location, networkAvailable, resumed) {
+    LaunchedEffect(ready, location, networkAvailable, resumed, autoZoom, headingUp) {
         if (ready && resumed) {
             val fix = latestLocation
-            view?.evaluateJavascript("window.setNetworkAvailable($latestNetwork);", null)
+            view?.evaluateJavascript("window.setNetworkAvailable($latestNetwork); window.setMapOptions($autoZoom,$headingUp);", null)
             if (fix != null && fix.latitude.isFinite() && fix.longitude.isFinite()) {
-                view?.evaluateJavascript("window.updatePosition(${fix.latitude},${fix.longitude});", null)
+                val fresh = android.os.SystemClock.elapsedRealtime() - fix.elapsedRealtimeMs < 30_000
+                val speed = if (fresh && fix.speedMps.isFinite()) fix.speedMps.coerceAtLeast(0f) else 0f
+                val heading = fix.travelBearing?.takeIf { fresh && speed >= 2f && fix.accuracy <= 50f && it.isFinite() }
+                view?.evaluateJavascript("window.updatePosition(${fix.latitude},${fix.longitude},$speed,${heading ?: "null"});", null)
             }
         }
     }
@@ -90,6 +94,8 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
             while (true) {
                 now = android.os.SystemClock.elapsedRealtime()
                 val current = view
+                if (latestLocation?.let { now - it.elapsedRealtimeMs >= 30_000 } != false)
+                    current?.evaluateJavascript("window.clearMotion && window.clearMotion();", null)
                 current?.evaluateJavascript("window.mapStatus ? JSON.stringify(window.mapStatus()) : null") { result ->
                     if (view === current) runCatching {
                         val value = org.json.JSONTokener(result).nextValue() as? String
@@ -122,6 +128,12 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
             }
             TextButton(onClick = { autoRetries = 0; reload() }) { Text("Reload", fontSize = 14.sp) }
         }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = autoZoom, onClick = { onMapOptions(!autoZoom, headingUp) },
+                label = { Text(if (autoZoom) "Auto zoom on" else "Auto zoom off", fontSize = 14.sp) })
+            FilterChip(selected = headingUp, onClick = { onMapOptions(autoZoom, !headingUp) },
+                label = { Text(if (headingUp) "Heading up" else "North up", fontSize = 14.sp) })
+        }
         if (failure != null) Text(failure!!, modifier = Modifier.padding(12.dp), fontSize = 14.sp)
         key(attempt) {
             EmbeddedWebFrame(Modifier.fillMaxWidth().weight(1f), create = {
@@ -135,7 +147,7 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                     settings.setGeolocationEnabled(false)
                     settings.javaScriptCanOpenWindowsAutomatically = false
                     settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                    settings.userAgentString += " OpenLauncher/0.0.10 (+https://github.com/itsTwistys/openlauncher)"
+                    settings.userAgentString += " OpenLauncher/0.0.11 (+https://github.com/itsTwistys/openlauncher)"
                     val assets = androidx.webkit.WebViewAssetLoader.Builder()
                         .addPathHandler("/assets/", androidx.webkit.WebViewAssetLoader.AssetsPathHandler(context)).build()
                     webViewClient = object : WebViewClient() {
@@ -175,6 +187,8 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
 
 @Composable
 fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolean,
+              autoZoom: Boolean = true, headingUp: Boolean = false,
+              onMapOptions: (Boolean, Boolean) -> Unit = { _, _ -> },
               networkAvailable: Boolean = true, navigationPackage: String = "", modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val directions by com.openlauncher.app.service.MediaListenerService.navigation.collectAsState()
@@ -209,6 +223,6 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
                 }
             }
         }
-        LocationMap(location, isEditing, onlineEnabled, networkAvailable, Modifier.fillMaxWidth().weight(1f))
+        LocationMap(location, isEditing, onlineEnabled, autoZoom, headingUp, onMapOptions, networkAvailable, Modifier.fillMaxWidth().weight(1f))
     }
 }

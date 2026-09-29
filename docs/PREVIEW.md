@@ -14,6 +14,13 @@ The preview is debug signed and installs as **Open Launcher Preview** (`com.open
 
 The Map card offers Follow, Recenter, Reload, an offline indicator, and a visible message if its script fails to load. **Draw Over Other Apps** is requested through Android settings where supported. Granting it does not enable embedding another app's whole interface.
 
+## Media preference, expansion and map behavior
+
+- Tap the source name at the top of Now Playing. Select Automatic, FM/AM Radio or search installed apps. A selected app must publish an Android media session for controls to work. The app stays selected when disconnected; Open app starts it, and Notification Access status is shown separately. Selecting Automatic restores selection from active sessions.
+- Tap the Expand icon above Maps or Now Playing to fill the dashboard. Tap the collapse icon, Back to dashboard, or Android Back to return. Saved layout positions/sizes are unchanged and the existing map view remains mounted through expansion.
+- Map offers saved Auto zoom and North up/Heading up choices. Zoom levels are 17 at low speeds, 16 at medium speeds and 15 at high speeds (nominal boundaries 35 and 80 km/h, with hysteresis and at least five seconds between automatic transitions). Manual zoom stays in place until Recenter or toggling Auto zoom. Panning pauses following.
+- Heading up uses GPS travel bearing at speeds of at least 2 m/s, accuracy within 50 m and fix age under 30 seconds. When direction is unavailable it uses north-up. Recenter is larger and restores following/auto zoom. No compass or location permission is granted to the web page; the launcher supplies motion data.
+
 ## More controls
 
 - Save Driving, Parked, Day and Night widget layouts. Switch saved layouts from Home; automatic Day/Night requires both profiles to be saved.

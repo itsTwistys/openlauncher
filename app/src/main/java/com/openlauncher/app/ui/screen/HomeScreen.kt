@@ -20,11 +20,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
@@ -97,6 +101,10 @@ fun HomeScreen(
     settings: AppSettings,
     weather: WeatherState?,
     nowPlaying: NowPlayingState?,
+    mediaApps: List<com.openlauncher.app.model.AppInfo>,
+    onSelectMedia: (String) -> Unit,
+    onOpenSelectedMedia: () -> Unit,
+    onMapOptions: (Boolean, Boolean) -> Unit,
     location: LocationData?,
     bearing: Float,
     internetValidated: Boolean,
@@ -156,6 +164,11 @@ fun HomeScreen(
     val statusIconColor   = if (isDayMode) Color(0xFF444444) else Color(0xFFBFC7D2)
     val controlIconColor  = if (isDayMode) Color(0xFF666666) else Color(0xFFBFC7D2)
 
+    var expandedWidget by rememberSaveable { mutableStateOf<String?>(null) }
+    BackHandler(enabled = expandedWidget != null) { expandedWidget = null }
+    LaunchedEffect(settings.activeWidgetIds()) {
+        if (expandedWidget !in settings.activeWidgetIds()) expandedWidget = null
+    }
     var resizingId    by remember { mutableStateOf<String?>(null) }
     var contextMenuId by remember { mutableStateOf<String?>(null) }
 
@@ -193,7 +206,10 @@ fun HomeScreen(
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
-            if (settings.layoutProfiles.isNotEmpty()) {
+            if (expandedWidget != null) {
+                TextButton(onClick = { expandedWidget = null }) { Text("Back to dashboard", fontSize = 16.sp) }
+            }
+            if (settings.layoutProfiles.isNotEmpty() && expandedWidget == null) {
                 Box {
                     TextButton(onClick = { profileMenu = true }) {
                         Text(settings.activeLayoutProfile.ifBlank { "Layouts" }, fontSize = 11.sp)
@@ -231,7 +247,7 @@ fun HomeScreen(
                     Spacer(Modifier.width(2.dp))
                 }
                 IconButton(
-                    onClick  = { if (editMode) editMode = false else widgetLibraryOpen = true },
+                    onClick  = { expandedWidget = null; if (editMode) editMode = false else widgetLibraryOpen = true },
                     modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
@@ -331,10 +347,12 @@ fun HomeScreen(
 
             rendered.forEach { w ->
                 key(w.id) {
-                val xOff   = (cellW + gap) * w.gridX
-                val yOff   = (cellH + gap) * w.gridY
-                val width  = cellW * w.spanX + gap * (w.spanX - 1)
-                val height = cellH * w.spanY + gap * (w.spanY - 1)
+                val expanded = expandedWidget == w.id
+                val expandable = w.id in setOf("MAP", "NOW_PLAYING")
+                val xOff = if (expanded) 0.dp else (cellW + gap) * w.gridX
+                val yOff = if (expanded) 0.dp else (cellH + gap) * w.gridY
+                val width = if (expanded) maxWidth else cellW * w.spanX + gap * (w.spanX - 1)
+                val height = if (expanded) maxHeight else cellH * w.spanY + gap * (w.spanY - 1)
 
                 val label = when (w.id) {
                     "CLOCK"       -> clockTimeLabel(Calendar.getInstance())
@@ -367,9 +385,11 @@ fun HomeScreen(
                     modifier = Modifier
                         .absoluteOffset(x = xOff + dragDpX, y = yOff + dragDpY)
                         .size(width, height)
-                        .zIndex(if (isDragging) 1f else 0f)
+                        .zIndex(if (expanded) 2f else if (isDragging) 1f else 0f)
+                        .graphicsLayer { alpha = if (expandedWidget != null && !expanded) 0f else 1f }
+                        .then(if (expandedWidget != null && !expanded) Modifier.clearAndSetSemantics { } else Modifier)
                         .clip(WIDGET_RADIUS)
-                        .background(if (isGhost) Color.Transparent else widgetBg)
+                        .background(if (expanded) MaterialTheme.colorScheme.surface else if (isGhost) Color.Transparent else widgetBg)
                         .border(
                             width = if (editMode) 1.5.dp else 1.dp,
                             color = when {
@@ -426,6 +446,7 @@ fun HomeScreen(
                             } else Modifier
                         )
                 ) {
+                    Box(Modifier.fillMaxSize().padding(top = if (expandable && !editMode) 48.dp else 0.dp)) {
                     when (w.id) {
                         "CLOCK" -> ClockWidget(
                             style      = settings.clockStyle,
@@ -448,6 +469,10 @@ fun HomeScreen(
                         )
                         "NOW_PLAYING" -> NowPlayingWidget(
                             state               = nowPlaying,
+                            preferredPackage = settings.preferredMediaPackage,
+                            mediaApps = mediaApps,
+                            onSelectMedia = onSelectMedia,
+                            onOpenSelectedMedia = onOpenSelectedMedia,
                             accent              = accent,
                             carPlayPackage      = settings.carPlayPackage,
                             androidAutoPackage  = settings.androidAutoPackage,
@@ -506,6 +531,9 @@ fun HomeScreen(
                             modifier  = Modifier.fillMaxSize()
                         )
                         "MAP" -> MapWidget(
+                            autoZoom = settings.mapAutoZoom,
+                            headingUp = settings.mapHeadingUp,
+                            onMapOptions = onMapOptions,
                             location = location,
                             isEditing = editMode,
                             onlineEnabled = settings.onlineMapEnabled,
@@ -537,6 +565,18 @@ fun HomeScreen(
                         )
                     }
 
+                    }
+                    if (expandable && !editMode) {
+                        Row(Modifier.align(Alignment.TopStart).fillMaxWidth().height(48.dp).padding(start = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Text(if (w.id == "MAP") "Map" else "Now Playing", fontSize = 16.sp,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, modifier = Modifier.weight(1f))
+                            IconButton(onClick = { expandedWidget = if (expanded) null else w.id }, modifier = Modifier.size(48.dp)) {
+                                Icon(if (expanded) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                                    contentDescription = if (expanded) "Return to dashboard" else "Expand ${w.id.replace('_', ' ')}")
+                            }
+                        }
+                    }
                     // Label — hide when album art fills the widget background
                     val labelColor = when {
                         w.id in setOf("NOW_PLAYING", "MAP") -> Color.Transparent
