@@ -268,7 +268,7 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
                 Column(Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
                     Text(navigation.title, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 24.sp,
-                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     if (navigation.details.isNotBlank()) Text(navigation.details,
                         fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, fontSize = 16.sp,
                         maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)

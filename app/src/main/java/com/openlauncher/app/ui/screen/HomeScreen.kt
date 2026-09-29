@@ -5,6 +5,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -712,8 +713,10 @@ private fun WidgetContextMenu(
                 .border(1.dp, menuBorder, RoundedCornerShape(4.dp))
                 .padding(vertical = 4.dp)
                 .width(280.dp)
+                .heightIn(max = 320.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            val inactiveMenuTint = if (isDayMode) Color(0xFF777777) else Color(0xFF555555)
+            val inactiveMenuTint = if (isDayMode) Color(0xFF666666) else Color(0xFFAAAAAA)
             ContextRow("ARRANGE", Icons.Default.Dashboard, accent, onArrange, isDayMode = isDayMode)
             HorizontalDivider(color = menuDivider)
             ContextRow("RESIZE", Icons.Default.OpenWith, accent, onResize, isDayMode = isDayMode)
@@ -803,17 +806,18 @@ private fun ContextRow(
     val finalTint = if (isDayMode) {
         if (tint == Color(0xFF884444)) {
             tint
-        } else if (tint == Color(0xFF777777)) {
-            Color(0xFF888888)
+        } else if (tint == Color(0xFF666666)) {
+            Color(0xFF666666)
         } else {
             Color(0xFF111111)
         }
     } else {
-        tint
+        if (tint == Color(0xFF884444)) Color(0xFFEF9A9A) else tint
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

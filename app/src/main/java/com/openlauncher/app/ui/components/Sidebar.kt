@@ -397,16 +397,18 @@ private fun ShortcutActionDialog(
 
 @Composable
 private fun ActionRow(label: String, icon: ImageVector, tint: Color, onClick: () -> Unit) {
+    val readableTint = if (tint == Color(0xFF993333)) Color(0xFFEF9A9A) else tint
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
-        Text(label, color = tint, fontSize = 14.sp)
+        Icon(icon, null, tint = readableTint, modifier = Modifier.size(16.dp))
+        Text(label, color = readableTint, fontSize = 14.sp)
     }
 }
 

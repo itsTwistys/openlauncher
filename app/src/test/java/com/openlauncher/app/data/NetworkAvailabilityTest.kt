@@ -7,15 +7,17 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.shadows.ShadowNetworkCapabilities
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class NetworkAvailabilityTest {
-    private fun caps(transport: Int, validated: Boolean) = NetworkCapabilities.Builder().apply {
-        addTransportType(transport)
-        addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-        if (validated) addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-    }.build()
+    private fun caps(transport: Int, validated: Boolean) = ShadowNetworkCapabilities.newInstance().also { caps ->
+        shadowOf(caps).addTransportType(transport)
+        shadowOf(caps).addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        if (validated) shadowOf(caps).addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
     @Test fun validatedEthernetAndVpnAreUsable() {
         assertTrue(networkCanLoadInternet(caps(NetworkCapabilities.TRANSPORT_ETHERNET, true)))
         assertTrue(networkCanLoadInternet(caps(NetworkCapabilities.TRANSPORT_VPN, true)))
