@@ -92,19 +92,22 @@ fun RadarWidget(enabled: Boolean = true, modifier: Modifier = Modifier) {
 @Composable
 fun TrafficWidget(location: com.openlauncher.app.util.LocationData?, enabled: Boolean = true, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    Column(
-        modifier = modifier.clickable(enabled = enabled) {
-            val center = if (location == null) "" else
-                "&center=" + location.latitude + "%2C" + location.longitude + "&zoom=13"
-            val url = Uri.parse("https://www.google.com/maps/@?api=1&map_action=map&layer=traffic" + center)
-            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, url)) }
-        }.padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(Icons.Default.Traffic, contentDescription = null, modifier = Modifier.size(30.dp))
-        Spacer(Modifier.height(8.dp))
-        Text("OPEN LIVE TRAFFIC", fontSize = 12.sp)
-        Text("ETA available in maps", fontSize = 9.sp)
+    var error by remember { mutableStateOf<String?>(null) }
+    fun open(browser: Boolean) {
+        val uri = Uri.parse(com.openlauncher.app.util.trafficMapUrl(location, android.os.SystemClock.elapsedRealtime()))
+        val intent = Intent(Intent.ACTION_VIEW, uri).apply { setPackage(if (browser) "com.android.chrome" else "com.google.android.apps.maps") }
+        val opened = runCatching { context.startActivity(intent) }.isSuccess ||
+            runCatching { context.startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri), "Open live traffic")) }.isSuccess
+        error = if (opened) null else "No Maps app or browser available. Install one and retry."
+    }
+    Column(modifier.padding(12.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Icon(Icons.Default.Traffic, null, Modifier.size(28.dp))
+        Text("LIVE TRAFFIC", fontSize = 16.sp)
+        Text("Opens Google's traffic layer", fontSize = 12.sp)
+        TextButton(onClick = { open(false) }, enabled = enabled) { Text("Open Google Maps") }
+        TextButton(onClick = { open(true) }, enabled = enabled) { Text("Open in browser") }
+        Text("If Maps hides traffic, select Layers → Traffic or use the browser.", fontSize = 12.sp)
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
     }
 }

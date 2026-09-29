@@ -49,3 +49,7 @@ Use JDK 17 and Android SDK 36.1 to build from source:
 Passing pushes on main, feature and fix branches publish preview APKs with SHA-256 checksums. Pull requests run checks without publishing. Passing main builds update the download link above automatically.
 
 This public fork does not currently include a repository-level license file. Leaflet and the pinned MIT-licensed rotation plugin retain bundled licenses and provenance in `app/src/main/assets/map/`.
+
+### Dashboard polish (0.0.14 source)
+
+Full-card Now Playing, prominent AM/PM with local-weather or manual time zones, smoother GPS position markers, matching Chrome/Spotify/Maps sidebar icons, and explicit external traffic shortcuts. Like/rating controls depend on actions exposed by the selected media app. See [preview notes](docs/PREVIEW.md) for setup and verification limits.

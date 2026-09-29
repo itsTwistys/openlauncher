@@ -87,7 +87,7 @@ fun NowPlayingWidget(
             .fillMaxSize()
             .clip(RoundedCornerShape(4.dp))
     ) {
-        Box(Modifier.fillMaxSize().padding(top = 56.dp)) {
+        Box(Modifier.fillMaxSize().padding(top = if (radioSelected || !hasContent || !isConnected) 48.dp else 0.dp)) {
         // 1. CONDITIONAL VIEW TOGGLE
         if (radioSelected) {
             // Real-tuner radio deck — mirrors the MCU or the radio app's session
@@ -156,12 +156,15 @@ fun NowPlayingWidget(
         // Source preference is stored in DataStore and remains selected when its app disconnects.
         var pickerOpen by remember { mutableStateOf(false) }
         val sourceLabel = when (preferredPackage) {
-            "" -> "Automatic"
+            "" -> mediaApps.firstOrNull { it.packageName == state?.controller?.packageName }?.appName ?: "Now Playing"
             "@radio" -> "FM/AM Radio"
             else -> mediaApps.firstOrNull { it.packageName == preferredPackage }?.appName ?: preferredPackage
         }
-        TextButton(onClick = { pickerOpen = true }, modifier = Modifier.align(Alignment.TopStart).fillMaxWidth().height(56.dp)) {
-            Text("$sourceLabel ▾", fontSize = 16.sp, fontFamily = FontFamily.SansSerif,
+        val artHeader = hasContent && (state?.albumArt != null || state?.artUri != null) && !radioSelected
+        TextButton(onClick = { pickerOpen = true }, modifier = Modifier.align(Alignment.TopStart)
+            .fillMaxWidth().padding(end = 52.dp).height(48.dp),
+            colors = ButtonDefaults.textButtonColors(contentColor = if (artHeader) Color.White else MaterialTheme.colorScheme.onBackground)) {
+            Text("$sourceLabel ▾", fontSize = 14.sp, fontFamily = FontFamily.SansSerif,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (pickerOpen) {
@@ -604,133 +607,8 @@ private fun StandardMinimalPlayer(
                 }
             }
         } else {
-            // Non-null playing track state
-            val nonNullState = state!!
-            var positionMs by remember { mutableLongStateOf(nonNullState.controller?.playbackState?.position ?: 0L) }
-            val durationMs = nonNullState.controller?.metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
+            MediaArtworkPlayer(state!!, accent, isEditing, isDayMode, onPlayPause, onNext, onPrev, onTapToOpenApp)
 
-            LaunchedEffect(nonNullState.isPlaying, nonNullState.title) {
-                while (nonNullState.isPlaying) {
-                    positionMs = nonNullState.controller?.playbackState?.position ?: positionMs
-                    delay(500)
-                }
-            }
-
-            // Draw Album Art as background with smooth blur overlay if present
-            val hasAlbumArt = nonNullState.albumArt != null
-            val useDarkTheme = hasAlbumArt || !isDayMode
-
-            val currentTextColor = if (hasAlbumArt) Color.White else if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
-            val currentSubTextColor = if (hasAlbumArt) Color.White.copy(alpha = 0.9f) else if (isDayMode) Color(0xFF666666) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-            val currentProgressColor = if (useDarkTheme) accent else if (isDayMode) Color(0xFF111111) else accent
-            val currentProgressTrack = currentTextColor.copy(alpha = 0.15f)
-            val currentIconColor = currentTextColor.copy(alpha = 0.75f)
-            val currentPlayBgColor = if (useDarkTheme) accent.copy(alpha = 0.9f) else if (isDayMode) Color(0xFF111111) else accent.copy(alpha = 0.9f)
-            val currentPlayIconColor = if (useDarkTheme) Color.Black else Color.White
-
-            if (hasAlbumArt) {
-                // Prefer the full-resolution art URI when the source app provides
-                // one — the metadata bitmap is often a downscaled notification
-                // thumbnail that looks soft stretched across the widget. Falls back
-                // to the bitmap if the URI fails to load, and renders with high
-                // filter quality so upscaling stays smooth either way.
-                coil.compose.AsyncImage(
-                    model = nonNullState.artUri ?: nonNullState.albumArt,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
-                    error = nonNullState.albumArt?.let {
-                        androidx.compose.ui.graphics.painter.BitmapPainter(it.asImageBitmap())
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
-                // 25% dimming layer overlay
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.60f))
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Track info (top — clickable to open app)
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                    modifier = Modifier
-                        .padding(top = 16.dp)
-                        .let { if (!isEditing) it.clickable { onTapToOpenApp() } else it }
-                ) {
-                    Text(
-                        text = nonNullState.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = currentTextColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        fontSize = 20.sp, fontFamily = FontFamily.SansSerif
-                    )
-                    Text(
-                        text = nonNullState.artist.ifEmpty { "Unknown" },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = currentSubTextColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        fontSize = 15.sp, fontFamily = FontFamily.SansSerif
-                    )
-                }
-
-                // Progress + controls (bottom)
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (durationMs > 0) {
-                        LinearProgressIndicator(
-                            progress = { (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) },
-                            modifier = Modifier.fillMaxWidth().height(2.dp),
-                            color = currentProgressColor,
-                            trackColor = currentProgressTrack
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(formatMs(positionMs), style = MaterialTheme.typography.labelSmall, color = currentSubTextColor.copy(alpha = 0.75f), fontSize = 12.sp)
-                            Text(formatMs(durationMs), style = MaterialTheme.typography.labelSmall, color = currentSubTextColor.copy(alpha = 0.75f), fontSize = 12.sp)
-                        }
-                    }
-
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        IconButton(enabled = !isEditing && nonNullState.controller != null, onClick = onPrev, modifier = Modifier.size(64.dp)) {
-                            Icon(Icons.Default.SkipPrevious, "Prev", tint = currentIconColor, modifier = Modifier.size(30.dp))
-                        }
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(72.dp)
-                                .clip(CircleShape)
-                                .background(currentPlayBgColor)
-                        ) {
-                            IconButton(enabled = !isEditing && nonNullState.controller != null, onClick = onPlayPause, modifier = Modifier.size(72.dp)) {
-                                Icon(
-                                    imageVector = if (nonNullState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = if (nonNullState.isPlaying) "Pause" else "Play",
-                                    tint = currentPlayIconColor,
-                                    modifier = Modifier.size(34.dp)
-                                )
-                            }
-                        }
-                        IconButton(enabled = !isEditing && nonNullState.controller != null, onClick = onNext, modifier = Modifier.size(64.dp)) {
-                            Icon(Icons.Default.SkipNext, "Next", tint = currentIconColor, modifier = Modifier.size(30.dp))
-                        }
-                    }
-                }
-            }
         }
     }
 }

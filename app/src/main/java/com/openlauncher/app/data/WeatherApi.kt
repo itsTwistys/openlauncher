@@ -9,6 +9,7 @@ import retrofit2.http.Query
 
 data class OpenMeteoResponse(
     @SerializedName("current_weather") val currentWeather: CurrentWeather?,
+    val timezone: String? = null,
     val hourly: HourlyWeather? = null,
     val daily: DailyWeather? = null,
     @SerializedName("utc_offset_seconds") val utcOffsetSeconds: Long = 0

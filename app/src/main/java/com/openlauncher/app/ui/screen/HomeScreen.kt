@@ -370,7 +370,7 @@ fun HomeScreen(
                 val height = if (expanded) maxHeight else cellH * w.spanY + gap * (w.spanY - 1)
 
                 val label = when (w.id) {
-                    "CLOCK"       -> clockTimeLabel(Calendar.getInstance())
+                    "CLOCK"       -> "CLOCK + WEATHER"
                     "WEATHER"     -> "WEATHER"
                     "NOW_PLAYING" -> "NOW PLAYING"
                     "TELEMETRY"   -> "COMPASS"
@@ -461,7 +461,7 @@ fun HomeScreen(
                             } else Modifier
                         )
                 ) {
-                    Box(Modifier.fillMaxSize().padding(top = if (expandable && !editMode) 48.dp else 0.dp)) {
+                    Box(Modifier.fillMaxSize().padding(top = if (w.id == "MAP" && !editMode) 48.dp else 0.dp)) {
                     when (w.id) {
                         "CLOCK" -> ClockWidget(
                             style      = settings.clockStyle,
@@ -470,6 +470,7 @@ fun HomeScreen(
                             use12HourTime = settings.use12HourTime,
                             showSeconds = settings.showClockSeconds,
                             dateFormat = settings.clockDateFormat,
+                            timeZoneChoice = settings.clockTimeZone,
                             weather = weather,
                             metric = settings.unitSystem.name == "METRIC",
                             networkAvailable = networkAvailable,
@@ -587,11 +588,13 @@ fun HomeScreen(
                     if (expandable && !editMode) {
                         Row(Modifier.align(Alignment.TopStart).fillMaxWidth().height(48.dp).padding(start = 12.dp),
                             verticalAlignment = Alignment.CenterVertically) {
-                            Text(if (w.id == "MAP") "Map" else "Now Playing", fontSize = 16.sp,
+                            if (w.id == "MAP") Text("Map", fontSize = 16.sp,
                                 fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, modifier = Modifier.weight(1f))
+                            else Spacer(Modifier.weight(1f))
                             IconButton(onClick = { expandedWidget = if (expanded) null else w.id }, modifier = Modifier.size(48.dp)) {
                                 Icon(if (expanded) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                                    contentDescription = if (expanded) "Return to dashboard" else "Expand ${w.id.replace('_', ' ')}")
+                                    contentDescription = if (expanded) "Return to dashboard" else "Expand ${w.id.replace('_', ' ')}",
+                                    tint = if (w.id == "NOW_PLAYING" && (nowPlaying?.albumArt != null || nowPlaying?.artUri != null)) Color.White else MaterialTheme.colorScheme.onBackground)
                             }
                         }
                     }

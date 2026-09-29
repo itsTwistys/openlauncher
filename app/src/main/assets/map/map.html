@@ -4,5 +4,14 @@
 html,body,#map{height:100%;width:100%;margin:0;background:#e6e8e6;font:16px sans-serif}
 .controls{position:absolute;bottom:30px;left:12px;z-index:1000;display:flex;gap:8px}#center{background:#174ea6;color:white;min-width:120px;min-height:56px;font-size:17px}button{border:1px solid #777;border-radius:8px;padding:10px;background:#fff;color:#111;font-weight:600;font-size:15px;min-height:48px}
 #status{position:absolute;z-index:1000;top:12px;left:54px;right:12px;background:#20252af2;color:white;padding:12px;border-radius:6px}.active{background:#174ea6;color:white}.leaflet-control-attribution{font-size:11px}.leaflet-touch .leaflet-bar a{width:48px;height:48px;line-height:48px;font-size:28px}
+
+.location-marker{background:transparent;border:0;pointer-events:none}
+.location-halo{position:absolute;inset:0;background:#2878d933;border-radius:50%;box-shadow:0 0 0 1px #2878d955}
+.location-dot{position:absolute;inset:8px;background:#2476dc;border:3px solid white;border-radius:50%;box-shadow:0 1px 6px #0008}
+.location-marker.stale .location-dot{background:#737d88}.location-marker.stale .location-halo{background:#737d8833}
+.controls{bottom:28px;left:10px;right:10px;gap:6px;justify-content:flex-end;pointer-events:none}
+.controls button{pointer-events:auto;border-radius:4px;box-shadow:0 2px 6px #0002;font-size:14px;padding:8px 12px}
+#center{min-width:104px;min-height:48px;font-size:15px}#follow{min-width:88px}
+.leaflet-control-zoom{border-radius:4px!important;box-shadow:0 2px 6px #0002!important}
 </style></head><body><div id="map" aria-label="Current location map"></div><div class="controls"><button id="follow" class="active" aria-pressed="true">Follow on</button><button id="center">Recenter</button></div><div id="status" role="status">Starting map engine…</div>
 <script src="leaflet.js"></script><script src="leaflet-rotate.js"></script><script src="map.js"></script></body></html>

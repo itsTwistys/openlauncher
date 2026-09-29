@@ -327,10 +327,10 @@ private fun ShortcutSlot(
                 )
             }
     ) {
-        val iconInactive = if (LocalDayMode.current) Color(0xFF777777) else Color(0xFF3A3A3A)
-        val override = shortcut.customIconOverride
+        val iconInactive = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f)
+        val override = shortcut.customIconOverride ?: automaticShortcutIcon(shortcut.packageName)
         when {
-            override != null && override != DefaultShortcutIcon.NONE -> {
+            override != null && override != DefaultShortcutIcon.NONE && override != DefaultShortcutIcon.APP_ICON -> {
                 Icon(
                     imageVector        = override.toIcon(),
                     contentDescription = shortcut.label,
@@ -341,13 +341,17 @@ private fun ShortcutSlot(
             resolvedIcon != null -> {
                 // Cache per icon — every slot recomposes each drag frame, and an
                 // un-remembered toBitmap allocated a fresh bitmap per slot per frame
-                val bmp = remember(resolvedIcon) { resolvedIcon.toBitmap(44, 44) }
+                val pixels = with(LocalDensity.current) { ICON_SIZE.roundToPx() }
+                val bmp = remember(resolvedIcon, pixels) { resolvedIcon.toBitmap(pixels, pixels) }
                 Icon(
                     painter            = BitmapPainter(bmp.asImageBitmap()),
                     contentDescription = shortcut.label,
                     tint               = Color.Unspecified,
-                    modifier           = Modifier.size(26.dp)
+                    modifier           = Modifier.size(ICON_SIZE)
                 )
+            }
+            shortcut.packageName.isNotBlank() -> {
+                Icon(Icons.Default.Apps, shortcut.label, tint = iconInactive, modifier = Modifier.size(ICON_SIZE))
             }
             shortcut.isDefault -> {
                 Icon(
@@ -420,7 +424,7 @@ private fun IconPickerDialog(
     onPick: (DefaultShortcutIcon?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val vectorOptions = DefaultShortcutIcon.entries.filter { it != DefaultShortcutIcon.NONE }
+    val vectorOptions = DefaultShortcutIcon.entries.filter { it != DefaultShortcutIcon.NONE && it != DefaultShortcutIcon.APP_ICON }
 
     Dialog(onDismissRequest = onDismiss) {
         Column(
@@ -443,16 +447,16 @@ private fun IconPickerDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(4.dp))
-                        .background(if (currentOverride == null) accent.copy(alpha = 0.15f) else Color.Transparent)
-                        .clickable { onPick(null) }
+                        .background(if (currentOverride == DefaultShortcutIcon.APP_ICON) accent.copy(alpha = 0.15f) else Color.Transparent)
+                        .clickable { onPick(DefaultShortcutIcon.APP_ICON) }
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(Icons.Default.Apps, null, tint = if (currentOverride == null) accent else Color(0xFF666666), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Apps, null, tint = if (currentOverride == DefaultShortcutIcon.APP_ICON) accent else Color(0xFF666666), modifier = Modifier.size(18.dp))
                     Text(
                         "NATIVE APP ICON",
-                        color         = if (currentOverride == null) accent else Color(0xFF888888),
+                        color         = if (currentOverride == DefaultShortcutIcon.APP_ICON) accent else Color(0xFF888888),
                         fontSize      = 14.sp,
                         letterSpacing = 1.sp
                     )
@@ -555,6 +559,10 @@ fun DefaultShortcutIcon.toIcon(): ImageVector = when (this) {
     DefaultShortcutIcon.SETTINGS    -> Icons.Default.Settings
     DefaultShortcutIcon.FAVORITE    -> Icons.Default.Favorite
     // Web / location
+    DefaultShortcutIcon.CHROME      -> ChromeSidebarIcon
+    DefaultShortcutIcon.SPOTIFY     -> SpotifySidebarIcon
+    DefaultShortcutIcon.GOOGLE_MAPS -> Icons.Default.Place
+    DefaultShortcutIcon.APP_ICON    -> Icons.Default.Apps
     DefaultShortcutIcon.GLOBE       -> Icons.Default.Language
     DefaultShortcutIcon.NONE        -> Icons.Default.Apps
 }

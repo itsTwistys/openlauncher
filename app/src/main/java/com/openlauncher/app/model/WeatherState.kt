@@ -9,6 +9,7 @@ data class WeatherState(
     val lowCelsius: Double? = null,
     val hourly: List<ForecastHour> = emptyList(),
     val utcOffsetSeconds: Long = 0,
+    val timeZoneId: String? = null,
     val isDay: Boolean
 ) {
     // roundToInt, not toInt — truncation displayed 20.9° as 20°

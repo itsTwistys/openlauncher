@@ -144,9 +144,16 @@ class MediaListenerService : NotificationListenerService() {
         val artUri = meta?.getString(MediaMetadata.METADATA_KEY_ART_URI)
             ?: meta?.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI)
             ?: meta?.getString(MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI)
-        val isPlaying = controller.playbackState?.state == PlaybackState.STATE_PLAYING
+        val playback = controller.playbackState
+        val isPlaying = playback?.state == PlaybackState.STATE_PLAYING
+        val actions = playback?.actions ?: 0L
+        val customActions = playback?.customActions.orEmpty().map {
+            com.openlauncher.app.model.MediaAction(it.action, it.name.toString(), it.icon)
+        }
+        val rating = meta?.getRating(MediaMetadata.METADATA_KEY_USER_RATING)
+        val ratingStyle = controller.ratingType
 
-        val signature = listOf(title, artist, artUri, isPlaying, art != null,
+        val signature = listOf(title, artist, artUri, isPlaying, art != null, actions, customActions, ratingStyle, rating?.toString(),
             meta?.getString(MediaMetadata.METADATA_KEY_MEDIA_ID), meta?.getString(MediaMetadata.METADATA_KEY_ALBUM),
             meta?.getLong(MediaMetadata.METADATA_KEY_DURATION))
         return snapshots.value(controller.sessionToken, signature, forceArtwork) { NowPlayingState(
@@ -155,7 +162,7 @@ class MediaListenerService : NotificationListenerService() {
             albumArt   = art,
             artUri     = artUri,
             isPlaying  = isPlaying,
-            controller = controller
+            controller = controller, actions = actions, customActions = customActions, ratingStyle = ratingStyle, userRating = rating
         ) }
     }
 

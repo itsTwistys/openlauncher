@@ -68,7 +68,7 @@ fun MapHealth.evidenceLines(): List<Pair<String, String>> = listOf(
 private val SAFE_MAP_STATUSES = setOf(
     "Loading map engine…", "Offline · map will retry when connected", "Waiting for GPS · map is ready",
     "Loading map tiles…", "Some map tiles unavailable · check internet", "Waiting for map tiles…",
-    "Heading unavailable · north up", "Manual zoom · Recenter resumes auto zoom", "Map ready",
+    "GPS stale · showing last location", "Heading unavailable · north up", "Manual zoom · Recenter resumes auto zoom", "Map ready",
     "Map engine unavailable. Check Android System WebView or tap Reload.",
     "Map script did not initialize. Retrying…", "Map script evaluation failed. Retrying…",
     "Map page failed to load. Retrying…", "Map renderer stopped. Recovering…",

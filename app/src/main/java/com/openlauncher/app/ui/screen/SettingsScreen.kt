@@ -373,6 +373,28 @@ fun SettingsScreen(
 
             SettingsDivider()
 
+            SettingsRow(label = "Clock Time Zone", sublabel = if (settings.clockTimeZone == "AUTO") "Local forecast location, with device fallback" else settings.clockTimeZone,
+                icon = Icons.Default.Public) {
+                var open by remember { mutableStateOf(false) }
+                TextButton(onClick = { open = true }) { Text("Choose") }
+                if (open) {
+                    var query by remember { mutableStateOf("") }
+                    AlertDialog(onDismissRequest = { open = false }, title = { Text("Clock time zone") }, text = {
+                        Column {
+                            Text("Changes only the launcher display. If the date or minutes are also wrong, check the head unit's date/time settings.")
+                            OutlinedTextField(query, { query = it }, label = { Text("Search city or zone") }, singleLine = true)
+                            androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 320.dp)) {
+                                item { TextButton(onClick = { onUpdate { copy(clockTimeZone = "AUTO") }; open = false }) { Text("Automatic · local weather location") } }
+                                item { TextButton(onClick = { onUpdate { copy(clockTimeZone = "SYSTEM") }; open = false }) { Text("Use head unit time zone") } }
+                                val zones = java.util.TimeZone.getAvailableIDs().filter { it.contains('/') && it.contains(query.replace(' ', '_'), true) }.sorted()
+                                items(zones.size) { i -> TextButton(onClick = { onUpdate { copy(clockTimeZone = zones[i]) }; open = false }) { Text(zones[i].replace('_', ' ')) } }
+                            }
+                        }
+                    }, confirmButton = { TextButton(onClick = { open = false }) { Text("Close") } })
+                }
+            }
+            SettingsDivider()
+
             SettingsRow(label = "Clock Seconds", sublabel = "Show seconds on the digital clock", icon = Icons.Default.Timer) {
                 Switch(
                     checked = settings.showClockSeconds,
