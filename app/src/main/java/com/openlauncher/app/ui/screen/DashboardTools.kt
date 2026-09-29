@@ -213,7 +213,7 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                         "WebView" to (webView?.let { "${it.packageName} ${it.versionName}" } ?: "Unavailable"),
                         "Map" to if (!settings.onlineMapEnabled) "Online map disabled" else map.status,
                         "Map status time" to if (map.updatedAtMs > 0) DateFormat.getTimeInstance().format(Date(map.updatedAtMs)) else "Not opened",
-                        "Weather" to (weatherError?.let { "Refresh failed" } ?: if (weather != null) "Available" else "Waiting"))
+                        "Weather" to (weatherError?.let { "Refresh failed" } ?: if (weather != null) "Available" else "Waiting")) + map.evidenceLines()
                     lines.forEach { (name, value) -> Text("$name: $value") }
                     Text("Export contains these status details only, without coordinates, destinations or media titles.", fontSize = 13.sp)
                     OutlinedButton(onClick = { pendingExport = lines.joinToString("\n") { "${it.first}: ${it.second}" }; exportText.launch("openlauncher-diagnostics.txt") }) { Text("Export diagnostics") }

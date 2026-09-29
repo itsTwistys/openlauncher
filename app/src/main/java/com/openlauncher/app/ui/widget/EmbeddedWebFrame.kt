@@ -10,19 +10,20 @@ import androidx.compose.ui.viewinterop.AndroidView
 
 /** Give native web content an explicit, clipped owner tied to AndroidView's lifetime. */
 @Composable
-internal fun EmbeddedWebFrame(modifier: Modifier, create: () -> WebView) {
+internal fun EmbeddedWebFrame(modifier: Modifier, create: () -> WebView?, onRelease: (WebView?) -> Unit = {}) {
     AndroidView(
         modifier = modifier.clipToBounds(),
         factory = { context ->
             FrameLayout(context).apply {
                 clipChildren = true
                 clipToPadding = true
-                addView(create(), FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+                create()?.let { addView(it, FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)) }
             }
         },
         onRelease = { frame ->
             val web = frame.getChildAt(0) as? WebView
+            onRelease(web)
             frame.removeAllViews()
             web?.apply {
                 onPause()
