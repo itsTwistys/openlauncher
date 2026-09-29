@@ -20,7 +20,8 @@ data class LocationData(
     val longitude: Double,
     val altitude: Double,
     val accuracy: Float,
-    val speedMps: Float = 0f
+    val speedMps: Float = 0f,
+    val elapsedRealtimeMs: Long = 0L
 )
 
 class LocationCompassManager(context: Context) {
@@ -68,12 +69,16 @@ class LocationCompassManager(context: Context) {
 
     private val locationListener = object : LocationListener {
         override fun onLocationChanged(loc: Location) {
+            // A network cache must not replace a newer GPS fix after ignition/resume.
+            val fixTime = loc.elapsedRealtimeNanos / 1_000_000
+            if (fixTime < (_location.value?.elapsedRealtimeMs ?: 0L)) return
             _location.value = LocationData(
                 latitude  = loc.latitude,
                 longitude = loc.longitude,
                 altitude  = loc.altitude,
                 accuracy  = loc.accuracy,
-                speedMps  = if (loc.hasSpeed()) loc.speed else 0f
+                speedMps  = if (loc.hasSpeed()) loc.speed else 0f,
+                elapsedRealtimeMs = fixTime
             )
 
             // 1. If GPS has a hardware-computed bearing, use it (works offline)
@@ -107,6 +112,8 @@ class LocationCompassManager(context: Context) {
     }
 
     fun start() {
+        // Re-register after sleep or permission changes without duplicate listeners.
+        stop()
         // Sensors
         sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.let {
             sensorManager.registerListener(sensorListener, it, SensorManager.SENSOR_DELAY_UI)
@@ -120,7 +127,7 @@ class LocationCompassManager(context: Context) {
         try {
             if (locationManager.allProviders.contains(LocationManager.GPS_PROVIDER)) {
                 locationManager.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER, 3000L, 5f, locationListener
+                    LocationManager.GPS_PROVIDER, 3000L, 0f, locationListener
                 )
                 locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)?.let {
                     locationListener.onLocationChanged(it)
@@ -132,7 +139,7 @@ class LocationCompassManager(context: Context) {
         try {
             if (locationManager.allProviders.contains(LocationManager.NETWORK_PROVIDER)) {
                 locationManager.requestLocationUpdates(
-                    LocationManager.NETWORK_PROVIDER, 5000L, 10f, locationListener
+                    LocationManager.NETWORK_PROVIDER, 5000L, 0f, locationListener
                 )
                 locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)?.let {
                     locationListener.onLocationChanged(it)

@@ -1,22 +1,8 @@
-<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https://tile.openstreetmap.org data:; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
-<style>/*LEAFLET_CSS*/</style><style>
-html,body,#map{height:100%;width:100%;margin:0;background:#e6e8e6;font:14px sans-serif}
-.controls{position:absolute;bottom:28px;left:8px;z-index:1000;display:flex;gap:6px}button{border:0;border-radius:6px;padding:8px;background:#fff;color:#111;box-shadow:0 1px 6px #777;font-weight:600;font-size:12px;min-height:40px}
-#status{position:absolute;z-index:1000;bottom:76px;left:8px;right:8px;background:#222e;color:white;padding:8px;border-radius:4px;display:none}.active{background:#174ea6;color:white}.leaflet-control-attribution{font-size:10px}
-</style></head><body><div id="map" aria-label="Current location map"></div><div class="controls"><button id="follow" class="active" aria-pressed="true">Follow on</button><button id="center">Recenter</button></div><div id="status" role="status">Map unavailable. Check WiFi. <button id="retry">Retry</button></div>
-<script>/*LEAFLET_JS*/</script><script>
-const map=L.map('map',{attributionControl:true}).setView([0,0],14);
-const tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
-let marker=null,follow=true,last=null,started=false;
-const followButton=document.getElementById('follow'),status=document.getElementById('status');
-function setFollow(value){follow=value;followButton.textContent=value?'Follow on':'Follow off';followButton.classList.toggle('active',value);followButton.setAttribute('aria-pressed',value);}
-followButton.onclick=()=>{setFollow(!follow);if(follow&&last)map.panTo(last,{animate:true,duration:0.6});};
-document.getElementById('center').onclick=()=>{setFollow(true);if(last)map.panTo(last,{animate:true,duration:0.6});};
-map.on('dragstart',()=>setFollow(false));
-window.updatePosition=(lat,lon)=>{if(!Number.isFinite(lat)||!Number.isFinite(lon))return;last=[lat,lon];if(!marker){map.setView(last,14);marker=L.circleMarker(last,{radius:8,color:'#fff',weight:3,fillColor:'#1769e0',fillOpacity:1}).addTo(map);tiles.addTo(map);started=true;}else{marker.setLatLng(last);if(follow)map.panTo(last,{animate:true,duration:0.6});}};
-tiles.on('tileerror',()=>status.style.display='block');tiles.on('tileload',()=>status.style.display='none');
-document.getElementById('retry').onclick=()=>{status.style.display='none';tiles.redraw();};
-window.setNetworkAvailable=available=>{if(!available)status.style.display='block';else if(started)tiles.redraw();};
-if(window.ResizeObserver)new ResizeObserver(()=>map.invalidateSize()).observe(document.body);else window.addEventListener('resize',()=>map.invalidateSize());
-</script></body></html>
+<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https://tile.openstreetmap.org data:; style-src 'self' 'unsafe-inline'; script-src 'self';">
+<link rel="stylesheet" href="leaflet.css"><style>
+html,body,#map{height:100%;width:100%;margin:0;background:#e6e8e6;font:16px sans-serif}
+.controls{position:absolute;bottom:30px;left:12px;z-index:1000;display:flex;gap:8px}button{border:1px solid #777;border-radius:8px;padding:10px;background:#fff;color:#111;font-weight:600;font-size:15px;min-height:48px}
+#status{position:absolute;z-index:1000;top:12px;left:54px;right:12px;background:#20252af2;color:white;padding:12px;border-radius:6px}.active{background:#174ea6;color:white}.leaflet-control-attribution{font-size:11px}
+</style></head><body><div id="map" aria-label="Current location map"></div><div class="controls"><button id="follow" class="active" aria-pressed="true">Follow on</button><button id="center">Recenter</button></div><div id="status" role="status">Starting map engine…</div>
+<script src="leaflet.js"></script><script src="map.js"></script></body></html>

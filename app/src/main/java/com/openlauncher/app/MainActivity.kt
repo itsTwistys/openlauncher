@@ -1,5 +1,7 @@
 package com.openlauncher.app
 
+import com.openlauncher.app.data.withDefaultDashboard
+
 import android.Manifest
 import com.openlauncher.app.data.withWidgetVisibility
 import android.os.Bundle
@@ -202,6 +204,7 @@ class MainActivity : ComponentActivity() {
                                         internetValidated   = internetValidated,
                                         onApplyProfile      = vm::applyLayoutProfile,
                                         onRememberDestination = vm::rememberDestination,
+                                        onRestoreDefault = { vm.updateSettings { withDefaultDashboard() } },
                                         onRestoreLayout = { profile -> vm.updateSettings {
                                             copy(widgetLayout = profile.layout).withWidgetVisibility(profile.enabledIds.toSet())
                                         } },
@@ -305,6 +308,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        vm.startLocationUpdates()
         vm.refreshConnectivity()
         vm.refreshMedia()
     }

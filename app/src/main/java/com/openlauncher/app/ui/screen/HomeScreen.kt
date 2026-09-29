@@ -3,6 +3,8 @@ package com.openlauncher.app.ui.screen
 import android.content.res.Configuration
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -59,8 +61,7 @@ private data class WidgetTypeInfo(
 )
 
 private val ALL_WIDGET_TYPES = listOf(
-    WidgetTypeInfo("CLOCK",       "CLOCK",       Icons.Default.AccessTime,  "Time & date"),
-    WidgetTypeInfo("WEATHER",     "WEATHER",     Icons.Default.Cloud,       "Current conditions"),
+    WidgetTypeInfo("CLOCK",       "CLOCK + WEATHER", Icons.Default.AccessTime, "Time, date and local weather"),
     WidgetTypeInfo("NOW_PLAYING", "NOW PLAYING", Icons.Default.MusicNote,   "Media controls"),
     WidgetTypeInfo("TELEMETRY",   "COMPASS",     Icons.Default.Explore,     "Speed & heading"),
     WidgetTypeInfo("ALTIMETER",   "ALTIMETER",   Icons.Default.FlightTakeoff, "Roll, pitch & altitude"),
@@ -101,6 +102,7 @@ fun HomeScreen(
     internetValidated: Boolean,
     onApplyProfile: (String) -> Unit,
     onRestoreLayout: (LayoutProfile) -> Unit,
+    onRestoreDefault: () -> Unit,
     onRememberDestination: (String) -> Unit,
     isWifi: Boolean,
     isData: Boolean,
@@ -151,8 +153,8 @@ fun HomeScreen(
         else         -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
     }
     val headerTextColor   = if (isDayMode) Color(0xFF111111) else accent
-    val statusIconColor   = if (isDayMode) Color(0xFF444444) else Color(0xFF666666)
-    val controlIconColor  = if (isDayMode) Color(0xFF666666) else Color(0xFF444444)
+    val statusIconColor   = if (isDayMode) Color(0xFF444444) else Color(0xFFBFC7D2)
+    val controlIconColor  = if (isDayMode) Color(0xFF666666) else Color(0xFFBFC7D2)
 
     var resizingId    by remember { mutableStateOf<String?>(null) }
     var contextMenuId by remember { mutableStateOf<String?>(null) }
@@ -217,7 +219,7 @@ fun HomeScreen(
                 if (editMode) {
                     IconButton(
                         onClick  = { widgetLibraryOpen = true },
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(48.dp)
                     ) {
                         Icon(
                             imageVector        = Icons.Default.Dashboard,
@@ -229,12 +231,12 @@ fun HomeScreen(
                     Spacer(Modifier.width(2.dp))
                 }
                 IconButton(
-                    onClick  = { editMode = !editMode },
-                    modifier = Modifier.size(28.dp)
+                    onClick  = { if (editMode) editMode = false else widgetLibraryOpen = true },
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         imageVector        = Icons.Default.Edit,
-                        contentDescription = "Edit widgets",
+                        contentDescription = if (editMode) "Finish arranging" else "Edit Dashboard",
                         tint               = if (editMode) accent else controlIconColor,
                         modifier           = Modifier.size(15.dp)
                     )
@@ -432,6 +434,9 @@ fun HomeScreen(
                             use12HourTime = settings.use12HourTime,
                             showSeconds = settings.showClockSeconds,
                             dateFormat = settings.clockDateFormat,
+                            weather = weather,
+                            metric = settings.unitSystem.name == "METRIC",
+                            networkAvailable = isWifi || isData,
                             modifier   = Modifier.fillMaxSize()
                         )
                         "WEATHER" -> WeatherWidget(
@@ -610,7 +615,10 @@ fun HomeScreen(
             isDayMode = isDayMode,
             onAdd     = { id -> removedLayout = null; onAddWidget(id) },
             onRemove  = { id -> removeWithUndo(id) },
-            onDismiss = { widgetLibraryOpen = false }
+            onResize = { id, w, h -> removedLayout = null; onUpdateWidget(id, w, h) },
+            onRestoreDefault = { removedLayout = null; onRestoreDefault() },
+            onArrange = { widgetLibraryOpen = false; editMode = true },
+            onDismiss = { widgetLibraryOpen = false; editMode = false }
         )
     }
 }
@@ -851,7 +859,7 @@ private fun SpanRow(
     onChange: (Int) -> Unit
 ) {
     val textColor   = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
-    val dimColor    = if (isDayMode) Color(0xFF495057) else Color(0xFF666666)
+    val dimColor    = if (isDayMode) Color(0xFF495057) else Color(0xFFBFC7D2)
     val disabledC   = if (isDayMode) Color(0xFFCED4DA) else Color(0xFF333333)
     val inactiveBg  = if (isDayMode) Color(0xFFE9ECEF) else Color(0xFF2A2A2A)
     Row(
@@ -917,70 +925,81 @@ private fun WidgetLibraryDialog(
     isDayMode: Boolean,
     onAdd: (String) -> Unit,
     onRemove: (String) -> Unit,
+    onResize: (String, Int, Int) -> Unit,
+    onRestoreDefault: () -> Unit,
+    onArrange: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val dialogBg    = if (isDayMode) Color(0xFFEEEEEE) else Color(0xFF0C0C0C)
-    val dialogBorder = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF1E1E1E)
-    val titleColor  = if (isDayMode) Color(0xFF495057) else Color(0xFF555555)
-    val closeColor  = if (isDayMode) Color(0xFF495057) else Color(0xFF444444)
-
+    var confirmRestore by remember { mutableStateOf(false) }
     val activeIds = settings.activeWidgetIds()
     val canAdd = canAddWidget(settings)
-
-    Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(dialogBg)
-                .border(1.dp, dialogBorder, RoundedCornerShape(4.dp))
-                .padding(16.dp)
-                .widthIn(min = 320.dp, max = 520.dp)
-        ) {
-            Row(
-                modifier          = Modifier.fillMaxWidth().padding(bottom = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text          = "WIDGET LIBRARY",
-                    color         = titleColor,
-                    fontSize      = 9.sp,
-                    letterSpacing = 2.sp
-                )
-                Spacer(Modifier.weight(1f))
-                IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Close, null, tint = closeColor, modifier = Modifier.size(14.dp))
+    Dialog(onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxWidth(0.94f).fillMaxHeight(0.94f), shape = RoundedCornerShape(16.dp),
+            color = if (isDayMode) Color.White else Color(0xFF15191F),
+            contentColor = if (isDayMode) Color(0xFF111111) else Color.White) {
+            Column(Modifier.padding(20.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Edit Dashboard", fontSize = 22.sp,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                        modifier = Modifier.weight(1f))
+                    TextButton(onClick = onArrange) { Text("Arrange", fontSize = 16.sp) }
+                    Button(onClick = onDismiss) { Text("Done", fontSize = 16.sp) }
                 }
-            }
-
-            LazyVerticalGrid(
-                columns               = GridCells.Fixed(4),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement   = Arrangement.spacedBy(6.dp),
-                modifier              = Modifier.fillMaxWidth()
-            ) {
-                items(ALL_WIDGET_TYPES) { info ->
-                    val isActive = info.id in activeIds
-                    WidgetLibraryCard(
-                        info     = info,
-                        isActive = isActive,
-                        canAdd   = canAdd,
-                        accent   = accent,
-                        isDayMode = isDayMode,
-                        onToggle = { if (isActive) onRemove(info.id) else onAdd(info.id) }
-                    )
+                Text("Changes save automatically. Choose a size below; Arrange lets you drag cards.", fontSize = 14.sp)
+                val active = settings.widgetLayout.filter { it.enabled && it.id in activeIds }
+                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    repeat(GRID_COLS) { x ->
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            repeat(GRID_ROWS) { y ->
+                                val card = active.firstOrNull { x in it.gridX until it.gridX + it.spanX && y in it.gridY until it.gridY + it.spanY }
+                                Box(Modifier.fillMaxWidth().height(32.dp).background(if (card == null) Color.Gray.copy(alpha = 0.15f) else accent.copy(alpha = 0.22f)), contentAlignment = Alignment.Center) {
+                                    Text(card?.id?.replace('_', ' ') ?: "Empty", fontSize = 12.sp, maxLines = 1)
+                                }
+                            }
+                        }
+                    }
                 }
-            }
-
-            if (!canAdd) {
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    text          = "ALL ${GRID_COLS * GRID_ROWS} CELLS OCCUPIED — REMOVE A WIDGET TO ADD MORE",
-                    color         = if (isDayMode) Color(0xFFE03131) else Color(0xFF3A3A3A),
-                    fontSize      = 8.sp,
-                    letterSpacing = 1.sp,
-                    modifier      = Modifier.fillMaxWidth(),
-                    textAlign     = TextAlign.Center
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (confirmRestore) "Replace this layout with Maps, Now Playing and Clock + Weather?" else "Restore changes only the dashboard layout.",
+                        fontSize = 14.sp, modifier = Modifier.weight(1f))
+                    if (confirmRestore) {
+                        TextButton(onClick = { confirmRestore = false }) { Text("Cancel") }
+                        Button(onClick = { onRestoreDefault(); confirmRestore = false }) { Text("Restore") }
+                    } else TextButton(onClick = { confirmRestore = true }) { Text("Restore Default") }
+                }
+                androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(ALL_WIDGET_TYPES.size) { index ->
+                        val info = ALL_WIDGET_TYPES[index]
+                        val isActive = info.id in activeIds
+                        val config = settings.widgetLayout.firstOrNull { it.id == info.id }
+                        Surface(tonalElevation = 3.dp, shape = RoundedCornerShape(8.dp)) {
+                            Column(Modifier.fillMaxWidth().padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(info.label, fontSize = 17.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)
+                                        Text(info.description, fontSize = 13.sp)
+                                    }
+                                    TextButton(enabled = isActive || canAdd,
+                                        onClick = { if (isActive) onRemove(info.id) else onAdd(info.id) }) {
+                                        Text(if (isActive) "Remove" else "Add", fontSize = 16.sp)
+                                    }
+                                }
+                                if (isActive && config != null) {
+                                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        for (h in 1..GRID_ROWS) for (w in 1..GRID_COLS) {
+                                            FilterChip(selected = config.spanX == w && config.spanY == h,
+                                                enabled = settings.resizePreview(info.id, w, h) != null,
+                                                onClick = { onResize(info.id, w, h) },
+                                                label = { Text("$w × $h", fontSize = 15.sp) })
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (!canAdd) Text("Dashboard full. Remove or shrink a card to add another.", fontSize = 14.sp)
             }
         }
     }

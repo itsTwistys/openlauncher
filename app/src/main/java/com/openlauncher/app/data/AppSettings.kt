@@ -82,10 +82,10 @@ data class AppSettings(
     val showClockSeconds: Boolean = false,
     val clockDateFormat: String = "LONG",
     val unitSystem: UnitSystem = UnitSystem.METRIC,
-    val appFont: AppFont = AppFont.JETBRAINS_MONO,
-    val showWeather: Boolean = true,
+    val appFont: AppFont = AppFont.SYSTEM,
+    val showWeather: Boolean = false,
     val showClock: Boolean = true,
-    val showTelemetry: Boolean = true,
+    val showTelemetry: Boolean = false,
     val showNowPlaying: Boolean = true,
     val shortcuts: List<ShortcutConfig> = defaultShortcuts(),
     val widgetLayout: List<WidgetConfig> = defaultWidgetLayout(),
@@ -108,7 +108,7 @@ data class AppSettings(
     val showTripTracker: Boolean = false,
     val compassOffset: Float = 0f,
     val showSoundboard: Boolean = false,
-    val showMap: Boolean = false,
+    val showMap: Boolean = true,
     val onlineMapEnabled: Boolean = false,
     val showConnectivity: Boolean = false,
     val showDestinations: Boolean = false,
@@ -136,11 +136,15 @@ fun defaultShortcuts() = listOf(
 )
 
 fun defaultWidgetLayout() = listOf(
-    WidgetConfig("CLOCK",       gridX = 0, gridY = 0, spanX = 1, spanY = 1),
-    WidgetConfig("WEATHER",     gridX = 1, gridY = 0, spanX = 1, spanY = 1),
-    WidgetConfig("TELEMETRY",   gridX = 2, gridY = 0, spanX = 1, spanY = 2),
-    WidgetConfig("NOW_PLAYING", gridX = 0, gridY = 1, spanX = 2, spanY = 1)
+    WidgetConfig("MAP", gridX = 0, gridY = 0, spanX = 2, spanY = 2),
+    WidgetConfig("NOW_PLAYING", gridX = 2, gridY = 0, spanX = 1, spanY = 1),
+    WidgetConfig("CLOCK", gridX = 2, gridY = 1, spanX = 1, spanY = 1)
 )
+
+/** Restore only dashboard placement/visibility, preserving permissions and personal settings. */
+fun AppSettings.withDefaultDashboard(): AppSettings = copy(
+    widgetLayout = defaultWidgetLayout(), activeLayoutProfile = "", autoDayNightProfiles = false
+).withWidgetVisibility(setOf("MAP", "NOW_PLAYING", "CLOCK"))
 
 fun AppSettings.activeWidgetIds(): Set<String> = buildSet {
     if (showClock) add("CLOCK")
@@ -225,3 +229,20 @@ fun AppSettings.withoutRetiredWidgets(): AppSettings = copy(
         enabledIds = profile.enabledIds.filterNot { it == "YOUTUBE" }
     ) }
 )
+
+/** Keep the existing clock position; a weather-only layout inherits its weather position. */
+fun AppSettings.withMergedClockWeather(): AppSettings {
+    fun mergedLayout(layout: List<WidgetConfig>, ids: Set<String>): List<WidgetConfig> {
+        val weatherOnly = "WEATHER" in ids && "CLOCK" !in ids
+        return layout.filterNot { it.id == if (weatherOnly) "CLOCK" else "WEATHER" }
+            .map { if (weatherOnly && it.id == "WEATHER") it.copy(id = "CLOCK") else it }
+    }
+    return copy(
+        widgetLayout = mergedLayout(widgetLayout, activeWidgetIds()),
+        showClock = showClock || showWeather, showWeather = false,
+        layoutProfiles = layoutProfiles.map { profile -> profile.copy(
+            layout = mergedLayout(profile.layout, profile.enabledIds.toSet()),
+            enabledIds = profile.enabledIds.map { if (it == "WEATHER") "CLOCK" else it }.distinct()
+        ) }
+    )
+}

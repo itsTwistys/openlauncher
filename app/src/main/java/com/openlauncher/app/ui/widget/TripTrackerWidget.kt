@@ -1,6 +1,8 @@
 package com.openlauncher.app.ui.widget
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,7 +42,7 @@ fun TripTrackerWidget(
     val lcdBg = Color.Transparent
     val lcdBorder = if (isDayMode) Color(0xFFCCCCCC) else androidx.compose.material3.MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f)
     
-    val labelColor = if (isDayMode) Color(0xFF888888) else androidx.compose.material3.MaterialTheme.colorScheme.onBackground.copy(alpha = 0.30f)
+    val labelColor = if (isDayMode) Color(0xFF444444) else androidx.compose.material3.MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f)
     
     // Safety accents mapped elegantly to the dynamic accent color
     val activeAccent = accent
@@ -211,150 +213,17 @@ fun TripTrackerWidget(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             if (activeMode == "TRIP") {
-                // Panel Column 1: Distance Readout
-                Column(
-                    modifier = Modifier.weight(0.38f),
-                    verticalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "DISTANCE // DIST",
-                        color = labelColor,
-                        fontSize = 6.5.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp
-                    )
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.BottomStart) {
-                            Text(
-                                text = "88.88",
-                                color = dimDisplayColor,
-                                fontSize = 24.sp,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "%05.2f".format(distanceDisplay),
-                                color = displayColor,
-                                fontSize = 24.sp,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold
-                            )
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("%.2f %s".format(distanceDisplay, distUnit), color = displayColor,
+                        fontSize = 28.sp, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold)
+                    listOf("Drive time" to formatTime(driveTimeSeconds),
+                        "Idle time" to formatTime(idleTimeSeconds),
+                        "Average" to "%.1f %s".format(avgSpeedDisplay, speedUnit)).forEach { (label, value) ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(label, color = labelColor, fontSize = 14.sp, fontFamily = FontFamily.SansSerif)
+                            Text(value, color = displayColor, fontSize = 16.sp, fontFamily = FontFamily.SansSerif)
                         }
-                        Text(
-                            text = distUnit,
-                            color = displayColor,
-                            fontSize = 9.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                    }
-                    
-                    // Hired/Time-Off Indicators
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = "[RUNNING]",
-                            color = if (isRunning) activeAccent else dimDisplayColor,
-                            fontSize = 6.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Text(
-                            text = "[STOPPED]",
-                            color = if (!isRunning && (driveTimeSeconds > 0 || idleTimeSeconds > 0)) teRed else dimDisplayColor,
-                            fontSize = 6.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    }
-                }
-
-                // Panel Column 2: Drive & Idle Timers
-                Column(
-                    modifier = Modifier
-                        .weight(0.30f)
-                        .padding(horizontal = 2.dp),
-                    verticalArrangement = Arrangement.SpaceBetween,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("DRIVE [TIME]", color = labelColor, fontSize = 6.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-                        Box {
-                            Text("88:88:88", color = dimDisplayColor, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
-                            Text(formatTime(driveTimeSeconds), color = displayColor, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
-                        }
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("IDLE [TIME]", color = labelColor, fontSize = 6.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-                        Box {
-                            Text("88:88:88", color = dimDisplayColor, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
-                            Text(formatTime(idleTimeSeconds), color = displayColor, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
-                        }
-                    }
-                }
-
-                // Panel Column 3: Average Speed
-                Column(
-                    modifier = Modifier.weight(0.32f),
-                    verticalArrangement = Arrangement.SpaceBetween,
-                    horizontalAlignment = Alignment.End
-                ) {
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "AVG SPEED // SPD",
-                            color = labelColor,
-                            fontSize = 6.5.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
-                        )
-                        Row(
-                            verticalAlignment = Alignment.Bottom,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.BottomEnd) {
-                                Text(
-                                    text = "888.8",
-                                    color = dimDisplayColor,
-                                    fontSize = 15.sp,
-                                    fontFamily = FontFamily.Monospace,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "%05.1f".format(avgSpeedDisplay),
-                                    color = displayColor,
-                                    fontSize = 15.sp,
-                                    fontFamily = FontFamily.Monospace,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Text(
-                                text = speedUnit,
-                                color = displayColor,
-                                fontSize = 7.sp,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(bottom = 1.dp)
-                            )
-                        }
-                    }
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text("SYS STAT", color = labelColor, fontSize = 6.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-                        Text(
-                            text = if (isRunning) "A" else "I",
-                            color = if (isRunning) activeAccent else displayColor,
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
                 }
             } else {
@@ -366,8 +235,8 @@ fun TripTrackerWidget(
                     Text(
                         text = if (isMetric) "ACCEL TEST // 0-100" else "ACCEL TEST // 0-60",
                         color = labelColor,
-                        fontSize = 6.5.sp,
-                        fontFamily = FontFamily.Monospace,
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.SansSerif,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp
                     )
@@ -380,23 +249,23 @@ fun TripTrackerWidget(
                             Text(
                                 text = "88.88",
                                 color = dimDisplayColor,
-                                fontSize = 24.sp,
-                                fontFamily = FontFamily.Monospace,
+                                fontSize = 24.0.sp,
+                                fontFamily = FontFamily.SansSerif,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = accelTimeDisplay.removeSuffix("s"),
                                 color = displayColor,
-                                fontSize = 24.sp,
-                                fontFamily = FontFamily.Monospace,
+                                fontSize = 24.0.sp,
+                                fontFamily = FontFamily.SansSerif,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                         Text(
                             text = "SEC",
                             color = displayColor,
-                            fontSize = 9.sp,
-                            fontFamily = FontFamily.Monospace,
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 2.dp)
                         )
@@ -407,23 +276,23 @@ fun TripTrackerWidget(
                         Text(
                             text = "[READY]",
                             color = if (accelState == "READY") activeAccent else dimDisplayColor,
-                            fontSize = 6.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = FontFamily.SansSerif
                         )
                         Text(
                             text = "[RUNNING]",
                             color = if (accelState == "RUNNING" || isSimulating) Color(0xFFE6A23C) else dimDisplayColor,
-                            fontSize = 6.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = FontFamily.SansSerif
                         )
                         Text(
                             text = "[COMPLETE]",
                             color = if (accelState == "COMPLETE") teRed else dimDisplayColor,
-                            fontSize = 6.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = FontFamily.SansSerif
                         )
                     }
                 }
@@ -441,8 +310,8 @@ fun TripTrackerWidget(
                         Text(
                             text = "SPEED // TARGET %d".format(targetSpeed.toInt()),
                             color = labelColor,
-                            fontSize = 6.5.sp,
-                            fontFamily = FontFamily.Monospace,
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
                         )
@@ -454,23 +323,23 @@ fun TripTrackerWidget(
                                 Text(
                                     text = "888.8",
                                     color = dimDisplayColor,
-                                    fontSize = 15.sp,
-                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 15.0.sp,
+                                    fontFamily = FontFamily.SansSerif,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     text = "%05.1f".format(speedDisplay),
                                     color = displayColor,
-                                    fontSize = 15.sp,
-                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 15.0.sp,
+                                    fontFamily = FontFamily.SansSerif,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                             Text(
                                 text = targetSpeedUnit,
                                 color = displayColor,
-                                fontSize = 7.sp,
-                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp,
+                                fontFamily = FontFamily.SansSerif,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(bottom = 1.dp)
                             )
@@ -481,15 +350,15 @@ fun TripTrackerWidget(
                         Text(
                             text = if (accelState == "READY" && !isSimulating) "TAP SPEED TO TEST" else "BEST RECORD",
                             color = if (accelState == "READY" && !isSimulating) activeAccent.copy(alpha = 0.7f) else labelColor,
-                            fontSize = 5.5.sp,
-                            fontFamily = FontFamily.Monospace,
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = if (bestAccelTime != null) "%.2fs".format(bestAccelTime) else "--.--s",
                             color = if (bestAccelTime != null) activeAccent else displayColor,
-                            fontSize = 9.sp,
-                            fontFamily = FontFamily.Monospace,
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -508,7 +377,7 @@ fun TripTrackerWidget(
             // Button 1: OPR / RUN styled as a flat dynamic circular cap
             val oprActive = if (activeMode == "0-100") (accelState == "RUNNING" || isSimulating) else isRunning
             TeTactileButton(
-                label = "OPR",
+                label = if (isRunning) "Pause" else "Start",
                 keyColor = activeAccent,
                 active = oprActive,
                 onClick = {
@@ -531,7 +400,7 @@ fun TripTrackerWidget(
                 !isRunning && (driveTimeSeconds > 0 || idleTimeSeconds > 0)
             }
             TeTactileButton(
-                label = "RST",
+                label = "Reset",
                 keyColor = teRed,
                 active = false,
                 enabled = canReset,
@@ -555,7 +424,7 @@ fun TripTrackerWidget(
 
             // Button 3: EXTRAS (Toggles between TRIP info and 0-100 Accel Run)
             TeTactileButton(
-                label = "EXT",
+                label = "Mode",
                 keyColor = activeAccent,
                 active = activeMode == "0-100",
                 enabled = true,
@@ -587,7 +456,7 @@ private fun TeTactileButton(
     onClick: () -> Unit,
     isDayMode: Boolean
 ) {
-    val printedLabelColor = if (isDayMode) Color(0xFF666666) else androidx.compose.material3.MaterialTheme.colorScheme.onBackground.copy(alpha = 0.35f)
+    val printedLabelColor = if (isDayMode) Color(0xFF666666) else androidx.compose.material3.MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f)
     
     val buttonBg = if (!enabled) {
         Color.Transparent
@@ -612,8 +481,8 @@ private fun TeTactileButton(
         Text(
             text = label,
             color = printedLabelColor,
-            fontSize = 7.sp,
-            fontFamily = FontFamily.Monospace,
+            fontSize = 12.sp,
+            fontFamily = FontFamily.SansSerif,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.5.sp
         )
@@ -621,7 +490,7 @@ private fun TeTactileButton(
         // Flat, elegant minimalist circular keycap
         Box(
             modifier = Modifier
-                .size(30.dp)
+                .size(44.dp)
                 .clip(CircleShape)
                 .background(buttonBg)
                 .border(1.dp, buttonBorder, CircleShape)
