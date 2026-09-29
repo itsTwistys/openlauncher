@@ -58,6 +58,50 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch { settingsRepo.resetToDefaults() }
     }
 
+    private val tripRepository = com.openlauncher.app.data.TripRepository(application)
+    private val _trips = MutableStateFlow(com.openlauncher.app.data.TripLog())
+    val trips: StateFlow<com.openlauncher.app.data.TripLog> = _trips
+    private val tripWrites = kotlinx.coroutines.channels.Channel<com.openlauncher.app.data.TripLog>(kotlinx.coroutines.channels.Channel.CONFLATED)
+    private val _tripError = MutableStateFlow<String?>(null)
+    val tripError: StateFlow<String?> = _tripError
+    private var tripsLoaded = false
+    private var tripForeground = false
+    fun setTripForeground(value: Boolean) { tripForeground = value; if (!value) tripWrites.trySend(_trips.value) }
+    private fun changeTrip(transform: (com.openlauncher.app.data.TripLog) -> com.openlauncher.app.data.TripLog) {
+        if (!tripsLoaded) return
+        _trips.value = transform(_trips.value)
+        tripWrites.trySend(_trips.value)
+    }
+    fun toggleTrip() = changeTrip { log -> log.copy(current = log.current.copy(
+        startedAtMs = log.current.startedAtMs.takeIf { it > 0 } ?: System.currentTimeMillis(), running = !log.current.running)) }
+    fun finishTrip() = changeTrip { com.openlauncher.app.data.completeTrip(it, System.currentTimeMillis()) }
+    fun resetTrip() = changeTrip { it.copy(current = com.openlauncher.app.data.TripRecord()) }
+    fun clearTripHistory() = changeTrip { it.copy(history = emptyList()) }
+    init {
+        viewModelScope.launch {
+            try { _trips.value = tripRepository.load(); tripsLoaded = true }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _tripError.value = "Trip history could not be read. Restart to retry."; return@launch }
+            launch { for (log in tripWrites) {
+                try { tripRepository.save(log); _tripError.value = null }
+                catch (e: CancellationException) { throw e }
+                catch (e: Exception) { _tripError.value = "Trip changes could not be saved. Storage may be full." }
+            } }
+            var last = android.os.SystemClock.elapsedRealtime()
+            var ticks = 0
+            while (true) {
+                delay(1000)
+                val now = android.os.SystemClock.elapsedRealtime()
+                val loc = locationMgr.location.value
+                if (tripForeground && loc != null) _trips.value = _trips.value.let { log -> log.copy(current =
+                    com.openlauncher.app.data.advanceTrip(log.current, loc.speedMps, now - loc.elapsedRealtimeMs,
+                        loc.accuracy, (now - last) / 1000.0)) }
+                last = now
+                if (++ticks % 5 == 0 && _trips.value.current.running) tripWrites.trySend(_trips.value)
+            }
+        }
+    }
+
     // ── Navigation ────────────────────────────────────────────────────────────
     private val _nav = MutableStateFlow(NavDestination.HOME)
     val nav: StateFlow<NavDestination> = _nav
@@ -399,12 +443,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 // converts for display, so requesting fahrenheit just round-tripped
                 // the value through two lossy conversions
                 val resp = WeatherApi.service.getForecast(lat, lon, temperatureUnit = "celsius")
-                resp.currentWeather?.let { cw ->
+                requireNotNull(resp.currentWeather) { "Weather response missing current conditions" }.let { cw ->
                     _weather.value = WeatherState(
                         temperatureCelsius = cw.temperature,
                         weatherCode       = cw.weathercode,
                         windspeedKmh      = cw.windspeed,
-                        isDay             = cw.isDay == 1
+                        isDay             = cw.isDay == 1,
+                        highCelsius = resp.daily?.high?.firstOrNull(),
+                        lowCelsius = resp.daily?.low?.firstOrNull(),
+                        utcOffsetSeconds = resp.utcOffsetSeconds,
+                        hourly = resp.hourly?.let { h -> h.time.orEmpty().mapIndexed { i, time ->
+                            com.openlauncher.app.model.ForecastHour(time * 1000,
+                                h.temperature?.getOrNull(i), h.apparent?.getOrNull(i), h.rain?.getOrNull(i))
+                        } }.orEmpty()
                     )
                 }
                 lastWeatherSuccessMs = android.os.SystemClock.elapsedRealtime()

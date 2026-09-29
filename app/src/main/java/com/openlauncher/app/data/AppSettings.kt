@@ -88,6 +88,9 @@ data class AppSettings(
     val showTelemetry: Boolean = false,
     val showNowPlaying: Boolean = true,
     val preferredMediaPackage: String = "", // Empty = automatic; @radio = hardware radio
+    val launcherBrightness: Float = -1f,
+    val weatherBackground: Boolean = false,
+    val layoutHistory: List<LayoutProfile> = emptyList(),
     val mapAutoZoom: Boolean = true,
     val mapHeadingUp: Boolean = false,
     val shortcuts: List<ShortcutConfig> = defaultShortcuts(),
@@ -248,4 +251,28 @@ fun AppSettings.withMergedClockWeather(): AppSettings {
             enabledIds = profile.enabledIds.map { if (it == "WEATHER") "CLOCK" else it }.distinct()
         ) }
     )
+}
+
+/** Capture distinct previous dashboards, including an intentionally empty dashboard. */
+fun AppSettings.rememberLayoutBefore(previous: AppSettings, timestamp: Long): AppSettings {
+    if (widgetLayout == previous.widgetLayout && activeWidgetIds() == previous.activeWidgetIds()) return this
+    val snapshot = LayoutProfile(timestamp.toString(), previous.widgetLayout.filter { it.enabled && it.id in previous.activeWidgetIds() }, previous.activeWidgetIds().toList())
+    return copy(layoutHistory = (listOf(snapshot) + previous.layoutHistory.filterNot {
+        it.layout == snapshot.layout && it.enabledIds.toSet() == snapshot.enabledIds.toSet()
+    }).take(8))
+}
+
+/** Adding previews any necessary shrinking before the user applies the draft. */
+fun AppSettings.withAddedWidget(id: String): AppSettings {
+    if (id in activeWidgetIds()) return this
+    var active = widgetLayout.filter { it.enabled && it.id in activeWidgetIds() }
+    if (active.size >= GRID_COLS * GRID_ROWS) return this
+    while (true) {
+        val target = WidgetConfig(id, 0, 0)
+        val result = fitWidgetLayout(active + target, target)
+        if (result != null) return copy(widgetLayout = result).withWidgetVisibility(activeWidgetIds() + id)
+        val large = active.maxByOrNull { it.spanX * it.spanY } ?: return this
+        if (large.spanX * large.spanY <= 1) return this
+        active = active.map { if (it.id == large.id) it.copy(spanX = 1, spanY = 1) else it }
+    }
 }

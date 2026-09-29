@@ -106,6 +106,9 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
             }
         }
     }
+    LaunchedEffect(failure, tileState) {
+        com.openlauncher.app.data.DashboardDiagnostics.mapStatus(failure ?: tileState)
+    }
     val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(context,
         android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
         androidx.core.content.ContextCompat.checkSelfPermission(context,
@@ -147,7 +150,7 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                     settings.setGeolocationEnabled(false)
                     settings.javaScriptCanOpenWindowsAutomatically = false
                     settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                    settings.userAgentString += " OpenLauncher/0.0.11 (+https://github.com/itsTwistys/openlauncher)"
+                    settings.userAgentString += " OpenLauncher/0.0.12 (+https://github.com/itsTwistys/openlauncher)"
                     val assets = androidx.webkit.WebViewAssetLoader.Builder()
                         .addPathHandler("/assets/", androidx.webkit.WebViewAssetLoader.AssetsPathHandler(context)).build()
                     webViewClient = object : WebViewClient() {

@@ -70,6 +70,12 @@ class MainActivity : ComponentActivity() {
             val appsLoading by vm.appsLoading.collectAsStateWithLifecycle()
             val nowPlaying  by vm.nowPlaying.collectAsStateWithLifecycle()
             val weather     by vm.weather.collectAsStateWithLifecycle()
+            val weatherError by vm.weatherError.collectAsStateWithLifecycle()
+            val trips by vm.trips.collectAsStateWithLifecycle()
+            val tripError by vm.tripError.collectAsStateWithLifecycle()
+            androidx.compose.runtime.LaunchedEffect(settings.launcherBrightness) {
+                window.attributes = window.attributes.apply { screenBrightness = settings.launcherBrightness }
+            }
             val location    by vm.location.collectAsStateWithLifecycle()
             val bearing     by vm.compassBearing.collectAsStateWithLifecycle()
             val isWifi      by vm.isWifi.collectAsStateWithLifecycle()
@@ -147,6 +153,15 @@ class MainActivity : ComponentActivity() {
                                 .background(Color.Black.copy(alpha = settings.wallpaperDim)))
                         }
 
+                        if (settings.weatherBackground && weather != null && System.currentTimeMillis() - weather!!.updatedAtMs < 3_600_000) {
+                            val tint = when (weather!!.weatherCode) {
+                                0 -> if (weather!!.isDay) Color(0xFFFFC46B) else Color(0xFF687ABB)
+                                in 51..99 -> Color(0xFF5B8FB0)
+                                else -> Color(0xFF86949E)
+                            }
+                            Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(
+                                listOf(tint.copy(alpha = 0.12f), Color.Transparent))))
+                        }
                         val isBottomBar    = settings.sidebarPosition == SidebarPosition.BOTTOM
                         val layoutDivColor = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF1A1A1A)
 
@@ -197,6 +212,11 @@ class MainActivity : ComponentActivity() {
                                 when (destination) {
                                     NavDestination.HOME -> HomeScreen(
                                         settings            = settings,
+                                        trips = trips, tripError = tripError, onToggleTrip = vm::toggleTrip, onResetTrip = vm::resetTrip,
+                                        onFinishTrip = vm::finishTrip, onClearTrips = vm::clearTripHistory,
+                                        weatherError = weatherError,
+                                        onRefreshWeather = { location?.let { vm.fetchWeather(it.latitude, it.longitude, settings.unitSystem == UnitSystem.METRIC) } },
+                                        onSettings = vm::updateSettings,
                                         weather             = weather,
                                         nowPlaying          = nowPlaying,
                                         mediaApps = apps,
@@ -210,7 +230,7 @@ class MainActivity : ComponentActivity() {
                                         onRememberDestination = vm::rememberDestination,
                                         onRestoreDefault = { vm.updateSettings { withDefaultDashboard() } },
                                         onRestoreLayout = { profile -> vm.updateSettings {
-                                            copy(widgetLayout = profile.layout).withWidgetVisibility(profile.enabledIds.toSet())
+                                            copy(widgetLayout = profile.layout, activeLayoutProfile = "", autoDayNightProfiles = false).withWidgetVisibility(profile.enabledIds.toSet())
                                         } },
                                         isWifi              = isWifi,
                                         isData              = isData,
@@ -312,12 +332,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        vm.setTripForeground(true)
         vm.startLocationUpdates()
         vm.refreshConnectivity()
         vm.refreshMedia()
     }
 
     override fun onStop() {
+        vm.setTripForeground(false)
         super.onStop()
         vm.stopLocationUpdates()
     }

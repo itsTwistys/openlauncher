@@ -36,6 +36,9 @@ class SettingsRepository(private val context: Context) {
         val SHOW_CLOCK         = booleanPreferencesKey("show_clock")
         val SHOW_TELEMETRY     = booleanPreferencesKey("show_telemetry")
         val PREFERRED_MEDIA = stringPreferencesKey("preferred_media_package")
+        val LAUNCHER_BRIGHTNESS = floatPreferencesKey("launcher_brightness")
+        val WEATHER_BACKGROUND = booleanPreferencesKey("weather_background")
+        val LAYOUT_HISTORY = stringPreferencesKey("layout_history")
         val MAP_AUTO_ZOOM = booleanPreferencesKey("map_auto_zoom")
         val MAP_HEADING_UP = booleanPreferencesKey("map_heading_up")
         val SHOW_NOW_PLAYING   = booleanPreferencesKey("show_now_playing")
@@ -109,6 +112,10 @@ class SettingsRepository(private val context: Context) {
             } else defaults.widgetLayout
 
             return AppSettings(
+                launcherBrightness = prefs[Keys.LAUNCHER_BRIGHTNESS] ?: -1f,
+                weatherBackground = prefs[Keys.WEATHER_BACKGROUND] ?: false,
+                layoutHistory = runCatching { gson.fromJson<List<LayoutProfile>>(prefs[Keys.LAYOUT_HISTORY] ?: "[]",
+                    object : TypeToken<List<LayoutProfile>>() {}.type) }.getOrNull().orEmpty().filter { validWidgetLayout(it.layout) }.take(8),
                 preferredMediaPackage = prefs[Keys.PREFERRED_MEDIA] ?: "",
                 mapAutoZoom = prefs[Keys.MAP_AUTO_ZOOM] ?: true,
                 mapHeadingUp = prefs[Keys.MAP_HEADING_UP] ?: false,
@@ -181,7 +188,7 @@ class SettingsRepository(private val context: Context) {
     }
 
     suspend fun saveSettings(s: AppSettings) {
-        context.dataStore.edit { prefs -> writeSettings(prefs, s) }
+        context.dataStore.edit { prefs -> writeSettings(prefs, s.rememberLayoutBefore(readSettings(prefs), System.currentTimeMillis())) }
     }
 
     /**
@@ -189,10 +196,13 @@ class SettingsRepository(private val context: Context) {
      * updates can't overwrite each other (unlike transforming a stale snapshot).
      */
     suspend fun updateSettings(transform: (AppSettings) -> AppSettings) {
-        context.dataStore.edit { prefs -> writeSettings(prefs, transform(readSettings(prefs))) }
+        context.dataStore.edit { prefs -> val before = readSettings(prefs); writeSettings(prefs, transform(before).rememberLayoutBefore(before, System.currentTimeMillis())) }
     }
 
     private fun writeSettings(prefs: MutablePreferences, s: AppSettings) {
+            prefs[Keys.LAUNCHER_BRIGHTNESS] = s.launcherBrightness
+            prefs[Keys.WEATHER_BACKGROUND] = s.weatherBackground
+            prefs[Keys.LAYOUT_HISTORY] = gson.toJson(s.layoutHistory)
             prefs[Keys.PREFERRED_MEDIA] = s.preferredMediaPackage
             prefs[Keys.MAP_AUTO_ZOOM] = s.mapAutoZoom
             prefs[Keys.MAP_HEADING_UP] = s.mapHeadingUp
