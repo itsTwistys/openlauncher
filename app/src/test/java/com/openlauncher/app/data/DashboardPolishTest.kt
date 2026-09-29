@@ -4,8 +4,6 @@ import android.content.Context
 import android.media.Rating
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
-import android.os.Handler
-import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.openlauncher.app.model.WeatherState
 import com.openlauncher.app.ui.components.automaticShortcutIcon
@@ -68,25 +66,23 @@ class DashboardPolishTest {
     @Test fun onlyCurrentlyExposedActionsAndRatingStylesAreDispatched() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val session = MediaSession(context, "polish-test")
-        var action: String? = null
-        var rated = false
-        session.setCallback(object : MediaSession.Callback() {
-            override fun onCustomAction(name: String, extras: android.os.Bundle?) { action = name }
-            override fun onSetRating(rating: Rating) { rated = rating.hasHeart() }
-        }, Handler(Looper.getMainLooper()))
-        session.setRatingType(Rating.RATING_HEART)
-        session.setPlaybackState(PlaybackState.Builder().setActions(PlaybackState.ACTION_SET_RATING)
+        val controller = session.controller
+        // Robolectric stores controller state independently from MediaSession state.
+        val controllerShadow = shadowOf(controller)
+        val transportShadow = shadowOf(controller.transportControls)
+        controllerShadow.setRatingType(Rating.RATING_HEART)
+        controllerShadow.setPlaybackState(PlaybackState.Builder().setActions(PlaybackState.ACTION_SET_RATING)
             .addCustomAction("SAVE", "Save track", android.R.drawable.btn_star).build())
         try {
-            assertFalse(sendExposedMediaAction(session.controller, "UNKNOWN"))
-            assertTrue(sendExposedMediaAction(session.controller, "SAVE"))
-            assertFalse(rateExposedMedia(session.controller, Rating.newStarRating(Rating.RATING_5_STARS, 5f)))
-            assertTrue(rateExposedMedia(session.controller, Rating.newHeartRating(true)))
-            shadowOf(Looper.getMainLooper()).idle()
-            assertEquals("SAVE", action); assertTrue(rated)
-            session.setPlaybackState(PlaybackState.Builder().setActions(0).build())
-            assertFalse(sendExposedMediaAction(session.controller, "SAVE"))
-            assertFalse(rateExposedMedia(session.controller, Rating.newHeartRating(true)))
+            assertFalse(sendExposedMediaAction(controller, "UNKNOWN"))
+            assertTrue(sendExposedMediaAction(controller, "SAVE"))
+            assertFalse(rateExposedMedia(controller, Rating.newStarRating(Rating.RATING_5_STARS, 5f)))
+            assertTrue(rateExposedMedia(controller, Rating.newHeartRating(true)))
+            assertEquals("SAVE", transportShadow.customAction)
+            assertTrue(transportShadow.rating?.hasHeart() == true)
+            controllerShadow.setPlaybackState(PlaybackState.Builder().setActions(0).build())
+            assertFalse(sendExposedMediaAction(controller, "SAVE"))
+            assertFalse(rateExposedMedia(controller, Rating.newHeartRating(true)))
         } finally { session.release() }
         assertEquals(DefaultShortcutIcon.CHROME, automaticShortcutIcon("com.android.chrome"))
         assertEquals(DefaultShortcutIcon.SPOTIFY, automaticShortcutIcon("com.spotify.music"))
