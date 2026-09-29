@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
@@ -22,16 +23,18 @@
     <!-- Compass / sensors -->
     <uses-permission android:name="android.permission.BODY_SENSORS" />
 
-    <!-- Media session control (requires notification access grant by user) -->
-    <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />
+    <!-- Media sessions use the user-granted NotificationListenerService component,
+         rather than the system-only MEDIA_CONTENT_CONTROL permission. -->
 
     <!-- Wallpaper from gallery -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
-    <!-- Query all packages required on API 30+ for getInstalledApplications -->
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <!-- The local app picker includes head-unit companion/system packages without
+         launcher activities. Launchable-only queries would hide these existing choices. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <!-- Required on API 30+ so PackageManager returns ALL launcher apps -->
     <queries>

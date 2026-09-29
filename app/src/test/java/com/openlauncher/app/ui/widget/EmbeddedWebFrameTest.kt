@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import org.junit.Assert.*
@@ -16,19 +18,15 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w1000dp-h600dp-land-mdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class EmbeddedWebFrameTest {
     @get:Rule val compose = createComposeRule()
     private class TrackedWebView(context: Context) : WebView(context) {
         var destructions = 0
-        // Robolectric has no rendering provider. Model its exact-size measure contract
-        // so this checks FrameLayout ownership/sizing, not a simulated browser engine.
-        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-            setMeasuredDimension(android.view.View.MeasureSpec.getSize(widthMeasureSpec),
-                android.view.View.MeasureSpec.getSize(heightMeasureSpec))
-        }
         override fun destroy() { destructions++; super.destroy() }
     }
 
@@ -42,15 +40,22 @@ class EmbeddedWebFrameTest {
             val context = LocalContext.current
             if (visible) Box(Modifier.size(if (expanded) 800.dp else 400.dp, 240.dp)) {
                 key(generation) {
-                    EmbeddedWebFrame(Modifier.fillMaxSize(), create = {
+                    EmbeddedWebFrame(Modifier.fillMaxSize().testTag("map-frame"), create = {
                         TrackedWebView(context).also { created.add(it) }
                     }, onRelease = { releases++ })
                 }
             }
         }
-        compose.runOnIdle { assertEquals(400, created.single().width); expanded = true }
+        // The host's Compose bounds are authoritative in this JVM test. Robolectric's
+        // stub WebView provider does not lay out browser pixels; browser checks do that.
+        compose.onNodeWithTag("map-frame").assertWidthIsEqualTo(400.dp)
         compose.runOnIdle {
-            assertEquals(800, created.single().width)
+            assertEquals(android.view.ViewGroup.LayoutParams.MATCH_PARENT, created.single().layoutParams.width)
+            expanded = true
+        }
+        compose.onNodeWithTag("map-frame").assertWidthIsEqualTo(800.dp)
+        compose.runOnIdle {
+            assertEquals(1, created.size)
             assertEquals(0, releases)
             generation++
         }
@@ -58,12 +63,13 @@ class EmbeddedWebFrameTest {
             assertEquals(2, created.size)
             assertEquals(1, created.first().destructions)
             assertEquals(1, releases)
-            assertEquals(800, created.last().width)
+            assertNull(created.first().parent)
             visible = false
         }
         compose.runOnIdle {
             assertEquals(2, releases)
             assertEquals(1, created.last().destructions)
+            assertNull(created.last().parent)
         }
     }
 }
