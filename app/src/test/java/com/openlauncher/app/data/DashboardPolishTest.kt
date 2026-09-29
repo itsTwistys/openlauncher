@@ -71,8 +71,8 @@ class DashboardPolishTest {
         var action: String? = null
         var rated = false
         session.setCallback(object : MediaSession.Callback() {
-            override fun onCustomAction(name: String?, extras: android.os.Bundle?) { action = name }
-            override fun onSetRating(rating: Rating?) { rated = rating?.hasHeart() == true }
+            override fun onCustomAction(name: String, extras: android.os.Bundle?) { action = name }
+            override fun onSetRating(rating: Rating) { rated = rating.hasHeart() }
         }, Handler(Looper.getMainLooper()))
         session.setRatingType(Rating.RATING_HEART)
         session.setPlaybackState(PlaybackState.Builder().setActions(PlaybackState.ACTION_SET_RATING)
