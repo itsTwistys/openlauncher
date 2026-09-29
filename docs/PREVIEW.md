@@ -11,8 +11,6 @@ The preview is debug signed and installs as **Open Launcher Preview** (`com.open
 3. Use the widget library to add and remove cards. Long-press a card for Resize; unavailable sizes are disabled and the dialog previews placement. Undo after removal is available for eight seconds.
 4. To view the online map, add **Map** and turn on **Settings > Online Map > Show Embedded Map**. While the map is visible, OpenStreetMap receives precise GPS coordinates and the viewed map area. Map tiles require internet. The built-in Leaflet code is bundled locally.
 5. To show directions from **Google Maps or Waze on the head unit**, enable **Notification Access**, start navigation in that app, and return Home. The Map card can show the title and text exposed by its navigation notification. The map itself uses OpenStreetMap and GPS. It does not draw the other app's route or show directions running only on an iPhone through CarPlay/ZLINK.
-6. To use YouTube, paste a specific video or live-stream Share link in **Settings > YouTube**. Choose **YouTube video** from the three-dot source menu on **Now Playing**. Remove the separate YouTube card if you want the combined player, enlarge Now Playing if prompted, and tap **I'm parked · Load player**, then YouTube's play control. Some videos cannot be embedded. A channel `/live` address is not a video link. Video requires internet and a working Android System WebView.
-7. If a separate YouTube app opens a floating window, close that window using its own controls. The launcher cannot move another app's window into a widget. Video pauses when leaving the launcher, entering edit mode, losing connectivity, or detecting GPS movement above about 5 km/h. GPS is not a parking brake; play video only while parked.
 
 The Map card offers Follow, Recenter, Reload, an offline indicator, and a visible message if its script fails to load. **Draw Over Other Apps** is requested through Android settings where supported. Granting it does not enable embedding another app's whole interface.
 
@@ -25,7 +23,9 @@ The Map card offers Follow, Recenter, Reload, an offline indicator, and a visibl
 
 ## Verification status
 
-The Android debug build and 13 unit tests passed. Browser checks covered map marker updates, Follow/Recenter/offline states and YouTube frame bounds with simulated responses. User photos confirmed Google Maps navigation notification text but also showed a blank embedded map and floating video on a QUZHIDA unit. Version 0.0.8 addresses widget identity, native WebView clipping, map rendering and diagnostics. The actual fix and YouTube playback **have not yet been confirmed on that head unit**.
+Version 0.0.9 removes the YouTube card, video source in Now Playing, and video-link settings. Existing preferences and older backups discard retired video cards from current and saved layouts. Now Playing continues to support Android media-session controls and artwork.
+
+The OpenStreetMap GPS map remains available. Earlier browser checks used simulated tiles; earlier QUZHIDA photos showed a blank embedded map. Device rendering remains unconfirmed. The map exposes loading/error messages and Reload for troubleshooting.
 
 ## Build from source
 

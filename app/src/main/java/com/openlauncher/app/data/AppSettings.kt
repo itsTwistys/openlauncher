@@ -108,8 +108,6 @@ data class AppSettings(
     val showTripTracker: Boolean = false,
     val compassOffset: Float = 0f,
     val showSoundboard: Boolean = false,
-    val showYouTube: Boolean = false,
-    val youtubeUrl: String = "",
     val showMap: Boolean = false,
     val onlineMapEnabled: Boolean = false,
     val showConnectivity: Boolean = false,
@@ -154,7 +152,6 @@ fun AppSettings.activeWidgetIds(): Set<String> = buildSet {
     if (showVitals) add("VITALS")
     if (showTripTracker) add("TRIP_TRACKER")
     if (showSoundboard) add("SOUNDBOARD")
-    if (showYouTube) add("YOUTUBE")
     if (showMap) add("MAP")
     if (showConnectivity) add("CONNECTIVITY")
     if (showDestinations) add("DESTINATIONS")
@@ -170,7 +167,6 @@ fun AppSettings.withWidgetVisibility(ids: Set<String>): AppSettings = copy(
     showSoundboard = "SOUNDBOARD" in ids, showMap = "MAP" in ids,
     showConnectivity = "CONNECTIVITY" in ids,
     showDestinations = "DESTINATIONS" in ids, showRadar = "RADAR" in ids,
-    showYouTube = "YOUTUBE" in ids,
     showTraffic = "TRAFFIC" in ids
 )
 
@@ -220,3 +216,12 @@ fun validWidgetLayout(layout: List<WidgetConfig>): Boolean =
 private fun widgetsOverlap(a: WidgetConfig, b: WidgetConfig): Boolean =
     a.gridX < b.gridX + b.spanX && a.gridX + a.spanX > b.gridX &&
     a.gridY < b.gridY + b.spanY && a.gridY + a.spanY > b.gridY
+
+/** Drop retired video cards when upgrading preferences or importing an older backup. */
+fun AppSettings.withoutRetiredWidgets(): AppSettings = copy(
+    widgetLayout = widgetLayout.filterNot { it.id == "YOUTUBE" },
+    layoutProfiles = layoutProfiles.map { profile -> profile.copy(
+        layout = profile.layout.filterNot { it.id == "YOUTUBE" },
+        enabledIds = profile.enabledIds.filterNot { it == "YOUTUBE" }
+    ) }
+)

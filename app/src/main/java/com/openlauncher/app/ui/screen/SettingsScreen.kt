@@ -429,17 +429,6 @@ fun SettingsScreen(
             }
         }
 
-        SettingsSection("YouTube") {
-            var videoLink by remember(settings.youtubeUrl) { mutableStateOf(settings.youtubeUrl) }
-            val validLink = videoLink.isBlank() || com.openlauncher.app.util.youtubeVideoId(videoLink) != null
-            Text("Paste a YouTube video or live-stream link, then choose YouTube video from the Now Playing source menu (three dots). Playback is for parked use and requires a tap. Some videos do not allow embedding.", fontSize = 11.sp)
-            OutlinedTextField(value = videoLink, onValueChange = { videoLink = it.take(2048) },
-                label = { Text("Video or live-stream URL") }, singleLine = true,
-                isError = !validLink, modifier = Modifier.fillMaxWidth())
-            if (!validLink) Text("Use a youtube.com/watch, /live, /shorts or youtu.be link.", fontSize = 11.sp)
-            TextButton(enabled = validLink, onClick = { onUpdate { copy(youtubeUrl = videoLink.trim()) } }) { Text("Save video") }
-        }
-
         SettingsSection("Backup and Restore") {
             Text("Export settings and destination addresses to a local JSON file.", fontSize = 11.sp)
             Row {

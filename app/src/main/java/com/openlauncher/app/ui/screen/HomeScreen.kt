@@ -67,7 +67,6 @@ private val ALL_WIDGET_TYPES = listOf(
     WidgetTypeInfo("SPEEDOMETER", "SPEED",       Icons.Default.Speed,         "GPS speed"),
     WidgetTypeInfo("VITALS",      "VITALS",      Icons.Default.Dns,           "Head Unit Health / Vitals"),
     WidgetTypeInfo("TRIP_TRACKER", "TRIP TRACKER", Icons.Default.Map,          "Trip logs & stats"),
-    WidgetTypeInfo("YOUTUBE", "YOUTUBE", Icons.Default.PlayCircle, "Embedded video or live stream while parked"),
     WidgetTypeInfo("MAP",          "MAP",          Icons.Default.Place,        "Live map and navigation instructions"),
     WidgetTypeInfo("CONNECTIVITY", "CONNECTIVITY", Icons.Default.Wifi,       "Network status"),
     WidgetTypeInfo("DESTINATIONS", "DESTINATIONS", Icons.Default.Home,      "Home and work shortcuts"),
@@ -343,7 +342,6 @@ fun HomeScreen(
                     "ALTIMETER"   -> "ALTIMETER"
                     "SPEEDOMETER" -> "SPEED"
                     "TRIP_TRACKER" -> "TRIP"
-                    "YOUTUBE" -> "YOUTUBE"
                     "MAP"         -> "MAP"
                     "CONNECTIVITY" -> "NETWORK"
                     "DESTINATIONS" -> "PLACES"
@@ -445,10 +443,6 @@ fun HomeScreen(
                         )
                         "NOW_PLAYING" -> NowPlayingWidget(
                             state               = nowPlaying,
-                            youtubeUrl = settings.youtubeUrl,
-                            videoMoving = (location?.speedMps ?: 0f) > 1.4f,
-                            videoNetworkAvailable = isWifi || isData,
-                            standaloneYouTubeActive = rendered.any { it.id == "YOUTUBE" },
                             accent              = accent,
                             carPlayPackage      = settings.carPlayPackage,
                             androidAutoPackage  = settings.androidAutoPackage,
@@ -506,8 +500,6 @@ fun HomeScreen(
                             isDayMode = isDayMode,
                             modifier  = Modifier.fillMaxSize()
                         )
-                        "YOUTUBE" -> YouTubeWidget(url = settings.youtubeUrl, isEditing = editMode,
-                            moving = (location?.speedMps ?: 0f) > 1.4f, networkAvailable = isWifi || isData, modifier = Modifier.fillMaxSize())
                         "MAP" -> MapWidget(
                             location = location,
                             isEditing = editMode,
@@ -542,7 +534,7 @@ fun HomeScreen(
 
                     // Label — hide when album art fills the widget background
                     val labelColor = when {
-                        w.id in setOf("NOW_PLAYING", "YOUTUBE", "MAP") -> Color.Transparent
+                        w.id in setOf("NOW_PLAYING", "MAP") -> Color.Transparent
                         isGhost -> Color.Transparent
                         w.id == "NOW_PLAYING" && nowPlaying?.albumArt != null && nowPlaying.title.isNotEmpty() -> Color.Transparent
                         isDayMode -> Color(0xFF999999)
