@@ -33,10 +33,7 @@ class MapWebDiagnosticsTest {
         client.onReceivedHttpError(web, tile, http)
         assertEquals(MapFailureEvidence(MapFailure.HTTP, MapResource.TILE, 403, 123), d.map.value.lastFailure)
         assertEquals(0, pageFailures)
-        val error = object : WebResourceError() {
-            override fun getErrorCode() = WebViewClient.ERROR_HOST_LOOKUP
-            override fun getDescription(): CharSequence = privateUrl
-        }
+        val error = TestWebResourceError(WebViewClient.ERROR_HOST_LOOKUP, privateUrl)
         client.onReceivedError(web, request("https://appassets.androidplatform.net/assets/map/map.js"), error)
         assertEquals(MapResource.LOCAL_ASSET, d.map.value.lastFailure?.resource)
         assertEquals(WebViewClient.ERROR_HOST_LOOKUP, d.map.value.lastFailure?.code)
