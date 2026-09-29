@@ -117,9 +117,10 @@ class MediaListenerService : NotificationListenerService() {
         val states = active.mapNotNull { controllers[it.sessionToken]?.let { controller ->
             stateFromController(controller, controller.sessionToken == changedArtwork)
         } }
-        _sessions.value = states
-        _nowPlaying.value = com.openlauncher.app.util.selectMediaSession(states, "",
+        if (_sessions.value != states) _sessions.value = states
+        val selected = com.openlauncher.app.util.selectMediaSession(states, "",
             { it.controller?.packageName.orEmpty() }, { it.isPlaying })
+        if (_nowPlaying.value != selected) _nowPlaying.value = selected
     }
 
     private fun stateFromController(controller: MediaController, forceArtwork: Boolean): NowPlayingState {
