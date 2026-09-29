@@ -80,7 +80,7 @@ fun NowPlayingWidget(
     val hasAutoApp  = androidAutoPackage.isNotEmpty()
     val hasContent  = state != null && state.title.isNotEmpty()
 
-    val radioSelected = preferredPackage == "@radio" || (preferredPackage.isBlank() && hardwareRadio != null)
+    val radioSelected = preferredPackage == "@radio"
 
     Box(
         modifier = modifier
@@ -120,8 +120,11 @@ fun NowPlayingWidget(
                     !installed -> "Selected app is not installed"
                     else -> "Player disconnected"
                 }, fontSize = 18.sp, fontFamily = FontFamily.SansSerif)
-                Text(if (!isConnected) "Enable Notification Access to receive media controls." else
-                    "Open the selected app and start playback. Your preference is saved.",
+                Text(when {
+                    !isConnected -> "Enable Notification Access to receive media controls."
+                    !installed -> "Choose another player or reinstall this app."
+                    else -> "Open the selected app and start playback. Your preference is saved."
+                },
                     fontSize = 14.sp, fontFamily = FontFamily.SansSerif)
                 TextButton(enabled = !isConnected || installed, onClick = {
                     if (!isConnected) runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }

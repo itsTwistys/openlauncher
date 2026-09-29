@@ -567,8 +567,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // MCU backend wins when present; otherwise mirror the radio app's session
     val hardwareRadio: StateFlow<HardwareRadioState?> =
-        combine(_mcuRadio, MediaListenerService.nowPlaying, settings) { mcu, np, _ ->
-            mcu ?: np?.let { parseSessionRadio(it) }
+        combine(_mcuRadio, MediaListenerService.sessions, settings) { mcu, sessions, _ ->
+            mcu ?: sessions.firstNotNullOfOrNull { parseSessionRadio(it) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private fun radioSessionController() = MediaListenerService.sessions.value.firstOrNull {
