@@ -18,6 +18,14 @@ android {
         versionName    = "0.0.16-preview"
     }
 
+    signingConfigs {
+        getByName("debug") {
+            providers.environmentVariable("OPENLAUNCHER_PREVIEW_KEYSTORE_PATH").orNull?.let {
+                storeFile = file(it)
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".preview"

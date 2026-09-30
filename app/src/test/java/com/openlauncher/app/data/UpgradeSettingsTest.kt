@@ -24,7 +24,9 @@ class UpgradeSettingsTest {
                 onlineMapEnabled = true, mapHeadingUp = true, wallpaperUri = "content://example/wallpaper",
                 appFont = AppFont.SOURCE_CODE_PRO, accentColor = 0xff33aa88.toInt(),
                 shortcuts = listOf(ShortcutConfig("com.spotify.music", "Spotify")),
-                homeDestination = "Saved home", workDestination = "Saved work")
+                homeDestination = "Saved home", workDestination = "Saved work",
+                widgetLayout = listOf(WidgetConfig("NOW_PLAYING", 0, 0, 2, 2),
+                    WidgetConfig("CLOCK", 2, 0), WidgetConfig("MAP", 2, 1)))
             repo.saveSettings(saved)
             val reopened = SettingsRepository(context)
             val loaded = reopened.settingsFlow.first()

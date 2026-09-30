@@ -30,7 +30,7 @@ This debug-signed preview installs as **Open Launcher Preview** alongside an exi
 
 ## Update without repeating setup
 
-Install the published APK over **Open Launcher Preview**. Do not uninstall or clear storage. Layouts, shortcuts and saved settings remain. Published updates are checked for matching application ID and signing certificate and an increased version code; a missing signing key blocks publication. Spotify, Google Maps and Waze remain separately installed apps.
+Install the published APK over **Open Launcher Preview**. Do not uninstall or clear storage. Layouts, shortcuts and saved settings remain. The new publishing workflow checks for matching application ID and signing certificate and an increased version code. Publication is currently blocked because the previous workflow did not retain the original signing key; that key must be recovered before an in-place update can be released. Spotify, Google Maps and Waze remain separately installed apps.
 
 ## Set up a preview
 
