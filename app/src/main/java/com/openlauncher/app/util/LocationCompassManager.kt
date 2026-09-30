@@ -72,7 +72,8 @@ class LocationCompassManager(private val context: Context) {
         override fun onLocationChanged(loc: Location) {
             // A network cache must not replace a newer GPS fix after ignition/resume.
             val fixTime = loc.elapsedRealtimeNanos / 1_000_000
-            if (fixTime < (_location.value?.elapsedRealtimeMs ?: 0L)) return
+            if (!loc.latitude.isFinite() || !loc.longitude.isFinite() || loc.latitude !in -90.0..90.0 || loc.longitude !in -180.0..180.0) return
+            if (!acceptLocationFix(_location.value, fixTime, loc.accuracy)) return
             _location.value = LocationData(
                 latitude  = loc.latitude,
                 longitude = loc.longitude,
@@ -136,7 +137,7 @@ class LocationCompassManager(private val context: Context) {
         try {
             if (locationManager.allProviders.contains(LocationManager.GPS_PROVIDER)) {
                 locationManager.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER, 3000L, 0f, locationListener
+                    LocationManager.GPS_PROVIDER, 1000L, 0f, locationListener
                 )
                 locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)?.let {
                     locationListener.onLocationChanged(it)

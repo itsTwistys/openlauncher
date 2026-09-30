@@ -77,16 +77,9 @@ class MediaListenerService : NotificationListenerService() {
                     sbn.notification.flags and android.app.Notification.FLAG_GROUP_SUMMARY == 0
             }.sortedByDescending { it.postTime }.mapNotNull { sbn ->
                 val n = sbn.notification
-                val extras = n.extras
-                val title = extras.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString().orEmpty()
-                val lines = listOfNotNull(
-                    extras.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString(),
-                    extras.getCharSequence(android.app.Notification.EXTRA_BIG_TEXT)?.toString(),
-                    extras.getCharSequence(android.app.Notification.EXTRA_SUB_TEXT)?.toString()
-                ) + extras.getCharSequenceArray(android.app.Notification.EXTRA_TEXT_LINES).orEmpty().map { it.toString() }
-                val details = lines.filter { it.isNotBlank() && it != title }.distinct().joinToString(" · ").take(1000)
-                if (title.isBlank() && details.isBlank()) null else NavigationInfo(
-                    sbn.packageName, title.take(300), details, n.contentIntent)
+                val fields = navigationText(n)
+                if (fields.title.isBlank() && fields.instruction.isBlank()) null else NavigationInfo(
+                    sbn.packageName, fields.title, fields.instruction, n.contentIntent, fields.trip)
             }
         }.getOrDefault(emptyList())
     }
@@ -144,9 +137,16 @@ class MediaListenerService : NotificationListenerService() {
         val artUri = meta?.getString(MediaMetadata.METADATA_KEY_ART_URI)
             ?: meta?.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI)
             ?: meta?.getString(MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI)
-        val isPlaying = controller.playbackState?.state == PlaybackState.STATE_PLAYING
+        val playback = controller.playbackState
+        val isPlaying = playback?.state == PlaybackState.STATE_PLAYING
+        val actions = playback?.actions ?: 0L
+        val customActions = playback?.customActions.orEmpty().map {
+            com.openlauncher.app.model.MediaAction(it.action, it.name.toString(), it.icon)
+        }
+        val rating = meta?.getRating(MediaMetadata.METADATA_KEY_USER_RATING)
+        val ratingStyle = controller.ratingType
 
-        val signature = listOf(title, artist, artUri, isPlaying, art != null,
+        val signature = listOf(title, artist, artUri, isPlaying, art != null, actions, customActions, ratingStyle, rating?.toString(),
             meta?.getString(MediaMetadata.METADATA_KEY_MEDIA_ID), meta?.getString(MediaMetadata.METADATA_KEY_ALBUM),
             meta?.getLong(MediaMetadata.METADATA_KEY_DURATION))
         return snapshots.value(controller.sessionToken, signature, forceArtwork) { NowPlayingState(
@@ -155,12 +155,12 @@ class MediaListenerService : NotificationListenerService() {
             albumArt   = art,
             artUri     = artUri,
             isPlaying  = isPlaying,
-            controller = controller
+            controller = controller, actions = actions, customActions = customActions, ratingStyle = ratingStyle, userRating = rating
         ) }
     }
 
     data class NavigationInfo(val packageName: String, val title: String, val details: String,
-        val openIntent: android.app.PendingIntent?)
+        val openIntent: android.app.PendingIntent?, val tripDetails: String = "")
 
     companion object {
         private val navigationPackages = setOf("com.google.android.apps.maps", "com.waze")

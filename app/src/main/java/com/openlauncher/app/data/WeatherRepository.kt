@@ -64,7 +64,8 @@ internal object WeatherCache {
         require(weather.highCelsius?.isFinite() != false && weather.lowCelsius?.isFinite() != false)
         weather.copy(hourly = weather.hourly.filter {
             it.timeMs > 0 && it.celsius?.isFinite() != false && it.feelsLikeCelsius?.isFinite() != false &&
-                (it.rainPercent == null || it.rainPercent in 0..100)
+                (it.rainPercent == null || it.rainPercent in 0..100) &&
+                (it.humidityPercent == null || it.humidityPercent in 0..100)
         }.take(48))
     }.getOrNull()
 }

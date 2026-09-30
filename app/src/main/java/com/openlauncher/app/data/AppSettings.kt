@@ -23,7 +23,7 @@ enum class DefaultShortcutIcon {
     // General utility
     TV, VIDEOCAM, STAR, MESSAGE, TIMER, LOCK, SETTINGS, FAVORITE,
     // Web / location
-    GLOBE
+    GLOBE, CHROME, SPOTIFY, GOOGLE_MAPS, APP_ICON
 }
 
 data class SoundPadConfig(
@@ -79,6 +79,7 @@ data class AppSettings(
     val uiScale: Float = 1.0f,
     val clockStyle: ClockStyle = ClockStyle.DIGITAL,
     val use12HourTime: Boolean = false,
+    val clockTimeZone: String = "AUTO",
     val showClockSeconds: Boolean = false,
     val clockDateFormat: String = "LONG",
     val unitSystem: UnitSystem = UnitSystem.METRIC,
@@ -93,6 +94,7 @@ data class AppSettings(
     val layoutHistory: List<LayoutProfile> = emptyList(),
     val mapAutoZoom: Boolean = true,
     val mapHeadingUp: Boolean = false,
+    val mapTheme: String = "AUTO",
     val mapSoftwareRendering: Boolean = true,
     val shortcuts: List<ShortcutConfig> = defaultShortcuts(),
     val widgetLayout: List<WidgetConfig> = defaultWidgetLayout(),

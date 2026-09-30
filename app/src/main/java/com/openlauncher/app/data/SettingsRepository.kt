@@ -27,6 +27,7 @@ class SettingsRepository(private val context: Context) {
         val TEXT_SCALE         = floatPreferencesKey("text_scale")
         val UI_SCALE           = floatPreferencesKey("ui_scale")
         val CLOCK_STYLE        = stringPreferencesKey("clock_style")
+        val CLOCK_TIME_ZONE = stringPreferencesKey("clock_time_zone")
         val USE_12_HOUR_TIME   = booleanPreferencesKey("use_12_hour_time")
         val CLOCK_SECONDS      = booleanPreferencesKey("clock_seconds")
         val CLOCK_DATE_FORMAT  = stringPreferencesKey("clock_date_format")
@@ -40,6 +41,7 @@ class SettingsRepository(private val context: Context) {
         val WEATHER_BACKGROUND = booleanPreferencesKey("weather_background")
         val LAYOUT_HISTORY = stringPreferencesKey("layout_history")
         val MAP_AUTO_ZOOM = booleanPreferencesKey("map_auto_zoom")
+        val MAP_THEME = stringPreferencesKey("map_theme")
         val MAP_HEADING_UP = booleanPreferencesKey("map_heading_up")
         val MAP_SOFTWARE_RENDERING = booleanPreferencesKey("map_software_rendering")
         val SHOW_NOW_PLAYING   = booleanPreferencesKey("show_now_playing")
@@ -113,6 +115,7 @@ class SettingsRepository(private val context: Context) {
             } else defaults.widgetLayout
 
             return AppSettings(
+                clockTimeZone = prefs[Keys.CLOCK_TIME_ZONE] ?: "AUTO",
                 launcherBrightness = prefs[Keys.LAUNCHER_BRIGHTNESS] ?: -1f,
                 weatherBackground = prefs[Keys.WEATHER_BACKGROUND] ?: false,
                 layoutHistory = runCatching { gson.fromJson<List<LayoutProfile>>(prefs[Keys.LAYOUT_HISTORY] ?: "[]",
@@ -120,6 +123,7 @@ class SettingsRepository(private val context: Context) {
                 preferredMediaPackage = prefs[Keys.PREFERRED_MEDIA] ?: "",
                 mapAutoZoom = prefs[Keys.MAP_AUTO_ZOOM] ?: true,
                 mapHeadingUp = prefs[Keys.MAP_HEADING_UP] ?: false,
+                mapTheme = prefs[Keys.MAP_THEME]?.takeIf { it in setOf("AUTO", "DARK", "LIGHT") } ?: "AUTO",
                 mapSoftwareRendering = prefs[Keys.MAP_SOFTWARE_RENDERING] ?: true,
                 vehicleName    = prefs[Keys.VEHICLE_NAME]     ?: defaults.vehicleName,
                 accentColor    = prefs[Keys.ACCENT_COLOR]     ?: defaults.accentColor,
@@ -208,6 +212,7 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.PREFERRED_MEDIA] = s.preferredMediaPackage
             prefs[Keys.MAP_AUTO_ZOOM] = s.mapAutoZoom
             prefs[Keys.MAP_HEADING_UP] = s.mapHeadingUp
+            prefs[Keys.MAP_THEME] = s.mapTheme
             prefs[Keys.MAP_SOFTWARE_RENDERING] = s.mapSoftwareRendering
             prefs[Keys.VEHICLE_NAME]       = s.vehicleName
             prefs[Keys.ACCENT_COLOR]       = s.accentColor
@@ -219,6 +224,7 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.UI_SCALE]           = s.uiScale
             prefs[Keys.CLOCK_STYLE]        = s.clockStyle.name
             prefs[Keys.USE_12_HOUR_TIME]   = s.use12HourTime
+            prefs[Keys.CLOCK_TIME_ZONE] = s.clockTimeZone
             prefs[Keys.CLOCK_SECONDS]      = s.showClockSeconds
             prefs[Keys.CLOCK_DATE_FORMAT]  = s.clockDateFormat
             prefs[Keys.UNIT_SYSTEM]        = s.unitSystem.name

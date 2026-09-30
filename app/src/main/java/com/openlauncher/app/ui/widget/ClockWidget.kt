@@ -13,7 +13,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.data.ClockStyle
-import com.openlauncher.app.model.freshnessLabel
+import com.openlauncher.app.model.*
+import com.openlauncher.app.util.*
 import kotlinx.coroutines.delay
 import java.util.*
 import kotlin.math.cos
@@ -29,24 +30,27 @@ fun ClockWidget(
     use12HourTime: Boolean = false,
     showSeconds: Boolean = false,
     dateFormat: String = "LONG",
+    timeZoneChoice: String = "AUTO",
     weather: com.openlauncher.app.model.WeatherState? = null,
     metric: Boolean = true,
     networkAvailable: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    var calendar by remember { mutableStateOf(Calendar.getInstance()) }
+    var calendar by remember(timeZoneChoice, weather?.timeZoneId, weather?.utcOffsetSeconds) { mutableStateOf(dashboardCalendar(System.currentTimeMillis(), timeZoneChoice, weather)) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(timeZoneChoice, weather?.timeZoneId, weather?.utcOffsetSeconds) {
         while (true) {
             delay(1_000)
-            calendar = Calendar.getInstance()
+            calendar = dashboardCalendar(System.currentTimeMillis(), timeZoneChoice, weather)
         }
     }
 
     val contentColor = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
     val subColor     = if (isDayMode) Color(0xFF444444) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f)
 
-    Column(modifier = modifier.padding(bottom = 10.dp)) {
+    BoxWithConstraints(modifier) {
+    val showSummary = maxHeight >= 220.dp
+    Column(modifier = Modifier.fillMaxSize().padding(bottom = 10.dp)) {
         Box(Modifier.fillMaxWidth().weight(1f)) {
             when (style) {
                 ClockStyle.DIGITAL -> DigitalClock(calendar, contentColor, subColor, use12HourTime, showSeconds, dateFormat)
@@ -72,6 +76,18 @@ fun ClockWidget(
                 fontSize = 14.sp, color = subColor,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)
         }
+        if (showSummary && weather != null) {
+            val hour = weather.currentForecast(calendar.timeInMillis)
+            Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Feels ${temperatureText(hour?.feelsLikeCelsius, metric)} · H ${temperatureText(weather.highCelsius, metric)} / L ${temperatureText(weather.lowCelsius, metric)}",
+                    color = subColor, fontSize = 13.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Text("Rain next hour ${weather.nextHourRain(calendar.timeInMillis)?.let { "$it%" } ?: "Unavailable"} · Sunset ${weather.sunTime(weather.sunsetMs, use12HourTime)}",
+                    color = subColor, fontSize = 13.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            }
+        }
+    }
     }
 }
 
@@ -82,27 +98,27 @@ private fun DigitalClock(cal: Calendar, contentColor: Color, subColor: Color, us
     val second = cal.get(Calendar.SECOND)
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
-    val time = if (use12HourTime) "%d:%02d%s %s".format((hour + 11) % 12 + 1, minute,
-        if (showSeconds) ":%02d".format(second) else "", if (hour < 12) "AM" else "PM")
-        else "%02d:%02d%s".format(hour, minute, if (showSeconds) ":%02d".format(second) else "")
+    val time = clockDigits(cal, use12HourTime, showSeconds)
     val compactDate = maxWidth < 240.dp
     val scale = androidx.compose.ui.platform.LocalDensity.current.fontScale
-    val clockSize = minOf(48f, (maxWidth.value - 28f) / (time.length * 0.65f * scale),
+    val clockSize = minOf(48f, (maxWidth.value - 100f) / (time.length * 0.65f * scale),
         (maxHeight.value - 42f) / scale).coerceAtLeast(12f)
     Column(
         modifier            = Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.Bottom,
         horizontalAlignment = Alignment.Start
     ) {
-        Text(
-            text          = time,
-            maxLines = 1,
-            color         = contentColor,
-            fontSize      = clockSize.sp,
-            fontWeight    = androidx.compose.ui.text.font.FontWeight.Medium,
-            fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-            letterSpacing = 1.sp
-        )
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(time, maxLines = 1, color = contentColor, fontSize = clockSize.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)
+            Column(Modifier.width(64.dp).padding(bottom = 4.dp)) {
+                if (use12HourTime) Text(clockPeriod(cal), color = contentColor, fontSize = 20.sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Text(cal.timeZone.getDisplayName(cal.timeZone.inDaylightTime(cal.time), TimeZone.SHORT),
+                    color = subColor, fontSize = 11.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            }
+        }
         Text(
             text     = if (dateFormat == "SHORT" || compactDate) shortDateString(cal) else buildDateString(cal),
             maxLines = 1,

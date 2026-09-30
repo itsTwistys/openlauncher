@@ -1,5 +1,26 @@
 # Open Launcher preview: installation and testing
 
+## Weather, media icons and driving maps in 0.0.15
+
+- Clock + Weather adds feels-like, daily high/low, next-hour rain probability and sunset on cards at least 220 dp tall. Smaller cards retain the clock and conditions. Tap the card for the full forecast, including wind, humidity and sunrise. Missing or expired hourly values show Unavailable, not zero; existing cache age/offline indicators remain. Sun times use the forecast location's timezone.
+- Rich media actions use the selected app's supplied icons with 48 dp targets and accessible labels. If an icon cannot be loaded, familiar action labels receive a matching symbol; unknown actions use More. Like/rating and Open player are icon buttons too. Dispatch still uses only currently exposed session actions, never guessed Spotify commands.
+- **Map options → Auto / Dark / Light** controls the built-in map. Auto follows the dashboard theme. Dark recolors only the raster tile pane and controls, preserving the blue GPS marker and attribution. No new tile provider, key or account is required; changing appearance retains the map and cached tiles.
+- GPS updates no longer resend all map options. Unchanged orientation does not reset north-up, map/tile fade transitions are disabled, tile retention is increased, and ordinary tile loading no longer flashes a blocking loading banner over an already rendered map. First load, offline and failure states remain visible.
+- The map tile shows supported Google Maps/Waze navigation notification instructions and separate trip details (such as ETA and remaining distance) when the source supplies them. Start navigation on the head unit and grant Notification Access. The selected navigation app preference applies. Tap the banner to return to that route. Its height stays fixed as turn text changes so the map is not resized on every instruction. This does not embed another app's route geometry or read CarPlay-only navigation. Unsupported notification fields are not fabricated.
+
+Regression coverage includes simulated driving without tile redraws, dark/light switching without map recreation, retained marker colors, transient loading visibility, weather fields/cache/timezones, navigation text deduplication, fixed banner bounds and icon-only media controls. Actual road-motion smoothness and provider notification contents still require physical head-unit verification.
+
+## Dashboard polish in 0.0.14
+
+- Now Playing artwork fills the card behind one source header. Track text, large transport controls, seeking and additional controls adapt to available height. Position advances between media-session updates. Failed full-resolution artwork falls back to the session bitmap.
+- Like, save, rating and other actions appear only when the selected media app exposes them through its Android media session. Actions are rechecked before dispatch. Spotify versions may expose different controls; Open player remains available. This does not add Spotify account authorization or invent unsupported library commands.
+- Clock Time Zone defaults to **Automatic local weather**, with **System** and searchable IANA zones as overrides. AM/PM is prominent, and the displayed timezone is visible. The override affects the launcher only. If the device's actual date or minutes are incorrect, correct its date/time separately. Automatic location time needs a successful forecast; cached forecasts retain their timezone.
+- Map adds a clear blue position dot, accuracy circle, stale-location indication and short animated movement between nearby fresh fixes. GPS updates request one-second intervals; actual frequency depends on the head unit. Recent precise GPS fixes resist coarse network-location jumps. Resizing while following keeps the position centered. Existing tile provider, theme and map controls remain.
+- Chrome, Spotify and Google Maps have matching monochrome sidebar symbols. Other installed apps use their native icons at the same size; native icons remain selectable for the named apps too.
+- Traffic explicitly opens Google Maps or a browser with the documented traffic layer URL and visible launch-failure feedback. The embedded OSM card has no live traffic data feed. If the Maps app ignores the layer, use Layers → Traffic or Open in browser.
+
+Validation covers map movement/centering/stale fixes with simulated tiles, local-time/AM-PM boundaries, GPS quality filtering, traffic link freshness and media-session action gating. Physical GPS reception, Spotify's available controls, live traffic provider behavior and ignition wake still need head-unit verification.
+
 ## Dashboard reliability and readability in 0.0.13
 
 - Map settings now live in **Map options**. Auto zoom, Heading up, GPS/tile status and Reload are available in a scrollable dialog; the dashboard keeps navigation and exceptional status messages visible.

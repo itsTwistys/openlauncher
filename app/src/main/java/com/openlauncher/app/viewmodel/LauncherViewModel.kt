@@ -462,9 +462,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         highCelsius = resp.daily?.high?.firstOrNull(),
                         lowCelsius = resp.daily?.low?.firstOrNull(),
                         utcOffsetSeconds = resp.utcOffsetSeconds,
+                        timeZoneId = resp.timezone,
+                        sunriseMs = resp.daily?.sunrise?.firstOrNull()?.times(1000),
+                        sunsetMs = resp.daily?.sunset?.firstOrNull()?.times(1000),
                         hourly = resp.hourly?.let { h -> h.time.orEmpty().mapIndexed { i, time ->
                             com.openlauncher.app.model.ForecastHour(time * 1000,
-                                h.temperature?.getOrNull(i), h.apparent?.getOrNull(i), h.rain?.getOrNull(i))
+                                h.temperature?.getOrNull(i), h.apparent?.getOrNull(i), h.rain?.getOrNull(i), h.humidity?.getOrNull(i))
                         } }.orEmpty()
                     )
                 }
