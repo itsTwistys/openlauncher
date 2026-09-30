@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.data.ClockStyle
-import com.openlauncher.app.model.freshnessLabel
+import com.openlauncher.app.model.*
 import com.openlauncher.app.util.*
 import kotlinx.coroutines.delay
 import java.util.*
@@ -48,7 +48,9 @@ fun ClockWidget(
     val contentColor = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
     val subColor     = if (isDayMode) Color(0xFF444444) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f)
 
-    Column(modifier = modifier.padding(bottom = 10.dp)) {
+    BoxWithConstraints(modifier) {
+    val showSummary = maxHeight >= 220.dp
+    Column(modifier = Modifier.fillMaxSize().padding(bottom = 10.dp)) {
         Box(Modifier.fillMaxWidth().weight(1f)) {
             when (style) {
                 ClockStyle.DIGITAL -> DigitalClock(calendar, contentColor, subColor, use12HourTime, showSeconds, dateFormat)
@@ -74,6 +76,18 @@ fun ClockWidget(
                 fontSize = 14.sp, color = subColor,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)
         }
+        if (showSummary && weather != null) {
+            val hour = weather.currentForecast(calendar.timeInMillis)
+            Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Feels ${temperatureText(hour?.feelsLikeCelsius, metric)} · H ${temperatureText(weather.highCelsius, metric)} / L ${temperatureText(weather.lowCelsius, metric)}",
+                    color = subColor, fontSize = 13.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Text("Rain next hour ${weather.nextHourRain(calendar.timeInMillis)?.let { "$it%" } ?: "Unavailable"} · Sunset ${weather.sunTime(weather.sunsetMs, use12HourTime)}",
+                    color = subColor, fontSize = 13.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            }
+        }
+    }
     }
 }
 

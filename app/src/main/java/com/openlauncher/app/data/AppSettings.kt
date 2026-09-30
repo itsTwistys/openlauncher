@@ -94,6 +94,7 @@ data class AppSettings(
     val layoutHistory: List<LayoutProfile> = emptyList(),
     val mapAutoZoom: Boolean = true,
     val mapHeadingUp: Boolean = false,
+    val mapTheme: String = "AUTO",
     val mapSoftwareRendering: Boolean = true,
     val shortcuts: List<ShortcutConfig> = defaultShortcuts(),
     val widgetLayout: List<WidgetConfig> = defaultWidgetLayout(),

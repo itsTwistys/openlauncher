@@ -77,16 +77,9 @@ class MediaListenerService : NotificationListenerService() {
                     sbn.notification.flags and android.app.Notification.FLAG_GROUP_SUMMARY == 0
             }.sortedByDescending { it.postTime }.mapNotNull { sbn ->
                 val n = sbn.notification
-                val extras = n.extras
-                val title = extras.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString().orEmpty()
-                val lines = listOfNotNull(
-                    extras.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString(),
-                    extras.getCharSequence(android.app.Notification.EXTRA_BIG_TEXT)?.toString(),
-                    extras.getCharSequence(android.app.Notification.EXTRA_SUB_TEXT)?.toString()
-                ) + extras.getCharSequenceArray(android.app.Notification.EXTRA_TEXT_LINES).orEmpty().map { it.toString() }
-                val details = lines.filter { it.isNotBlank() && it != title }.distinct().joinToString(" · ").take(1000)
-                if (title.isBlank() && details.isBlank()) null else NavigationInfo(
-                    sbn.packageName, title.take(300), details, n.contentIntent)
+                val fields = navigationText(n)
+                if (fields.title.isBlank() && fields.instruction.isBlank()) null else NavigationInfo(
+                    sbn.packageName, fields.title, fields.instruction, n.contentIntent, fields.trip)
             }
         }.getOrDefault(emptyList())
     }
@@ -167,7 +160,7 @@ class MediaListenerService : NotificationListenerService() {
     }
 
     data class NavigationInfo(val packageName: String, val title: String, val details: String,
-        val openIntent: android.app.PendingIntent?)
+        val openIntent: android.app.PendingIntent?, val tripDetails: String = "")
 
     companion object {
         private val navigationPackages = setOf("com.google.android.apps.maps", "com.waze")

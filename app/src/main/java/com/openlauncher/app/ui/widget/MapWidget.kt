@@ -6,6 +6,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import com.openlauncher.app.data.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -25,6 +26,7 @@ import com.openlauncher.app.util.LocationData
 /** Local map assets load independently of GPS; position and connectivity are synchronized after resume. */
 @Composable
 private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolean,
+              dark: Boolean, mapTheme: String, onMapTheme: (String) -> Unit,
               autoZoom: Boolean, headingUp: Boolean, onMapOptions: (Boolean, Boolean) -> Unit,
               softwareRendering: Boolean, onSoftwareRendering: (Boolean) -> Unit,
               navigationAction: String, onOpenNavigation: () -> Unit,
@@ -104,11 +106,17 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
             }
         }
     }
-    // Re-send state after page creation, GPS updates and resume. Never inject text or URLs from apps.
-    LaunchedEffect(ready, location, networkAvailable, resumed, autoZoom, headingUp) {
+    // Options and theme must not restart heading/zoom animation on every GPS update.
+    LaunchedEffect(ready, resumed, networkAvailable, autoZoom, headingUp, dark) {
+        if (ready && resumed) view?.let {
+            it.setBackgroundColor(if (dark) android.graphics.Color.rgb(24, 28, 32) else android.graphics.Color.rgb(230, 232, 230))
+            evaluate(it, "window.setNetworkAvailable($networkAvailable); window.setMapOptions($autoZoom,$headingUp); window.setMapTheme($dark);")
+        }
+    }
+    // Re-send coordinates after page creation, GPS updates and resume. Never inject app text or URLs.
+    LaunchedEffect(ready, location, resumed) {
         if (ready && resumed) {
             val fix = latestLocation
-            view?.let { evaluate(it, "window.setNetworkAvailable($latestNetwork); window.setMapOptions($autoZoom,$headingUp);") }
             if (fix != null && fix.latitude.isFinite() && fix.longitude.isFinite()) {
                 val fresh = android.os.SystemClock.elapsedRealtime() - fix.elapsedRealtimeMs < 30_000
                 val speed = if (fresh && fix.speedMps.isFinite()) fix.speedMps.coerceAtLeast(0f) else 0f
@@ -179,14 +187,14 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
         if (optionsOpen) MapOptionsDialog(autoZoom, headingUp, softwareRendering, gpsText,
             failure ?: if (!networkAvailable) "Offline · waiting for internet" else tileState,
             onMapOptions, onSoftwareRendering, onReload = { autoRetries = 0; reload(); optionsOpen = false },
-            onDismiss = { optionsOpen = false })
+            onDismiss = { optionsOpen = false }, mapTheme = mapTheme, onMapTheme = onMapTheme)
         key(attempt) {
             EmbeddedWebFrame(Modifier.fillMaxWidth().weight(1f), create = {
                 DashboardDiagnostics.beginPage()
                 var created: WebView? = null
                 try { WebView(context).also { created = it }.apply {
                     view = this
-                    setBackgroundColor(android.graphics.Color.rgb(230, 232, 230))
+                    setBackgroundColor(if (dark) android.graphics.Color.rgb(24, 28, 32) else android.graphics.Color.rgb(230, 232, 230))
                     setLayerType(if (softwareRendering) android.view.View.LAYER_TYPE_SOFTWARE
                         else android.view.View.LAYER_TYPE_NONE, null)
                     settings.javaScriptEnabled = true
@@ -257,48 +265,79 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
               autoZoom: Boolean = true, headingUp: Boolean = false,
               onMapOptions: (Boolean, Boolean) -> Unit = { _, _ -> },
               softwareRendering: Boolean = true, onSoftwareRendering: (Boolean) -> Unit = {},
-              networkAvailable: Boolean = true, navigationPackage: String = "", modifier: Modifier = Modifier) {
+              networkAvailable: Boolean = true, navigationPackage: String = "", modifier: Modifier = Modifier,
+              mapTheme: String = "AUTO", isDayMode: Boolean = false, onMapTheme: (String) -> Unit = {}) {
     val context = LocalContext.current
     val directions by com.openlauncher.app.service.MediaListenerService.navigation.collectAsState()
     val connected by com.openlauncher.app.service.MediaListenerService.isConnected.collectAsState()
     val navigation = directions.firstOrNull { navigationPackage.isBlank() || it.packageName == navigationPackage }
-    Column(modifier) {
-        if (!isEditing && navigation != null) {
-            Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                    Text(navigation.title, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 24.sp,
-                        maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                    if (navigation.details.isNotBlank()) Text(navigation.details,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, fontSize = 16.sp,
-                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                }
+    fun openNavigation() {
+        if (!connected) {
+            runCatching { context.startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+        } else {
+            val opened = navigation?.openIntent?.let { runCatching { it.send() }.isSuccess } ?: false
+            if (!opened) {
+                val chosen = navigation?.packageName ?: navigationPackage
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(if (chosen == "com.waze") "https://waze.com/ul" else "geo:0,0"))
+                if (chosen.isNotBlank()) intent.setPackage(chosen)
+                if (runCatching { context.startActivity(intent) }.isFailure)
+                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(if (chosen == "com.waze") "https://waze.com/ul" else "https://www.google.com/maps"))) }
             }
         }
-        LocationMap(location, isEditing, onlineEnabled, autoZoom, headingUp, onMapOptions,
-            softwareRendering, onSoftwareRendering, if (connected) "Open navigation" else "Enable directions", onOpenNavigation = {
-                        if (!connected) {
-                            runCatching { context.startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
-                        } else {
-                            val opened = navigation?.openIntent?.let { runCatching { it.send() }.isSuccess } ?: false
-                            if (!opened) {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0"))
-                                if (navigationPackage.isNotBlank()) intent.setPackage(navigationPackage)
-                                if (runCatching { context.startActivity(intent) }.isFailure)
-                                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps"))) }
-                            }
-                        }
-            }, networkAvailable = networkAvailable, modifier = Modifier.fillMaxWidth().weight(1f))
+    }
+    BoxWithConstraints(modifier) {
+    val compactDirections = maxHeight < 360.dp
+    Column(Modifier.fillMaxSize()) {
+        if (!isEditing && navigation != null) {
+            NavigationBanner(navigation, compactDirections, ::openNavigation)
+        } else if (!isEditing) {
+            Text(if (connected) "Start a route in Google Maps or Waze to see turns here" else "Enable Notification Access for turn directions",
+                Modifier.fillMaxWidth().clickable(onClick = ::openNavigation).padding(horizontal = 12.dp, vertical = 6.dp),
+                fontSize = 13.sp, maxLines = 2)
+        }
+        LocationMap(location, isEditing, onlineEnabled, mapTheme == "DARK" || (mapTheme == "AUTO" && !isDayMode), mapTheme, onMapTheme, autoZoom, headingUp, onMapOptions,
+            softwareRendering, onSoftwareRendering, if (connected) "Open navigation" else "Enable directions", onOpenNavigation = ::openNavigation,
+            networkAvailable = networkAvailable, modifier = Modifier.fillMaxWidth().weight(1f))
+    }
+    }
+}
+
+@Composable
+internal fun NavigationBanner(navigation: com.openlauncher.app.service.MediaListenerService.NavigationInfo,
+    compact: Boolean, onOpen: () -> Unit) {
+    // Fixed bounds prevent changing turn text from repeatedly resizing/recentering the WebView.
+    Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth().height((if (compact) 108.dp else 132.dp) * androidx.compose.ui.platform.LocalDensity.current.fontScale)
+        .clickable(onClick = onOpen).semantics { contentDescription = "Navigation directions" }) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(if (navigation.packageName == "com.waze") "Waze directions" else "Google Maps directions", fontSize = 12.sp)
+            Text(navigation.title, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 23.sp,
+                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            if (navigation.details.isNotBlank()) Text(navigation.details,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, fontSize = 16.sp,
+                maxLines = if (compact) 1 else 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            if (navigation.tripDetails.isNotBlank()) Text(navigation.tripDetails,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, fontSize = 14.sp,
+                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        }
     }
 }
 
 @Composable
 internal fun MapOptionsDialog(autoZoom: Boolean, headingUp: Boolean, softwareRendering: Boolean,
     gpsStatus: String, mapStatus: String, onMapOptions: (Boolean, Boolean) -> Unit,
-    onSoftwareRendering: (Boolean) -> Unit, onReload: () -> Unit, onDismiss: () -> Unit) {
+    onSoftwareRendering: (Boolean) -> Unit, onReload: () -> Unit, onDismiss: () -> Unit,
+    mapTheme: String = "AUTO", onMapTheme: (String) -> Unit = {}) {
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Map options") }, text = {
         Column(Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Map appearance", fontSize = 16.sp)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                listOf("AUTO" to "Auto", "DARK" to "Dark", "LIGHT" to "Light").forEach { (value, label) ->
+                    FilterChip(selected = mapTheme == value, onClick = { onMapTheme(value) }, label = { Text(label) })
+                }
+            }
+            Text("Auto follows the dashboard day/night theme.", fontSize = 13.sp)
             MapOptionSwitch("Auto zoom", autoZoom) { onMapOptions(it, headingUp) }
             MapOptionSwitch("Heading up", headingUp) { onMapOptions(autoZoom, it) }
             HorizontalDivider()

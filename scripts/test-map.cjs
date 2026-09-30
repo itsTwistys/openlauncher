@@ -96,6 +96,31 @@ const assert=require('node:assert/strict');
  assert.match(await page.locator('#status').innerText(),/GPS stale/);
  await page.evaluate(()=>window.updatePosition(25.761,-80.191,0,null,25,true));
  assert.equal(await page.locator('.location-marker.stale').count(),0);
+ // Theme changes retain the map, cached tiles, position and blue marker.
+ const loadsBeforeTheme = await page.evaluate(()=>totalLoaded);
+ await page.evaluate(()=>window.setMapTheme(true));
+ assert.equal(await page.locator('html.dark-map').count(),1);
+ assert.notEqual(await page.locator('.leaflet-tile-pane').evaluate(e=>getComputedStyle(e).filter),'none');
+ assert.equal(await page.locator('.leaflet-marker-pane').evaluate(e=>getComputedStyle(e).filter),'none');
+ assert.equal(await page.evaluate(()=>totalLoaded),loadsBeforeTheme);
+ await page.screenshot({path:'app/build/outputs/ui-checks/map-dark-landscape.png'});
+ // Normal tile loading while moving must not flash an overlay over the existing map.
+ await page.evaluate(()=>tiles.fire('loading'));
+ assert.equal(await page.locator('#status').isVisible(),false);
+ await page.evaluate(()=>tiles.fire('load'));
+ await page.evaluate(()=>{
+   window.testMap=map; window.redraws=0;
+   const redraw=tiles.redraw.bind(tiles); tiles.redraw=()=>{window.redraws++; return redraw();};
+ });
+ for(let i=1;i<=12;i++) {
+   await page.evaluate(i=>{window.setMapOptions(false,false); window.updatePosition(25.761+i*0.000015,-80.191,12,90,8,true);},i);
+   await page.waitForTimeout(100);
+ }
+ await page.waitForFunction(()=>Math.abs(marker.getLatLng().lat-(25.761+12*0.000015))<0.0000001);
+ assert.equal(await page.evaluate(()=>window.testMap===map),true);
+ assert.equal(await page.evaluate(()=>window.redraws),0,'Driving fixes do not redraw cached tiles');
+ await page.evaluate(()=>window.setMapTheme(false));
+ assert.equal(await page.locator('html.dark-map').count(),0);
  assert.deepEqual(errors,[]);
 
  console.log('Map checks passed: local assets/CSP, waiting GPS, offline, follow/recenter, tile failure/resume recovery and retained diagnostic counters, resize, heading rotation, speed zoom, hysteresis and manual override.');

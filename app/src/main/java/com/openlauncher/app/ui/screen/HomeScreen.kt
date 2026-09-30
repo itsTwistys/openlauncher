@@ -548,6 +548,8 @@ fun HomeScreen(
                             modifier  = Modifier.fillMaxSize()
                         )
                         "MAP" -> MapWidget(
+                            mapTheme = settings.mapTheme, isDayMode = isDayMode,
+                            onMapTheme = { value -> onSettings { copy(mapTheme = value) } },
                             autoZoom = settings.mapAutoZoom,
                             headingUp = settings.mapHeadingUp,
                             softwareRendering = settings.mapSoftwareRendering,

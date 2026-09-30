@@ -27,14 +27,16 @@ class MediaArtworkPlayerTest {
         compose.onNodeWithText(state.title).assertIsDisplayed()
         compose.onNodeWithContentDescription("Pause").assertIsDisplayed()
         compose.onNodeWithContentDescription("Next track").assertIsDisplayed()
-        compose.onNodeWithText(" Open player").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Open player").assertDoesNotExist()
     }
     @Test fun tallCardUsesFullHeightAndShowsAdditionalControls() {
         compose.setContent { OpenLauncherTheme { Box(Modifier.size(320.dp, 480.dp)) {
-            MediaArtworkPlayer(state, Color.White, false, true, {}, {}, {}, {})
+            MediaArtworkPlayer(state.copy(customActions = listOf(com.openlauncher.app.model.MediaAction("SAVE", "Save track", 0))), Color.White, false, true, {}, {}, {}, {})
         } } }
         compose.onNodeWithText(state.title).assertIsDisplayed()
         compose.onNodeWithContentDescription("Pause").assertIsDisplayed()
-        compose.onNodeWithText(" Open player").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Open player").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Save track").assertIsDisplayed()
+        compose.onNodeWithText("Save track").assertDoesNotExist()
     }
 }

@@ -1,7 +1,7 @@
 'use strict';
-const map = L.map('map', { attributionControl: true, rotate: true, rotateControl: false, dragRotate: false, touchRotate: false, shiftKeyRotate: false }).setView([0, 0], 2);
+const map = L.map('map', { fadeAnimation: false, zoomAnimation: false, attributionControl: true, rotate: true, rotateControl: false, dragRotate: false, touchRotate: false, shiftKeyRotate: false }).setView([0, 0], 2);
 const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, keepBuffer: 3, updateWhenIdle: true, updateInterval: 250,
+    maxZoom: 19, keepBuffer: 4, updateWhenIdle: true, updateWhenZooming: false, updateInterval: 250,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 });
 let positionFrame = null, accuracyRing = null, gpsFresh = true;
@@ -11,7 +11,7 @@ let speedKmh = 0, heading = null, zoomTier = 17, lastZoomChange = 0;
 function withProgrammaticZoom(action) { programmaticZoom = true; try { action(); } finally { programmaticZoom = false; } }
 function updateMotionView(force = false) {
     if (headingUp && Number.isFinite(heading)) map.setHeading(heading);
-    else { map.stopHeadingUp(); map.setBearing(0); }
+    else { map.stopHeadingUp(); if (Math.abs(map.getBearing()) > 0.01) map.setBearing(0); }
     if (!last || !follow || !autoZoom || autoZoomPaused) return;
     // Hysteresis prevents repeated zoom changes around the speed boundaries.
     let target = zoomTier;
@@ -25,11 +25,13 @@ function updateMotionView(force = false) {
     }
 }
 window.setMapOptions = (zoom, up) => {
-    const changed = zoom !== autoZoom;
+    const changed = zoom !== autoZoom, orientationChanged = up !== headingUp;
+    if (!changed && !orientationChanged) return;
     autoZoom = zoom; headingUp = up;
     if (changed) autoZoomPaused = false;
     updateMotionView(changed); renderStatus();
 };
+window.setMapTheme = dark => document.documentElement.classList.toggle('dark-map', !!dark);
 window.clearMotion = () => { gpsFresh = false; heading = null; speedKmh = 0; if (marker) marker.getElement()?.classList.add('stale'); updateMotionView(); renderStatus(); };
 let loading = false, failed = 0, loaded = 0, retries = 0, retryTimer = null, watchdog = null;
 let totalLoaded = 0, totalErrors = 0, totalTimeouts = 0;
@@ -39,16 +41,16 @@ function message() {
     if (!online) return 'Offline · map will retry when connected';
     if (!last) return 'Waiting for GPS · map is ready';
     if (!gpsFresh) return 'GPS stale · showing last location';
-    if (loading) return 'Loading map tiles…';
+    if (loading && !totalLoaded) return 'Loading map tiles…';
     if (failed) return 'Some map tiles unavailable · check internet';
-    if (!loaded) return 'Waiting for map tiles…';
+    if (!loaded && !totalLoaded) return 'Waiting for map tiles…';
     if (headingUp && !Number.isFinite(heading)) return 'Heading unavailable · north up';
     if (autoZoom && autoZoomPaused) return 'Manual zoom · Recenter resumes auto zoom';
     return 'Map ready';
 }
 function renderStatus() {
     statusBox.textContent = message();
-    statusBox.style.display = online && last && gpsFresh && loaded && !failed && !loading ? 'none' : 'block';
+    statusBox.style.display = online && last && gpsFresh && totalLoaded && !failed ? 'none' : 'block';
 }
 function cancelRetry() { clearTimeout(retryTimer); retryTimer = null; }
 function scheduleRetry() {
@@ -108,7 +110,8 @@ window.updatePosition = (lat, lon, speedMps = 0, travelHeading = null, accuracy 
             };
             positionFrame = requestAnimationFrame(step);
         } else marker.setLatLng(last);
-        if (follow) map.panTo(last, { animate: fresh && distance < 150, duration: 0.65 });
+        if (follow && map.distance(map.getCenter(), target) > 0.5)
+            map.panTo(last, { animate: fresh && distance < 150, duration: 0.65 });
     }
     marker.getElement()?.classList.toggle('stale', !fresh);
     if (accuracyRing) accuracyRing.setLatLng(last).setRadius(Number.isFinite(accuracy) ? Math.min(Math.max(accuracy, 0), 2000) : 0);

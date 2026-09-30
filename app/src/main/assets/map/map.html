@@ -13,5 +13,11 @@ html,body,#map{height:100%;width:100%;margin:0;background:#e6e8e6;font:16px sans
 .controls button{pointer-events:auto;border-radius:4px;box-shadow:0 2px 6px #0002;font-size:14px;padding:8px 12px}
 #center{min-width:104px;min-height:48px;font-size:15px}#follow{min-width:88px}
 .leaflet-control-zoom{border-radius:4px!important;box-shadow:0 2px 6px #0002!important}
+html.dark-map, .dark-map body, .dark-map #map{background:#181c20}
+.dark-map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.78) saturate(.55)}
+.dark-map button,.dark-map .leaflet-bar a{background:#252b31;color:#f1f4f6;border-color:#59616b}
+.dark-map #center,.dark-map #follow.active{background:#245fa1;color:white}
+.dark-map .leaflet-control-attribution{background:#181c20e8;color:#ccd4dc}
+.dark-map .leaflet-control-attribution a{color:#9bc9ff}
 </style></head><body><div id="map" aria-label="Current location map"></div><div class="controls"><button id="follow" class="active" aria-pressed="true">Follow on</button><button id="center">Recenter</button></div><div id="status" role="status">Starting map engine…</div>
 <script src="leaflet.js"></script><script src="leaflet-rotate.js"></script><script src="map.js"></script></body></html>

@@ -10,6 +10,8 @@ data class WeatherState(
     val hourly: List<ForecastHour> = emptyList(),
     val utcOffsetSeconds: Long = 0,
     val timeZoneId: String? = null,
+    val sunriseMs: Long? = null,
+    val sunsetMs: Long? = null,
     val isDay: Boolean
 ) {
     // roundToInt, not toInt — truncation displayed 20.9° as 20°
@@ -47,7 +49,7 @@ private fun wmoCodeToEmoji(code: Int, isDay: Boolean): String = when (code) {
     else -> "🌡️"
 }
 
-data class ForecastHour(val timeMs: Long, val celsius: Double?, val feelsLikeCelsius: Double?, val rainPercent: Int?)
+data class ForecastHour(val timeMs: Long, val celsius: Double?, val feelsLikeCelsius: Double?, val rainPercent: Int?, val humidityPercent: Int? = null)
 fun temperatureText(value: Double?, metric: Boolean): String = value?.let {
     "${Math.round(if (metric) it else it * 9 / 5 + 32)}°${if (metric) "C" else "F"}"
 } ?: "Unavailable"

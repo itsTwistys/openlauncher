@@ -42,6 +42,7 @@ object SettingsBackup {
         require(s.uiScale in 0.6f..2f && s.textScale in 0.6f..2f && s.wallpaperDim in 0f..1f) { "Invalid display scale" }
         require(s.vehicleName.length <= 100 && s.homeDestination.length <= 500 && s.workDestination.length <= 500)
         require(s.clockTimeZone in setOf("AUTO", "SYSTEM") || s.clockTimeZone in java.util.TimeZone.getAvailableIDs())
+        require(s.mapTheme in setOf("AUTO", "DARK", "LIGHT"))
         require(s.clockDateFormat in setOf("LONG", "SHORT"))
         require(s.recentDestinations.size <= 5 && s.recentDestinations.all { it.length <= 500 })
         require(s.preferredMediaPackage.length <= 255 && (s.preferredMediaPackage in setOf("", "@radio") ||

@@ -59,6 +59,7 @@ internal fun MediaArtworkPlayer(state: NowPlayingState, accent: Color, editing: 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val compact = maxHeight < 260.dp
         if (art != null) {
+            Box(Modifier.fillMaxSize().background(Color.Black))
             AsyncImage(model = art, contentDescription = null, contentScale = ContentScale.Crop,
                 filterQuality = FilterQuality.High, error = state.albumArt?.let { BitmapPainter(it.asImageBitmap()) },
                 modifier = Modifier.fillMaxSize())
@@ -107,24 +108,31 @@ internal fun MediaArtworkPlayer(state: NowPlayingState, accent: Color, editing: 
                 if (!compact) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     state.customActions.take(8).forEach { action ->
-                        TextButton(enabled = !editing, onClick = { if (!sendExposedMediaAction(state.controller, action.id)) failed() },
-                            colors = ButtonDefaults.textButtonColors(contentColor = text)) { Text(action.label, maxLines = 1) }
+                        IconButton(enabled = !editing, modifier = Modifier.size(48.dp),
+                            onClick = { if (!sendExposedMediaAction(state.controller, action.id)) failed() }) {
+                            MediaActionIcon(action, state.controller?.packageName, text)
+                        }
                     }
                     if (supportsAction(state.actions, PlaybackState.ACTION_SET_RATING)) {
-                        TextButton(enabled = !editing, onClick = {
+                        IconButton(enabled = !editing, modifier = Modifier.size(48.dp), onClick = {
                             val rating = when (state.ratingStyle) {
                                 Rating.RATING_HEART -> Rating.newHeartRating(state.userRating?.hasHeart() != true)
                                 Rating.RATING_THUMB_UP_DOWN -> Rating.newThumbRating(state.userRating?.isThumbUp != true)
                                 else -> null
                             }
                             if (rating != null) { if (!rateExposedMedia(state.controller, rating)) failed() } else showRating = true
-                        }, colors = ButtonDefaults.textButtonColors(contentColor = text)) {
-                            Icon(if (state.ratingStyle == Rating.RATING_HEART) Icons.Default.Favorite else Icons.Default.Star, null, Modifier.size(20.dp))
-                            Text(if (state.ratingStyle == Rating.RATING_HEART && state.userRating?.hasHeart() == true) " Saved" else " Rate / Like")
+                        }) {
+                            val saved = state.userRating?.hasHeart() == true
+                            Icon(when (state.ratingStyle) {
+                                Rating.RATING_HEART -> if (saved) Icons.Default.Favorite else Icons.Default.FavoriteBorder
+                                Rating.RATING_THUMB_UP_DOWN -> Icons.Default.ThumbUp
+                                else -> Icons.Default.Star
+                            }, if (state.ratingStyle == Rating.RATING_HEART) { if (saved) "Remove like" else "Like track" } else "Rate track",
+                                Modifier.size(24.dp), tint = text)
                         }
                     }
-                    TextButton(onClick = onOpen, enabled = !editing, colors = ButtonDefaults.textButtonColors(contentColor = text)) {
-                        Icon(Icons.Default.OpenInNew, null, Modifier.size(18.dp)); Text(" Open player")
+                    IconButton(onClick = onOpen, enabled = !editing, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Default.OpenInNew, "Open player", Modifier.size(24.dp), tint = text)
                     }
                 }
             }
