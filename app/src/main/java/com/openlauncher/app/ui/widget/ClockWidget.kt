@@ -62,28 +62,28 @@ fun ClockWidget(
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (weather != null) {
                 Text(weather.temperatureDisplay(metric), fontSize = 24.sp,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
                     color = contentColor, maxLines = 1)
                 Column(Modifier.weight(1f)) {
                     Text(weather.conditionLabel, fontSize = 16.sp,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                        fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
                         color = subColor, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     Text(weather.freshnessLabel(calendar.timeInMillis, networkAvailable), fontSize = 12.sp,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                        fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
                         color = subColor, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
             } else Text(if (networkAvailable) "Weather unavailable · needs location" else "Weather offline",
                 fontSize = 14.sp, color = subColor,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)
+                fontFamily = MaterialTheme.typography.bodyLarge.fontFamily)
         }
         if (showSummary && weather != null) {
             val hour = weather.currentForecast(calendar.timeInMillis)
             Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Feels ${temperatureText(hour?.feelsLikeCelsius, metric)} · H ${temperatureText(weather.highCelsius, metric)} / L ${temperatureText(weather.lowCelsius, metric)}",
-                    color = subColor, fontSize = 13.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    color = subColor, fontSize = 13.sp, fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
                     maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Text("Rain next hour ${weather.nextHourRain(calendar.timeInMillis)?.let { "$it%" } ?: "Unavailable"} · Sunset ${weather.sunTime(weather.sunsetMs, use12HourTime)}",
-                    color = subColor, fontSize = 13.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    color = subColor, fontSize = 13.sp, fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
                     maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
         }
@@ -111,7 +111,7 @@ private fun DigitalClock(cal: Calendar, contentColor: Color, subColor: Color, us
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(time, maxLines = 1, color = contentColor, fontSize = clockSize.sp,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)
+                fontFamily = MaterialTheme.typography.bodyLarge.fontFamily)
             Column(Modifier.width(64.dp).padding(bottom = 4.dp)) {
                 if (use12HourTime) Text(clockPeriod(cal), color = contentColor, fontSize = 20.sp,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)

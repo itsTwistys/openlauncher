@@ -31,6 +31,13 @@ window.setMapOptions = (zoom, up) => {
     if (changed) autoZoomPaused = false;
     updateMotionView(changed); renderStatus();
 };
+window.setDashboardStyle = (accent, foreground, font) => {
+    if (!/^#[0-9a-f]{6}$/i.test(accent) || !/^#[0-9a-f]{6}$/i.test(foreground)) return;
+    const style = document.documentElement.style;
+    style.setProperty('--accent', accent); style.setProperty('--on-accent', foreground);
+    style.setProperty('--control-font', font === 'JETBRAINS_MONO' ? 'LauncherMono, monospace' :
+        font === 'SOURCE_CODE_PRO' ? 'LauncherCode, monospace' : 'sans-serif');
+};
 window.setMapTheme = dark => document.documentElement.classList.toggle('dark-map', !!dark);
 window.clearMotion = () => { gpsFresh = false; heading = null; speedKmh = 0; if (marker) marker.getElement()?.classList.add('stale'); updateMotionView(); renderStatus(); };
 let loading = false, failed = 0, loaded = 0, retries = 0, retryTimer = null, watchdog = null;

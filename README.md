@@ -12,7 +12,7 @@
 [Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-b69400d) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-b69400d/docs/PREVIEW.md)
 <!-- preview-download:end -->
 
-This debug-signed preview installs as **Open Launcher Preview** alongside an existing launcher. The download above identifies its exact release. Source version 0.0.15 adds richer weather, icon-only media actions, automatic/manual dark maps and steadier map updates with a fixed directions banner. It includes full-card media, local-time overrides, smoother GPS markers and matching app icons. It retains the compact widget editor and adds dashboard controls, saved trips, expanded forecast, nearby stops, diagnostics, updates and layout recovery. It includes saved media-app selection, temporary card expansion, map orientation/automatic zoom, map recovery and the combined Clock + Weather card. It includes the YouTube removal from 0.0.9.
+This debug-signed preview installs as **Open Launcher Preview** alongside an existing launcher. The download above identifies its exact release. Source version 0.0.16 adds richer weather, icon-only media actions, automatic/manual dark maps and steadier map updates with a fixed directions banner. It includes full-card media, local-time overrides, smoother GPS markers and matching app icons. It retains the compact widget editor and adds dashboard controls, saved trips, expanded forecast, nearby stops, diagnostics, updates and layout recovery. It includes saved media-app selection, temporary card expansion, map orientation/automatic zoom, map recovery and the combined Clock + Weather card. It includes the YouTube removal from 0.0.9.
 
 ![Earlier Open Launcher dashboard screenshot; current preview layout and controls may differ](https://github.com/user-attachments/assets/a1bc63f3-2d4e-4ac0-bd56-b5d181681658)
 
@@ -27,6 +27,10 @@ This debug-signed preview installs as **Open Launcher Preview** alongside an exi
 - **Dashboard controls:** tap the sliders icon for media volume/mute, launcher-only brightness, navigation and Wi-Fi shortcuts, nearby gas/parking/coffee/food/charging/rest-area searches, diagnostics/export and a manual GitHub update check. The update check offers release notes, APK and checksum links, never silent installation.
 - **Trips and forecast:** trip totals survive restarts; save up to 200 trips and export CSV. Recording runs while the launcher is visible, excludes stale/inaccurate GPS and sleep gaps, and restores paused after a restart. Clock + Weather shows feels-like, high/low, next-hour rain and sunset when space permits. Tap for the next 12 hours, wind, humidity and sunrise. Optional weather background tint is off by default and preserves the existing dashboard styling.
 - **Apps and recovery:** installed-app library, configurable shortcuts with matching Chrome/Spotify/Maps symbols and consistently sized native app icons, first-run permission setup, and local versioned JSON settings backup/restore.
+
+## Update without repeating setup
+
+Install the published APK over **Open Launcher Preview**. Do not uninstall or clear storage. Layouts, shortcuts and saved settings remain. The new publishing workflow checks for matching application ID and signing certificate and an increased version code. Publication is currently blocked because the previous workflow did not retain the original signing key; that key must be recovered before an in-place update can be released. Spotify, Google Maps and Waze remain separately installed apps.
 
 ## Set up a preview
 

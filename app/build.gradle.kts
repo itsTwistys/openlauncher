@@ -14,8 +14,16 @@ android {
         manifestPlaceholders["appLabel"] = "Open Launcher"
         minSdk         = 21
         targetSdk      = 36
-        versionCode    = 16
-        versionName    = "0.0.15-preview"
+        versionCode    = 17
+        versionName    = "0.0.16-preview"
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            providers.environmentVariable("OPENLAUNCHER_PREVIEW_KEYSTORE_PATH").orNull?.let {
+                storeFile = file(it)
+            }
+        }
     }
 
     buildTypes {

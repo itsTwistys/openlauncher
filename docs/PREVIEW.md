@@ -1,5 +1,15 @@
 # Open Launcher preview: installation and testing
 
+## Consistent appearance and in-place updates in 0.0.16
+
+Map controls now use the dashboard accent and matching bundled font, with the same flat controls and small corners. Media controls use the dashboard accent and contrast color; media, clock and directions honor the chosen font. Album art and map content remain visible within the existing card design.
+
+Install the release APK **over Open Launcher Preview**. Keep the existing app installed and do not clear storage. Its application ID and settings store stay unchanged, with an increased Android version code. Dashboard layouts, shortcuts, media/navigation selection, theme, wallpaper URI, destinations and completed setup remain in the app's data. Android still controls permission and default-Home grants; the launcher does not reset them. This updates the launcher, not the separately installed Spotify, Maps or Waze apps.
+
+Published builds must restore the original signing key from the repository secret `OPENLAUNCHER_PREVIEW_KEYSTORE_BASE64` and pass an APK check against preview-25a391c: matching application ID, matching verified certificate and a higher version code. Missing keys or signature mismatch block publication. The previous cache did not save the signing key because its configured path did not exist. CI identified the actual path as `/home/runner/.config/.android/debug.keystore`, while the cache targeted `~/.android/debug.keystore`. The original key is not available in the current environment, so publication remains blocked. A replacement key must not be generated for an in-place update. Store only the original preview keystore as base64 in that GitHub Actions secret, never in source control or public artifacts. The workflow uses an explicit temporary signing path and checks the resulting APK. PR builds run tests but do not upload an installable APK. This guard prevents publishing an incompatible APK. A different legacy application ID/certificate cannot be upgraded through this preview channel.
+
+A repository reopen regression checks persisted setup and a subsequent settings edit. CI verifies real APK identities/signatures before publication. An on-device package replacement has not been automated.
+
 ## Weather, media icons and driving maps in 0.0.15
 
 - Clock + Weather adds feels-like, daily high/low, next-hour rain probability and sunset on cards at least 220 dp tall. Smaller cards retain the clock and conditions. Tap the card for the full forecast, including wind, humidity and sunrise. Missing or expired hourly values show Unavailable, not zero; existing cache age/offline indicators remain. Sun times use the forecast location's timezone.
@@ -37,7 +47,7 @@ Physical QUZHIDA rendering and ignition behavior still require a head-unit check
 
 Use the [current preview download on the main README](https://github.com/itsTwistys/openlauncher#download-the-android-preview). It points to the tested release for that APK. Choose `openlauncher-preview.apk`, not a source archive. `SHA256SUMS.txt` accompanies each APK. The GitHub Actions build and unit tests must succeed before a preview is published.
 
-The preview is debug signed and installs as **Open Launcher Preview** (`com.openlauncher.app.preview`) alongside the original app. The signing certificate is cached between builds, but it is not a production key. If Android reports a signature mismatch after an update, export settings from the old preview before reinstalling. Settings and granted files do not automatically move between the original app and Preview.
+The preview is debug signed and installs as **Open Launcher Preview** (`com.openlauncher.app.preview`) alongside the original app. The prior signing-key cache was ineffective; new publication is blocked until the original signer can be restored and verified. If Android reports a signature mismatch, keep the existing app installed and recover a correctly signed update. Do not uninstall as an update workaround. Settings and granted files do not automatically move between the original app and Preview.
 
 ## Get started
 

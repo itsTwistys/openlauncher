@@ -237,6 +237,7 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                         }
                     }, enabled = !loading && networkAvailable) { Text(if (loading) "Checking…" else "Check for updates") }
                     if (!networkAvailable) Text("Connect to the internet to check for updates.")
+                    Text("Install updates over Open Launcher Preview to keep your dashboard and setup. Do not uninstall or clear app storage.", fontSize = 14.sp)
                     result?.let { r ->
                         Text(r.version, fontSize = 20.sp)
                         Text(r.notes.ifBlank { "No release notes provided." })

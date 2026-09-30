@@ -12,6 +12,7 @@ const assert=require('node:assert/strict');
  await page.route('https://tile.openstreetmap.org/**',r=>{requests++;return fail?r.abort():r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#ddd"/></svg>'});});
  await page.route('https://appassets.androidplatform.net/**',r=>{
   const file=path.basename(new URL(r.request().url()).pathname);
+  if (file.endsWith('.ttf')) return r.fulfill({path:path.join('app/src/main/res/font',file),contentType:'font/ttf'});
   return r.fulfill({path:path.join('app/src/main/assets/map',file),contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html'});
  });
  await page.goto('https://appassets.androidplatform.net/assets/map/map.html');
@@ -121,6 +122,12 @@ const assert=require('node:assert/strict');
  assert.equal(await page.evaluate(()=>window.redraws),0,'Driving fixes do not redraw cached tiles');
  await page.evaluate(()=>window.setMapTheme(false));
  assert.equal(await page.locator('html.dark-map').count(),0);
+ await page.evaluate(()=>window.setDashboardStyle('#33aa88','#111111','JETBRAINS_MONO'));
+ await page.evaluate(()=>document.fonts.ready);
+ assert.equal(await page.locator('#center').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(51, 170, 136)');
+ assert.ok(await page.locator('#center').evaluate(e=>getComputedStyle(e).fontFamily.includes('LauncherMono')));
+ assert.equal(await page.evaluate(()=>document.fonts.check('14px LauncherMono')),true);
+ assert.equal(await page.evaluate(()=>window.redraws),0,'Dashboard appearance does not reload tiles');
  assert.deepEqual(errors,[]);
 
  console.log('Map checks passed: local assets/CSP, waiting GPS, offline, follow/recenter, tile failure/resume recovery and retained diagnostic counters, resize, heading rotation, speed zoom, hysteresis and manual override.');

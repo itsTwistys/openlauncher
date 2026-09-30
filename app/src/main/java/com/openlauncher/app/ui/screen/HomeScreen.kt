@@ -548,7 +548,7 @@ fun HomeScreen(
                             modifier  = Modifier.fillMaxSize()
                         )
                         "MAP" -> MapWidget(
-                            mapTheme = settings.mapTheme, isDayMode = isDayMode,
+                            mapTheme = settings.mapTheme, isDayMode = isDayMode, mapFont = settings.appFont.name,
                             onMapTheme = { value -> onSettings { copy(mapTheme = value) } },
                             autoZoom = settings.mapAutoZoom,
                             headingUp = settings.mapHeadingUp,
@@ -591,7 +591,7 @@ fun HomeScreen(
                         Row(Modifier.align(Alignment.TopStart).fillMaxWidth().height(48.dp).padding(start = 12.dp),
                             verticalAlignment = Alignment.CenterVertically) {
                             if (w.id == "MAP") Text("Map", fontSize = 16.sp,
-                                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, modifier = Modifier.weight(1f))
+                                fontFamily = MaterialTheme.typography.bodyLarge.fontFamily, modifier = Modifier.weight(1f))
                             else Spacer(Modifier.weight(1f))
                             IconButton(onClick = { expandedWidget = if (expanded) null else w.id }, modifier = Modifier.size(48.dp)) {
                                 Icon(if (expanded) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,

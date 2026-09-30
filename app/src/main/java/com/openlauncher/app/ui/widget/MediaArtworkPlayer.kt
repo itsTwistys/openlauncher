@@ -69,9 +69,9 @@ internal fun MediaArtworkPlayer(state: NowPlayingState, accent: Color, editing: 
         Column(Modifier.fillMaxSize().padding(start = 12.dp, end = 12.dp, top = 48.dp, bottom = 6.dp),
             verticalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.fillMaxWidth().clickable(enabled = !editing, onClick = onOpen)) {
-                Text(state.title, color = text, fontFamily = FontFamily.SansSerif, fontSize = if (compact) 18.sp else 22.sp,
+                Text(state.title, color = text, fontFamily = MaterialTheme.typography.bodyLarge.fontFamily, fontSize = if (compact) 18.sp else 22.sp,
                     maxLines = if (compact) 1 else 2, overflow = TextOverflow.Ellipsis)
-                Text(state.artist, color = text.copy(alpha = 0.85f), fontFamily = FontFamily.SansSerif, fontSize = 15.sp,
+                Text(state.artist, color = text.copy(alpha = 0.85f), fontFamily = MaterialTheme.typography.bodyLarge.fontFamily, fontSize = 15.sp,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Column {
@@ -97,9 +97,9 @@ internal fun MediaArtworkPlayer(state: NowPlayingState, accent: Color, editing: 
                         Icon(Icons.Default.SkipPrevious, "Previous track", tint = text, modifier = Modifier.size(30.dp))
                     }
                     IconButton(onClick = onPlayPause, enabled = !editing && state.controller != null,
-                        modifier = Modifier.size(if (compact) 56.dp else 72.dp).clip(CircleShape).background(text)) {
+                        modifier = Modifier.size(if (compact) 56.dp else 72.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary)) {
                         Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, if (state.isPlaying) "Pause" else "Play",
-                            tint = if (art != null || !day) Color.Black else Color.White, modifier = Modifier.size(34.dp))
+                            tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(34.dp))
                     }
                     IconButton(onClick = onNext, enabled = !editing && state.controller != null, modifier = Modifier.size(if (compact) 48.dp else 64.dp)) {
                         Icon(Icons.Default.SkipNext, "Next track", tint = text, modifier = Modifier.size(30.dp))
