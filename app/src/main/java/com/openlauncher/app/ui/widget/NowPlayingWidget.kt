@@ -119,13 +119,13 @@ fun NowPlayingWidget(
                     !isConnected -> "Media access disconnected"
                     !installed -> "Selected app is not installed"
                     else -> "Player disconnected"
-                }, fontSize = 18.sp, fontFamily = FontFamily.SansSerif)
+                }, fontSize = 18.sp, fontFamily = MaterialTheme.typography.bodyLarge.fontFamily)
                 Text(when {
                     !isConnected -> "Enable Notification Access to receive media controls."
                     !installed -> "Choose another player or reinstall this app."
                     else -> "Open the selected app and start playback. Your preference is saved."
                 },
-                    fontSize = 14.sp, fontFamily = FontFamily.SansSerif)
+                    fontSize = 14.sp, fontFamily = MaterialTheme.typography.bodyLarge.fontFamily)
                 TextButton(enabled = !isConnected || installed, onClick = {
                     if (!isConnected) runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
                     else onOpenSelectedMedia()
@@ -164,7 +164,7 @@ fun NowPlayingWidget(
         TextButton(onClick = { pickerOpen = true }, modifier = Modifier.align(Alignment.TopStart)
             .fillMaxWidth().padding(end = 52.dp).height(48.dp),
             colors = ButtonDefaults.textButtonColors(contentColor = if (artHeader) Color.White else MaterialTheme.colorScheme.onBackground)) {
-            Text("$sourceLabel ▾", fontSize = 14.sp, fontFamily = FontFamily.SansSerif,
+            Text("$sourceLabel ▾", fontSize = 14.sp, fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (pickerOpen) {

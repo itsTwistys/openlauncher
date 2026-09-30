@@ -27,10 +27,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Retain the development signing certificate between previews
         if: github.event_name == 'push'
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/.android/debug.keystore
           key: openlauncher-development-signing-v2
+          fail-on-cache-miss: true
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -39,7 +40,17 @@ jobs:
           npm install --no-save --package-lock=false playwright@1.62.1
           npx playwright install --with-deps chromium
           node scripts/test-map.cjs
+      - run: python3 scripts/test-apk-upgrade.py
       - run: ./gradlew :app:lintDebug :app:testDebugUnitTest :app:assembleDebug --continue --no-daemon
+      - name: Verify APK updates the existing preview in place
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mkdir -p upgrade-baseline
+          gh release download preview-25a391c --pattern openlauncher-preview.apk --dir upgrade-baseline
+          python3 scripts/check-apk-upgrade.py upgrade-baseline/openlauncher-preview.apk app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: openlauncher-preview
@@ -77,7 +88,7 @@ jobs:
           cat > RELEASE_NOTES.md <<EOF
           Open Launcher $VERSION is an installable, debug-signed development preview with a separate app ID. Build and unit tests passed. The preview has not been confirmed on all physical head units. See the [installation guide](https://github.com/$GH_REPO/blob/$TAG/docs/PREVIEW.md) for setup, features and known limits.
 
-          Download the APK below, not the source archives. A checksum is provided in SHA256SUMS.txt. Development signing is cached between builds; if that cache is lost, back up settings before reinstalling the preview.
+          Download the APK below, not the source archives. A checksum is provided in SHA256SUMS.txt. Install this APK over the existing Open Launcher Preview to keep your setup. Do not uninstall or clear storage. Publication verifies the existing preview signing certificate and application ID, and a higher version code. A missing signing key blocks publication.
           EOF
           gh release create "$TAG" openlauncher-preview.apk SHA256SUMS.txt \
             --target "$COMMIT_SHA" --prerelease --title "Open Launcher $VERSION development preview" \

@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -26,19 +27,22 @@ import com.openlauncher.app.util.LocationData
 /** Local map assets load independently of GPS; position and connectivity are synchronized after resume. */
 @Composable
 private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolean,
-              dark: Boolean, mapTheme: String, onMapTheme: (String) -> Unit,
+              dark: Boolean, mapTheme: String, onMapTheme: (String) -> Unit, mapFont: String,
               autoZoom: Boolean, headingUp: Boolean, onMapOptions: (Boolean, Boolean) -> Unit,
               softwareRendering: Boolean, onSoftwareRendering: (Boolean) -> Unit,
               navigationAction: String, onOpenNavigation: () -> Unit,
               networkAvailable: Boolean = true, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val controlAccent = "#%06X".format(java.util.Locale.ROOT, MaterialTheme.colorScheme.primary.toArgb() and 0xffffff)
+    val controlText = "#%06X".format(java.util.Locale.ROOT, MaterialTheme.colorScheme.onPrimary.toArgb() and 0xffffff)
+    val fontChoice = mapFont.takeIf { it in setOf("SYSTEM", "JETBRAINS_MONO", "SOURCE_CODE_PRO") } ?: "SYSTEM"
     if (!onlineEnabled || isEditing) {
         Column(modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
             if (!isEditing) TextButton(onClick = onOpenNavigation, modifier = Modifier.heightIn(min = 56.dp)) {
                 Text(navigationAction, fontSize = 16.sp)
             }
             Text(if (isEditing) "Map · drag to move" else "Enable Settings → Online Map → Show Embedded Map",
-                fontSize = 16.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif)
+                fontSize = 16.sp, fontFamily = MaterialTheme.typography.bodyLarge.fontFamily)
         }
         return
     }
@@ -107,10 +111,10 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
         }
     }
     // Options and theme must not restart heading/zoom animation on every GPS update.
-    LaunchedEffect(ready, resumed, networkAvailable, autoZoom, headingUp, dark) {
+    LaunchedEffect(ready, resumed, networkAvailable, autoZoom, headingUp, dark, controlAccent, controlText, fontChoice) {
         if (ready && resumed) view?.let {
             it.setBackgroundColor(if (dark) android.graphics.Color.rgb(24, 28, 32) else android.graphics.Color.rgb(230, 232, 230))
-            evaluate(it, "window.setNetworkAvailable($networkAvailable); window.setMapOptions($autoZoom,$headingUp); window.setMapTheme($dark);")
+            evaluate(it, "window.setNetworkAvailable($networkAvailable); window.setMapOptions($autoZoom,$headingUp); window.setMapTheme($dark); window.setDashboardStyle('$controlAccent','$controlText','$fontChoice');")
         }
     }
     // Re-send coordinates after page creation, GPS updates and resume. Never inject app text or URLs.
@@ -205,7 +209,8 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                     settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
                     settings.userAgentString += " OpenLauncher/${com.openlauncher.app.BuildConfig.VERSION_NAME} (+https://github.com/itsTwistys/openlauncher)"
                     val assets = androidx.webkit.WebViewAssetLoader.Builder()
-                        .addPathHandler("/assets/", androidx.webkit.WebViewAssetLoader.AssetsPathHandler(context)).build()
+                        .addPathHandler("/assets/", androidx.webkit.WebViewAssetLoader.AssetsPathHandler(context))
+                        .addPathHandler("/res/", androidx.webkit.WebViewAssetLoader.ResourcesPathHandler(context)).build()
                     val currentWeb = this
                     // WebView may resume before Compose has assigned its final bounds.
                     addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
@@ -266,7 +271,7 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
               onMapOptions: (Boolean, Boolean) -> Unit = { _, _ -> },
               softwareRendering: Boolean = true, onSoftwareRendering: (Boolean) -> Unit = {},
               networkAvailable: Boolean = true, navigationPackage: String = "", modifier: Modifier = Modifier,
-              mapTheme: String = "AUTO", isDayMode: Boolean = false, onMapTheme: (String) -> Unit = {}) {
+              mapTheme: String = "AUTO", isDayMode: Boolean = false, mapFont: String = "SYSTEM", onMapTheme: (String) -> Unit = {}) {
     val context = LocalContext.current
     val directions by com.openlauncher.app.service.MediaListenerService.navigation.collectAsState()
     val connected by com.openlauncher.app.service.MediaListenerService.isConnected.collectAsState()
@@ -295,7 +300,7 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
                 Modifier.fillMaxWidth().clickable(onClick = ::openNavigation).padding(horizontal = 12.dp, vertical = 6.dp),
                 fontSize = 13.sp, maxLines = 2)
         }
-        LocationMap(location, isEditing, onlineEnabled, mapTheme == "DARK" || (mapTheme == "AUTO" && !isDayMode), mapTheme, onMapTheme, autoZoom, headingUp, onMapOptions,
+        LocationMap(location, isEditing, onlineEnabled, mapTheme == "DARK" || (mapTheme == "AUTO" && !isDayMode), mapTheme, onMapTheme, mapFont, autoZoom, headingUp, onMapOptions,
             softwareRendering, onSoftwareRendering, if (connected) "Open navigation" else "Enable directions", onOpenNavigation = ::openNavigation,
             networkAvailable = networkAvailable, modifier = Modifier.fillMaxWidth().weight(1f))
     }
@@ -306,18 +311,18 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
 internal fun NavigationBanner(navigation: com.openlauncher.app.service.MediaListenerService.NavigationInfo,
     compact: Boolean, onOpen: () -> Unit) {
     // Fixed bounds prevent changing turn text from repeatedly resizing/recentering the WebView.
-    Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth().height((if (compact) 108.dp else 132.dp) * androidx.compose.ui.platform.LocalDensity.current.fontScale)
+    Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth().height((if (compact) 108.dp else 132.dp) * androidx.compose.ui.platform.LocalDensity.current.fontScale)
         .clickable(onClick = onOpen).semantics { contentDescription = "Navigation directions" }) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(if (navigation.packageName == "com.waze") "Waze directions" else "Google Maps directions", fontSize = 12.sp)
-            Text(navigation.title, fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+            Text(navigation.title, fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 23.sp,
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             if (navigation.details.isNotBlank()) Text(navigation.details,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, fontSize = 16.sp,
+                fontFamily = MaterialTheme.typography.bodyLarge.fontFamily, fontSize = 16.sp,
                 maxLines = if (compact) 1 else 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             if (navigation.tripDetails.isNotBlank()) Text(navigation.tripDetails,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif, fontSize = 14.sp,
+                fontFamily = MaterialTheme.typography.bodyLarge.fontFamily, fontSize = 14.sp,
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
     }
