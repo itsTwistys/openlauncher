@@ -23,7 +23,7 @@ enum class DefaultShortcutIcon {
     // General utility
     TV, VIDEOCAM, STAR, MESSAGE, TIMER, LOCK, SETTINGS, FAVORITE,
     // Web / location
-    GLOBE, CHROME, SPOTIFY, GOOGLE_MAPS, APP_ICON
+    GLOBE, CHROME, SPOTIFY, GOOGLE_MAPS, APP_ICON, YOUTUBE, YOUTUBE_MUSIC, WAZE
 }
 
 data class SoundPadConfig(

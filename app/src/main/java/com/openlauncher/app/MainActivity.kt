@@ -179,7 +179,7 @@ class MainActivity : ComponentActivity() {
                                     currentDest   = nav,
                                     settings      = settings,
                                     isHorizontal  = isHorizontalBar,
-                                    isWifi = isWifi, isData = isData,
+                                    isWifi = isWifi, isData = isData, internetValidated = internetValidated,
                                     onDashboardAction = { action ->
                                         vm.cancelShortcutPicker(); vm.cancelCarPlayPicker(); vm.exitRearrangeMode()
                                         dashboardAction = action; vm.navigate(NavDestination.HOME)
