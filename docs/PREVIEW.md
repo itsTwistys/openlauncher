@@ -1,5 +1,15 @@
 # Open Launcher preview: installation and testing
 
+## Compact navigation and app rail in 0.0.17
+
+- The dashboard no longer reserves a separate 48 dp title/status row. Quick controls (with network status), Edit Dashboard and saved layouts move into the existing app rail on every screen. Home also exits a temporarily expanded widget. Existing widget sizes, positions, shortcuts and rail position are retained.
+- Settings → Sidebar Position adds **Top** alongside Left, Right and Bottom. App shortcuts scroll within the remaining rail space; Apps, Settings and Home remain pinned. The vehicle name remains saved in Settings.
+- Active navigation uses a fixed 72–80 dp strip with next-turn distance, one instruction and the navigation app's supplied image when present. Explicit English maneuver wording provides a fallback arrow. Road names or unsupported wording get a neutral navigation icon; the launcher does not guess the next turn. Tap the strip for trip details and Open navigation.
+- Map options move to a 48 dp overlay. Expand moves into the turn strip; the separate Map title row and Open navigation / Map options row no longer consume map height. GPS/error states, recenter, pan/follow, zoom and attribution remain. Dark styling is applied to individual raster tiles instead of the moving pane, with muted colors and tile updates during pans. This targets rendering/compositing trouble, but the photographed solid-color failure still needs verification on the QUZHIDA head unit.
+- Directions require notification access and an active route in Google Maps or Waze on the head unit. Notification images/content vary by provider and version. The built-in map is OpenStreetMap with the head unit's GPS position; it does not receive Google/Waze route geometry or mirror their map/PiP window. The external app's floating PiP is separate from this tile.
+
+The original signing-key blocker described below still applies. No incompatible APK is published, and no installed setup or head-unit system settings are changed.
+
 ## Consistent appearance and in-place updates in 0.0.16
 
 Map controls now use the dashboard accent and matching bundled font, with the same flat controls and small corners. Media controls use the dashboard accent and contrast color; media, clock and directions honor the chosen font. Album art and map content remain visible within the existing card design.
@@ -14,9 +24,9 @@ A repository reopen regression checks persisted setup and a subsequent settings 
 
 - Clock + Weather adds feels-like, daily high/low, next-hour rain probability and sunset on cards at least 220 dp tall. Smaller cards retain the clock and conditions. Tap the card for the full forecast, including wind, humidity and sunrise. Missing or expired hourly values show Unavailable, not zero; existing cache age/offline indicators remain. Sun times use the forecast location's timezone.
 - Rich media actions use the selected app's supplied icons with 48 dp targets and accessible labels. If an icon cannot be loaded, familiar action labels receive a matching symbol; unknown actions use More. Like/rating and Open player are icon buttons too. Dispatch still uses only currently exposed session actions, never guessed Spotify commands.
-- **Map options → Auto / Dark / Light** controls the built-in map. Auto follows the dashboard theme. Dark recolors only the raster tile pane and controls, preserving the blue GPS marker and attribution. No new tile provider, key or account is required; changing appearance retains the map and cached tiles.
+- **Map options → Auto / Dark / Light** controls the built-in map. Auto follows the dashboard theme. Dark recolors only raster tiles and controls, preserving the blue GPS marker and attribution. No new tile provider, key or account is required; changing appearance retains the map and cached tiles.
 - GPS updates no longer resend all map options. Unchanged orientation does not reset north-up, map/tile fade transitions are disabled, tile retention is increased, and ordinary tile loading no longer flashes a blocking loading banner over an already rendered map. First load, offline and failure states remain visible.
-- The map tile shows supported Google Maps/Waze navigation notification instructions and separate trip details (such as ETA and remaining distance) when the source supplies them. Start navigation on the head unit and grant Notification Access. The selected navigation app preference applies. Tap the banner to return to that route. Its height stays fixed as turn text changes so the map is not resized on every instruction. This does not embed another app's route geometry or read CarPlay-only navigation. Unsupported notification fields are not fabricated.
+- The map tile shows supported Google Maps/Waze navigation notification instructions and separate trip details (such as ETA and remaining distance) when the source supplies them. Start navigation on the head unit and grant Notification Access. The selected navigation app preference applies. Tap the banner for trip details and Open navigation. Its height stays fixed as turn text changes so the map is not resized on every instruction. This does not embed another app's route geometry or read CarPlay-only navigation. Unsupported notification fields are not fabricated.
 
 Regression coverage includes simulated driving without tile redraws, dark/light switching without map recreation, retained marker colors, transient loading visibility, weather fields/cache/timezones, navigation text deduplication, fixed banner bounds and icon-only media controls. Actual road-motion smoothness and provider notification contents still require physical head-unit verification.
 
@@ -62,13 +72,13 @@ The Map card offers Follow, Recenter, Reload, an offline indicator, and a visibl
 ## Media preference, expansion and map behavior
 
 - Tap the source name at the top of Now Playing. Select Automatic, FM/AM Radio or search installed apps. A selected app must publish an Android media session for controls to work. The app stays selected when disconnected; Open app starts it, and Notification Access status is shown separately. Selecting Automatic restores selection from active sessions.
-- Tap the Expand icon above Maps or Now Playing to fill the dashboard. Tap the collapse icon, Back to dashboard, or Android Back to return. Saved layout positions/sizes are unchanged and the existing map view remains mounted through expansion.
+- Tap the Expand icon in the map turn strip or on Now Playing to fill the dashboard. Tap the collapse icon, Home, or Android Back to return. Saved layout positions/sizes are unchanged and the existing map view remains mounted through expansion.
 - Map offers saved Auto zoom and North up/Heading up choices. Zoom levels are 17 at low speeds, 16 at medium speeds and 15 at high speeds (nominal boundaries 35 and 80 km/h, with hysteresis and at least five seconds between automatic transitions). Manual zoom stays in place until Recenter or toggling Auto zoom. Panning pauses following.
 - Heading up uses GPS travel bearing at speeds of at least 2 m/s, accuracy within 50 m and fix age under 30 seconds. When direction is unavailable it uses north-up. Recenter is larger and restores following/auto zoom. No compass or location permission is granted to the web page; the launcher supplies motion data.
 
 ## New in 0.0.12
 
-The dashboard retains its existing theme, fonts, thin borders and widget styling. Tap the sliders icon in its header for these additions:
+The dashboard retains its existing theme, fonts, thin borders and widget styling. Tap the sliders icon in the app rail for these additions:
 
 - **Quick controls:** media-stream volume/mute, a persistent launcher-window brightness override with Use system brightness, navigation and Wi-Fi settings shortcuts. Hardware radio/MCU volume may remain controlled by the head unit; fixed Android volume is detected. No firmware or global brightness settings are changed.
 - **Nearby:** Google Maps app/browser searches for gas, parking, coffee, restaurants, charging and rest areas. Choose a result in Maps to navigate. This does not embed a Google Maps route into the OSM widget.

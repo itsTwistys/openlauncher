@@ -14,8 +14,8 @@ android {
         manifestPlaceholders["appLabel"] = "Open Launcher"
         minSdk         = 21
         targetSdk      = 36
-        versionCode    = 17
-        versionName    = "0.0.16-preview"
+        versionCode    = 18
+        versionName    = "0.0.17-preview"
     }
 
     signingConfigs {

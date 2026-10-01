@@ -164,7 +164,9 @@ class MainActivity : ComponentActivity() {
                             Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(
                                 listOf(tint.copy(alpha = 0.12f), Color.Transparent))))
                         }
-                        val isBottomBar    = settings.sidebarPosition == SidebarPosition.BOTTOM
+                        var dashboardAction by remember { mutableStateOf<String?>(null) }
+                        val isTopBar = settings.sidebarPosition == SidebarPosition.TOP
+                        val isHorizontalBar = isTopBar || settings.sidebarPosition == SidebarPosition.BOTTOM
                         val layoutDivColor = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF1A1A1A)
 
                         val sidebarContent: @Composable () -> Unit = {
@@ -176,7 +178,12 @@ class MainActivity : ComponentActivity() {
                                 Sidebar(
                                     currentDest   = nav,
                                     settings      = settings,
-                                    isHorizontal  = isBottomBar,
+                                    isHorizontal  = isHorizontalBar,
+                                    isWifi = isWifi, isData = isData,
+                                    onDashboardAction = { action ->
+                                        vm.cancelShortcutPicker(); vm.cancelCarPlayPicker(); vm.exitRearrangeMode()
+                                        dashboardAction = action; vm.navigate(NavDestination.HOME)
+                                    },
                                     installedIconFor = { pkg ->
                                         apps.find { it.packageName == pkg }?.icon
                                     },
@@ -184,6 +191,7 @@ class MainActivity : ComponentActivity() {
                                         vm.cancelShortcutPicker()
                                         vm.cancelCarPlayPicker()
                                         vm.exitRearrangeMode()
+                                        if (dest == NavDestination.HOME) dashboardAction = "home"
                                         vm.navigate(dest)
                                     },
                                     onShortcutClick = { slot ->
@@ -213,6 +221,7 @@ class MainActivity : ComponentActivity() {
                             ) { destination ->
                                 when (destination) {
                                     NavDestination.HOME -> HomeScreen(
+                                        dashboardAction = dashboardAction, onDashboardActionHandled = { dashboardAction = null },
                                         networkAvailable = networkAvailable,
                                         settings            = settings,
                                         trips = trips, tripError = tripError, onToggleTrip = vm::toggleTrip, onResetTrip = vm::resetTrip,
@@ -301,11 +310,17 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        if (isBottomBar) {
+                        if (isHorizontalBar) {
                             Column(modifier = Modifier.fillMaxSize()) {
+                                if (isTopBar) {
+                                    sidebarContent()
+                                    androidx.compose.material3.HorizontalDivider(color = layoutDivColor)
+                                }
                                 mainPane(Modifier.weight(1f).fillMaxWidth())
-                                androidx.compose.material3.HorizontalDivider(color = layoutDivColor)
-                                sidebarContent()
+                                if (!isTopBar) {
+                                    androidx.compose.material3.HorizontalDivider(color = layoutDivColor)
+                                    sidebarContent()
+                                }
                             }
                         } else {
                             Row(modifier = Modifier.fillMaxSize()) {

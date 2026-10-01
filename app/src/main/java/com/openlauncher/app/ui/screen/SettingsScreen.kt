@@ -318,6 +318,7 @@ fun SettingsScreen(
                     SidebarPosition.LEFT   -> "Left side"
                     SidebarPosition.RIGHT  -> "Right side"
                     SidebarPosition.BOTTOM -> "Bottom"
+                    SidebarPosition.TOP -> "Top"
                 },
                 icon     = Icons.Default.SwapHoriz
             ) {
@@ -332,6 +333,7 @@ fun SettingsScreen(
                                         SidebarPosition.LEFT   -> "Left"
                                         SidebarPosition.RIGHT  -> "Right"
                                         SidebarPosition.BOTTOM -> "Bottom"
+                                        SidebarPosition.TOP -> "Top"
                                     },
                                     fontSize = 9.sp,
                                     letterSpacing = 0.5.sp
@@ -346,7 +348,7 @@ fun SettingsScreen(
                 }
             }
 
-            if (settings.sidebarPosition == SidebarPosition.BOTTOM) {
+            if (settings.sidebarPosition == SidebarPosition.BOTTOM || settings.sidebarPosition == SidebarPosition.TOP) {
                 SettingsDivider()
                 SettingsRow(
                     label    = "Shortcuts Side",

@@ -57,6 +57,9 @@ fun Sidebar(
     onShortcutSetIcon: (Int, DefaultShortcutIcon?) -> Unit,
     onReorder: (from: Int, to: Int) -> Unit,
     isHorizontal: Boolean = false,
+    isWifi: Boolean = false,
+    isData: Boolean = false,
+    onDashboardAction: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val isDayMode    = LocalDayMode.current
@@ -155,64 +158,28 @@ fun Sidebar(
         )
     }
 
+    val dashboardControls: @Composable () -> Unit = {
+        DashboardRailControls(isWifi, isData, settings.layoutProfiles.isNotEmpty(), onDashboardAction)
+    }
     if (isHorizontal) {
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .background(sidebarBg)
-        ) {
-            // Shortcuts centred, inset past the edge-pinned nav buttons and
-            // scrollable — an unbounded row ran beneath the nav buttons and off
-            // both screen edges once enough slots were added
-            Row(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .fillMaxHeight()
-                    .padding(horizontal = 150.dp)
-                    .horizontalScroll(rememberScrollState()),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        Row(modifier.fillMaxWidth().height(56.dp).background(sidebarBg),
+            verticalAlignment = Alignment.CenterVertically) {
+            if (settings.bottomBarShortcutsRight) navButtons()
+            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
                 shortcutsContent()
+                dashboardControls()
             }
-
-            // Nav buttons pinned to one edge, Home always outermost
-            Row(
-                modifier = Modifier
-                    .align(if (settings.bottomBarShortcutsRight) Alignment.CenterEnd else Alignment.CenterStart)
-                    .fillMaxHeight(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (!settings.bottomBarShortcutsRight) {
-                    NavButton(Icons.Default.Home,     "Home",     currentDest == NavDestination.HOME,        accent, iconInactive, true) { onNavigate(NavDestination.HOME) }
-                    NavButton(Icons.Default.Settings, "Settings", currentDest == NavDestination.SETTINGS,    accent, iconInactive, true) { onNavigate(NavDestination.SETTINGS) }
-                    NavButton(Icons.Default.Apps,     "Apps",     currentDest == NavDestination.APP_LIBRARY, accent, iconInactive, true) { onNavigate(NavDestination.APP_LIBRARY) }
-                } else {
-                    NavButton(Icons.Default.Apps,     "Apps",     currentDest == NavDestination.APP_LIBRARY, accent, iconInactive, true) { onNavigate(NavDestination.APP_LIBRARY) }
-                    NavButton(Icons.Default.Settings, "Settings", currentDest == NavDestination.SETTINGS,    accent, iconInactive, true) { onNavigate(NavDestination.SETTINGS) }
-                    NavButton(Icons.Default.Home,     "Home",     currentDest == NavDestination.HOME,        accent, iconInactive, true) { onNavigate(NavDestination.HOME) }
-                }
-            }
+            if (!settings.bottomBarShortcutsRight) navButtons()
         }
     } else {
-        Column(
-            modifier = modifier
-                .width(56.dp)
-                .fillMaxHeight()
-                .background(sidebarBg),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(top = 6.dp, bottom = 2.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+        Column(modifier.width(56.dp).fillMaxHeight().background(sidebarBg),
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
+                .padding(top = 6.dp, bottom = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                dashboardControls()
+                HorizontalDivider(color = dividerColor)
                 shortcutsContent()
             }
-
             HorizontalDivider(color = dividerColor)
             navButtons()
             Spacer(Modifier.height(4.dp))
@@ -565,4 +532,25 @@ fun DefaultShortcutIcon.toIcon(): ImageVector = when (this) {
     DefaultShortcutIcon.APP_ICON    -> Icons.Default.Apps
     DefaultShortcutIcon.GLOBE       -> Icons.Default.Language
     DefaultShortcutIcon.NONE        -> Icons.Default.Apps
+}
+
+/** The same controls live in the app rail on every launcher screen. */
+@Composable
+internal fun DashboardRailControls(isWifi: Boolean, isData: Boolean, hasLayouts: Boolean,
+    onAction: (String) -> Unit) {
+    val tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+    IconButton(onClick = { onAction("controls") }, modifier = Modifier.size(52.dp)) {
+        Box(Modifier.size(32.dp)) {
+            Icon(Icons.Default.Tune, "Dashboard controls", Modifier.size(24.dp).align(Alignment.Center), tint = tint)
+            Icon(if (isWifi) Icons.Default.Wifi else if (isData) Icons.Default.SignalCellularAlt else Icons.Default.WifiOff,
+                if (isWifi) "WiFi" else if (isData) "Mobile data" else "No WiFi or mobile data",
+                Modifier.size(12.dp).align(Alignment.BottomEnd), tint = tint)
+        }
+    }
+    IconButton(onClick = { onAction("edit") }, modifier = Modifier.size(52.dp)) {
+        Icon(Icons.Default.Edit, "Edit Dashboard", Modifier.size(24.dp), tint = tint)
+    }
+    if (hasLayouts) IconButton(onClick = { onAction("layouts") }, modifier = Modifier.size(52.dp)) {
+        Icon(Icons.Default.Dashboard, "Dashboard layouts", Modifier.size(24.dp), tint = tint)
+    }
 }

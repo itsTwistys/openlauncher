@@ -6,6 +6,14 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import com.openlauncher.app.data.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
+import com.openlauncher.app.service.TurnManeuver
+import com.openlauncher.app.service.turnCue
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -176,24 +184,13 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
         !ready -> "Loading map…"
         else -> null // Tile failures remain visible in the map's status overlay.
     }
-    Column(modifier) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onOpenNavigation, modifier = Modifier.heightIn(min = 56.dp)) {
-                Text(navigationAction, fontSize = 16.sp)
-            }
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = { optionsOpen = true }, modifier = Modifier.heightIn(min = 56.dp)) {
-                Text("Map options", fontSize = 16.sp)
-            }
-        }
-        status?.let { Text(it, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp), fontSize = 14.sp,
-            maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+    Box(modifier) {
         if (optionsOpen) MapOptionsDialog(autoZoom, headingUp, softwareRendering, gpsText,
             failure ?: if (!networkAvailable) "Offline · waiting for internet" else tileState,
             onMapOptions, onSoftwareRendering, onReload = { autoRetries = 0; reload(); optionsOpen = false },
             onDismiss = { optionsOpen = false }, mapTheme = mapTheme, onMapTheme = onMapTheme)
         key(attempt) {
-            EmbeddedWebFrame(Modifier.fillMaxWidth().weight(1f), create = {
+            EmbeddedWebFrame(Modifier.fillMaxSize(), create = {
                 DashboardDiagnostics.beginPage()
                 var created: WebView? = null
                 try { WebView(context).also { created = it }.apply {
@@ -262,6 +259,19 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                 }
             }, onRelease = { released -> if (view === released) view = null })
         }
+        // Overlay controls do not shrink or repeatedly resize the map canvas.
+        Surface(modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+            color = MaterialTheme.colorScheme.surface, shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)) {
+            IconButton(onClick = { optionsOpen = true }, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Default.Tune, "Map options")
+            }
+        }
+        status?.let {
+            Surface(modifier = Modifier.align(Alignment.TopCenter).padding(start = 68.dp, end = 68.dp, top = 8.dp),
+                color = MaterialTheme.colorScheme.surface) {
+                Text(it, Modifier.padding(8.dp), fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+        }
     }
 }
 
@@ -271,7 +281,8 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
               onMapOptions: (Boolean, Boolean) -> Unit = { _, _ -> },
               softwareRendering: Boolean = true, onSoftwareRendering: (Boolean) -> Unit = {},
               networkAvailable: Boolean = true, navigationPackage: String = "", modifier: Modifier = Modifier,
-              mapTheme: String = "AUTO", isDayMode: Boolean = false, mapFont: String = "SYSTEM", onMapTheme: (String) -> Unit = {}) {
+              mapTheme: String = "AUTO", isDayMode: Boolean = false, mapFont: String = "SYSTEM", onMapTheme: (String) -> Unit = {},
+              expanded: Boolean = false, onExpand: (() -> Unit)? = null) {
     val context = LocalContext.current
     val directions by com.openlauncher.app.service.MediaListenerService.navigation.collectAsState()
     val connected by com.openlauncher.app.service.MediaListenerService.isConnected.collectAsState()
@@ -292,13 +303,28 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
     }
     BoxWithConstraints(modifier) {
     val compactDirections = maxHeight < 360.dp
+    var navigationDetailsOpen by remember(navigation?.packageName) { mutableStateOf(false) }
+    LaunchedEffect(navigation) {
+        if (navigation == null) navigationDetailsOpen = false
+    }
+    if (navigationDetailsOpen && navigation != null) AlertDialog(onDismissRequest = { navigationDetailsOpen = false },
+        title = { Text(if (navigation.packageName == "com.waze") "Waze directions" else "Google Maps directions") },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(navigation.title)
+            Text(navigation.details)
+            if (navigation.tripDetails.isNotBlank()) Text(navigation.tripDetails)
+        } }, confirmButton = { TextButton(onClick = { navigationDetailsOpen = false; openNavigation() }) { Text("Open navigation") } },
+        dismissButton = { TextButton(onClick = { navigationDetailsOpen = false }) { Text("Close") } })
     Column(Modifier.fillMaxSize()) {
         if (!isEditing && navigation != null) {
-            NavigationBanner(navigation, compactDirections, ::openNavigation)
+            NavigationBanner(navigation, compactDirections, onOpen = { navigationDetailsOpen = true }, onExpand = onExpand, expanded = expanded)
         } else if (!isEditing) {
-            Text(if (connected) "Start a route in Google Maps or Waze to see turns here" else "Enable Notification Access for turn directions",
-                Modifier.fillMaxWidth().clickable(onClick = ::openNavigation).padding(horizontal = 12.dp, vertical = 6.dp),
-                fontSize = 13.sp, maxLines = 2)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(if (connected) "Start a route in Google Maps or Waze to see turns here" else "Enable Notification Access for turn directions",
+                    Modifier.weight(1f).clickable(onClick = ::openNavigation).padding(horizontal = 12.dp, vertical = 6.dp),
+                    fontSize = 13.sp, maxLines = 2)
+                if (onExpand != null) MapExpandButton(expanded, onExpand)
+            }
         }
         LocationMap(location, isEditing, onlineEnabled, mapTheme == "DARK" || (mapTheme == "AUTO" && !isDayMode), mapTheme, onMapTheme, mapFont, autoZoom, headingUp, onMapOptions,
             softwareRendering, onSoftwareRendering, if (connected) "Open navigation" else "Enable directions", onOpenNavigation = ::openNavigation,
@@ -309,22 +335,53 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
 
 @Composable
 internal fun NavigationBanner(navigation: com.openlauncher.app.service.MediaListenerService.NavigationInfo,
-    compact: Boolean, onOpen: () -> Unit) {
-    // Fixed bounds prevent changing turn text from repeatedly resizing/recentering the WebView.
-    Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth().height((if (compact) 108.dp else 132.dp) * androidx.compose.ui.platform.LocalDensity.current.fontScale)
+    compact: Boolean, onOpen: () -> Unit, onExpand: (() -> Unit)? = null, expanded: Boolean = false) {
+    val cue = turnCue(navigation.title, navigation.details)
+    // Constant height across maneuvers prevents map re-layout while driving.
+    Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()
+        .height((if (compact) 72.dp else 80.dp) * androidx.compose.ui.platform.LocalDensity.current.fontScale)
         .clickable(onClick = onOpen).semantics { contentDescription = "Navigation directions" }) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(if (navigation.packageName == "com.waze") "Waze directions" else "Google Maps directions", fontSize = 12.sp)
-            Text(navigation.title, fontFamily = MaterialTheme.typography.bodyLarge.fontFamily,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 23.sp,
-                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            if (navigation.details.isNotBlank()) Text(navigation.details,
-                fontFamily = MaterialTheme.typography.bodyLarge.fontFamily, fontSize = 16.sp,
-                maxLines = if (compact) 1 else 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            if (navigation.tripDetails.isNotBlank()) Text(navigation.tripDetails,
-                fontFamily = MaterialTheme.typography.bodyLarge.fontFamily, fontSize = 14.sp,
-                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            val symbol = navigation.maneuverIcon
+            if (symbol != null) {
+                Surface(color = androidx.compose.ui.graphics.Color(0xFFE7EBEF),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)) {
+                    Image(symbol.asImageBitmap(), "Navigation symbol supplied by navigation app", Modifier.size(48.dp).padding(4.dp))
+                }
+            } else {
+                val icon = when (cue.maneuver) {
+                    TurnManeuver.LEFT -> Icons.Default.TurnLeft
+                    TurnManeuver.RIGHT -> Icons.Default.TurnRight
+                    TurnManeuver.SLIGHT_LEFT -> Icons.Default.TurnSlightLeft
+                    TurnManeuver.SLIGHT_RIGHT -> Icons.Default.TurnSlightRight
+                    TurnManeuver.UTURN_LEFT -> Icons.Default.UTurnLeft
+                    TurnManeuver.UTURN_RIGHT -> Icons.Default.UTurnRight
+                    TurnManeuver.ROUNDABOUT_LEFT -> Icons.Default.RoundaboutLeft
+                    TurnManeuver.ROUNDABOUT_RIGHT -> Icons.Default.RoundaboutRight
+                    TurnManeuver.STRAIGHT -> Icons.Default.Straight
+                    TurnManeuver.ARRIVE -> Icons.Default.Flag
+                    TurnManeuver.UNKNOWN -> Icons.Default.Navigation
+                }
+                Icon(icon, if (cue.maneuver == TurnManeuver.UNKNOWN) "Maneuver unavailable" else cue.maneuver.name.replace('_', ' '),
+                    Modifier.size(44.dp), tint = MaterialTheme.colorScheme.onSurface)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                if (cue.distance.isNotBlank()) Text(cue.distance, fontSize = 23.sp, fontWeight = FontWeight.SemiBold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(cue.instruction, fontSize = if (cue.distance.isBlank()) 20.sp else 16.sp,
+                    maxLines = if (cue.distance.isBlank()) 2 else 1, overflow = TextOverflow.Ellipsis)
+            }
+            if (onExpand != null) MapExpandButton(expanded, onExpand)
         }
+    }
+}
+
+@Composable
+private fun MapExpandButton(expanded: Boolean, onExpand: () -> Unit) {
+    IconButton(onClick = onExpand, modifier = Modifier.size(48.dp)) {
+        Icon(if (expanded) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+            if (expanded) "Return to dashboard" else "Expand MAP")
     }
 }
 

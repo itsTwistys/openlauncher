@@ -1,5 +1,7 @@
 package com.openlauncher.app.service
 
+import androidx.core.graphics.drawable.toBitmap
+
 import android.content.ComponentName
 import android.media.MediaMetadata
 import android.media.session.MediaController
@@ -68,6 +70,17 @@ class MediaListenerService : NotificationListenerService() {
         super.onDestroy()
     }
 
+    private fun navigationIcon(notification: android.app.Notification): android.graphics.Bitmap? = runCatching {
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
+            notification.getLargeIcon()?.loadDrawable(this)?.let {
+                it.toBitmap(72, 72)
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            notification.largeIcon
+        }
+    }.getOrNull()
+
     private fun refreshNavigation() {
         // Read only supported navigation notifications. Never persist or transmit their contents.
         _navigation.value = runCatching {
@@ -79,7 +92,7 @@ class MediaListenerService : NotificationListenerService() {
                 val n = sbn.notification
                 val fields = navigationText(n)
                 if (fields.title.isBlank() && fields.instruction.isBlank()) null else NavigationInfo(
-                    sbn.packageName, fields.title, fields.instruction, n.contentIntent, fields.trip)
+                    sbn.packageName, fields.title, fields.instruction, n.contentIntent, fields.trip, navigationIcon(n))
             }
         }.getOrDefault(emptyList())
     }
@@ -160,7 +173,8 @@ class MediaListenerService : NotificationListenerService() {
     }
 
     data class NavigationInfo(val packageName: String, val title: String, val details: String,
-        val openIntent: android.app.PendingIntent?, val tripDetails: String = "")
+        val openIntent: android.app.PendingIntent?, val tripDetails: String = "",
+        val maneuverIcon: android.graphics.Bitmap? = null)
 
     companion object {
         private val navigationPackages = setOf("com.google.android.apps.maps", "com.waze")

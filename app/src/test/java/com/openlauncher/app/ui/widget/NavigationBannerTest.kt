@@ -20,16 +20,28 @@ import org.robolectric.annotation.Config
 @Config(sdk=[34], qualifiers="w800dp-h480dp-land-mdpi")
 class NavigationBannerTest {
     @get:Rule val compose = createComposeRule()
-    @Test fun changingTurnDoesNotResizeBannerAndTripRemainsVisible() {
+    @Test fun compactTurnRemainsStableAndOpensDetailsOnTap() {
         var info by mutableStateOf(NavigationInfo("com.waze", "300 ft", "Turn right", null, "9 min · 1.9 mi"))
+        var tapped = false
+        var expanded = false
         compose.setContent { OpenLauncherTheme(textScale = 1.2f) { Box(Modifier.width(320.dp)) {
-            NavigationBanner(info, false, {})
+            NavigationBanner(info, false, { tapped = true }, onExpand = { expanded = true })
         } } }
-        val before = compose.onNodeWithContentDescription("Navigation directions").fetchSemanticsNode().boundsInRoot.height
-        compose.onNodeWithText("Waze directions").assertIsDisplayed()
-        compose.onNodeWithText("9 min · 1.9 mi").assertIsDisplayed()
-        compose.runOnIdle { info = info.copy(details="Turn right onto a much longer street name toward the city center") }
-        compose.onNodeWithText("9 min · 1.9 mi").assertIsDisplayed()
-        assertEquals(before, compose.onNodeWithContentDescription("Navigation directions").fetchSemanticsNode().boundsInRoot.height)
+        val banner = compose.onNodeWithContentDescription("Navigation directions")
+        val before = banner.fetchSemanticsNode().boundsInRoot.height
+        assertTrue("The turn strip uses less height than the former 132dp banner", before < 108f)
+        compose.onNodeWithText("300 ft").assertIsDisplayed()
+        compose.onNodeWithContentDescription("RIGHT", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("9 min · 1.9 mi").assertDoesNotExist()
+        compose.runOnIdle { info = info.copy(details="Turn left onto a much longer street name toward the city center") }
+        compose.onNodeWithContentDescription("LEFT", useUnmergedTree = true).assertIsDisplayed()
+        assertEquals(before, banner.fetchSemanticsNode().boundsInRoot.height)
+        compose.onNodeWithContentDescription("Expand MAP").performClick()
+        assertTrue(expanded)
+        assertFalse(tapped)
+        banner.performClick()
+        assertTrue(tapped)
+        compose.runOnIdle { info = info.copy(details="SW 57th Ave / Coral Gables Blvd") }
+        compose.onNodeWithContentDescription("Maneuver unavailable", useUnmergedTree = true).assertIsDisplayed()
     }
 }
