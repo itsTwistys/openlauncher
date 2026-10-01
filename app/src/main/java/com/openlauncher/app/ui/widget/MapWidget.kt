@@ -304,6 +304,9 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
     BoxWithConstraints(modifier) {
     val compactDirections = maxHeight < 360.dp
     var navigationDetailsOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(navigation) {
+        if (navigation == null) navigationDetailsOpen = false
+    }
     if (navigationDetailsOpen && navigation != null) AlertDialog(onDismissRequest = { navigationDetailsOpen = false },
         title = { Text(if (navigation.packageName == "com.waze") "Waze directions" else "Google Maps directions") },
         text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -352,9 +355,11 @@ internal fun NavigationBanner(navigation: com.openlauncher.app.service.MediaList
                     TurnManeuver.RIGHT -> Icons.Default.TurnRight
                     TurnManeuver.SLIGHT_LEFT -> Icons.Default.TurnSlightLeft
                     TurnManeuver.SLIGHT_RIGHT -> Icons.Default.TurnSlightRight
-                    TurnManeuver.UTURN -> Icons.Default.UTurnLeft
+                    TurnManeuver.UTURN_LEFT -> Icons.Default.UTurnLeft
+                    TurnManeuver.UTURN_RIGHT -> Icons.Default.UTurnRight
+                    TurnManeuver.ROUNDABOUT_LEFT -> Icons.Default.RoundaboutLeft
+                    TurnManeuver.ROUNDABOUT_RIGHT -> Icons.Default.RoundaboutRight
                     TurnManeuver.STRAIGHT -> Icons.Default.Straight
-                    TurnManeuver.ROUNDABOUT -> Icons.Default.RoundaboutRight
                     TurnManeuver.ARRIVE -> Icons.Default.Flag
                     TurnManeuver.UNKNOWN -> Icons.Default.Navigation
                 }

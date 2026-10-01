@@ -164,12 +164,12 @@ fun Sidebar(
     if (isHorizontal) {
         Row(modifier.fillMaxWidth().height(56.dp).background(sidebarBg),
             verticalAlignment = Alignment.CenterVertically) {
-            if (!settings.bottomBarShortcutsRight) navButtons()
+            if (settings.bottomBarShortcutsRight) navButtons()
             Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
                 shortcutsContent()
                 dashboardControls()
             }
-            if (settings.bottomBarShortcutsRight) navButtons()
+            if (!settings.bottomBarShortcutsRight) navButtons()
         }
     } else {
         Column(modifier.width(56.dp).fillMaxHeight().background(sidebarBg),

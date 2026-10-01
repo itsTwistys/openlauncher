@@ -1,7 +1,10 @@
 package com.openlauncher.app.service
 
 /** Conservative text fallback when a provider does not supply a maneuver image. */
-internal enum class TurnManeuver { LEFT, RIGHT, SLIGHT_LEFT, SLIGHT_RIGHT, UTURN, STRAIGHT, ROUNDABOUT, ARRIVE, UNKNOWN }
+internal enum class TurnManeuver {
+    LEFT, RIGHT, SLIGHT_LEFT, SLIGHT_RIGHT, UTURN_LEFT, UTURN_RIGHT,
+    ROUNDABOUT_LEFT, ROUNDABOUT_RIGHT, STRAIGHT, ARRIVE, UNKNOWN
+}
 internal data class TurnCue(val distance: String, val instruction: String, val maneuver: TurnManeuver)
 internal fun turnCue(title: String, details: String): TurnCue {
     val distancePattern = Regex("^(?:in\\s+)?(\\d+(?:[.,]\\d+)?\\s*(?:ft|feet|mi|mile(?:s)?|m|km|meter(?:s)?|metre(?:s)?))(?=\\s|$)", RegexOption.IGNORE_CASE)
@@ -13,8 +16,11 @@ internal fun turnCue(title: String, details: String): TurnCue {
     val text = "$titleRemainder $details".lowercase(java.util.Locale.ROOT)
     fun has(pattern: String) = Regex(pattern).containsMatchIn(text)
     val maneuver = when {
-        has("\\bu[- ]?turn\\b") -> TurnManeuver.UTURN
-        has("\\broundabout\\b|\\btraffic circle\\b") -> TurnManeuver.ROUNDABOUT
+        has("\\b(?:left\\s+u[- ]?turn|u[- ]?turn\\s+left)\\b") -> TurnManeuver.UTURN_LEFT
+        has("\\b(?:right\\s+u[- ]?turn|u[- ]?turn\\s+right)\\b") -> TurnManeuver.UTURN_RIGHT
+        has("\\bleft\\s+(?:at|onto|around)\\s+(?:the\\s+)?(?:roundabout|traffic circle)\\b|\\b(?:roundabout|traffic circle)\\s+(?:to the\\s+)?left\\b") -> TurnManeuver.ROUNDABOUT_LEFT
+        has("\\bright\\s+(?:at|onto|around)\\s+(?:the\\s+)?(?:roundabout|traffic circle)\\b|\\b(?:roundabout|traffic circle)\\s+(?:to the\\s+)?right\\b") -> TurnManeuver.ROUNDABOUT_RIGHT
+        has("\\bu[- ]?turn\\b|\\broundabout\\b|\\btraffic circle\\b") -> TurnManeuver.UNKNOWN
         has("\\b(?:arrive|arrived|destination is)\\b") -> TurnManeuver.ARRIVE
         has("\\b(?:slight|bear|keep) left\\b") -> TurnManeuver.SLIGHT_LEFT
         has("\\b(?:slight|bear|keep) right\\b") -> TurnManeuver.SLIGHT_RIGHT
