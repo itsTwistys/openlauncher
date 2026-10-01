@@ -22,6 +22,9 @@ class UpgradeSettingsTest {
             wallpaperUri = "content://example/wallpaper",
             appFont = AppFont.SOURCE_CODE_PRO, accentColor = 0xff33aa88.toInt(),
             shortcuts = listOf(ShortcutConfig("com.spotify.music", "Spotify")),
+            soundboardPads = defaultSoundboardPads().mapIndexed { index, pad ->
+                if (index == 0) pad.copy(audioUri = "content://example/audio") else pad
+            },
             homeDestination = "Saved home", workDestination = "Saved work",
             widgetLayout = listOf(WidgetConfig("NOW_PLAYING", 0, 0, 2, 2),
                 WidgetConfig("CLOCK", 2, 0), WidgetConfig("MAP", 2, 1)))

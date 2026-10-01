@@ -27,28 +27,6 @@ jobs:
           log-accepted-android-sdk-licenses: false
       - run: sdkmanager 'platforms;android-36.1' 'build-tools;36.0.0'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Restore permanent preview signing key
-        id: preview-signing
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-        env:
-          PREVIEW_KEYSTORE_BASE64: ${{ secrets.OPENLAUNCHER_PREVIEW_KEYSTORE_BASE64 }}
-          PREVIEW_KEYSTORE_PASSWORD: ${{ secrets.OPENLAUNCHER_PREVIEW_KEYSTORE_PASSWORD }}
-        run: |
-          if [ -z "$PREVIEW_KEYSTORE_BASE64" ]; then
-            echo '::warning::Permanent preview signing key is not configured. Build and tests will continue, but publication is blocked to protect in-place updates.'
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [ -z "$PREVIEW_KEYSTORE_PASSWORD" ]; then
-            echo '::error::The permanent keystore password secret is missing.'
-            exit 1
-          fi
-          echo "OPENLAUNCHER_PREVIEW_KEYSTORE_PASSWORD=$PREVIEW_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-          umask 077
-          printf '%s' "$PREVIEW_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/openlauncher-preview.keystore"
-          test -s "$RUNNER_TEMP/openlauncher-preview.keystore"
-          echo "OPENLAUNCHER_PREVIEW_KEYSTORE_PATH=$RUNNER_TEMP/openlauncher-preview.keystore" >> "$GITHUB_ENV"
-          echo "available=true" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -59,6 +37,30 @@ jobs:
           node scripts/test-map.cjs
       - run: python3 scripts/test-apk-upgrade.py
       - run: ./gradlew :app:lintDebug :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease --continue --no-daemon
+      - name: Sign release with the permanent key
+        id: preview-signing
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        env:
+          PREVIEW_KEYSTORE_BASE64: ${{ secrets.OPENLAUNCHER_PREVIEW_KEYSTORE_BASE64 }}
+          PREVIEW_KEYSTORE_PASSWORD: ${{ secrets.OPENLAUNCHER_PREVIEW_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$PREVIEW_KEYSTORE_BASE64" ] || [ -z "$PREVIEW_KEYSTORE_PASSWORD" ]; then
+            echo '::warning::Permanent signing key/password is not configured. The unsigned recovery bundle will be available; signed publication is blocked.'
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          umask 077
+          key_file="$RUNNER_TEMP/openlauncher-preview.p12"
+          password_file="$RUNNER_TEMP/openlauncher-preview-password"
+          trap 'rm -f "$key_file" "$password_file"' EXIT
+          printf '%s' "$PREVIEW_KEYSTORE_BASE64" | base64 --decode > "$key_file"
+          printf '%s' "$PREVIEW_KEYSTORE_PASSWORD" > "$password_file"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign \
+            --ks "$key_file" --ks-key-alias openlauncher-preview \
+            --ks-pass "file:$password_file" --key-pass "file:$password_file" \
+            --out app/build/outputs/apk/release/app-release.apk \
+            app/build/outputs/apk/release/app-release-unsigned.apk
+          echo "available=true" >> "$GITHUB_OUTPUT"
       - name: Verify APK uses the permanent preview identity
         if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && steps.preview-signing.outputs.available == 'true'
         id: upgrade-check
@@ -108,9 +110,6 @@ jobs:
               echo 'No installable update was uploaded: build or APK upgrade verification did not succeed. Review the failed step.'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Remove temporary signing key
-        if: always()
-        run: rm -f "$RUNNER_TEMP/openlauncher-preview.keystore"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

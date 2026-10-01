@@ -18,17 +18,6 @@ android {
         versionName    = "0.0.18-preview"
     }
 
-    signingConfigs {
-        getByName("debug") {
-            providers.environmentVariable("OPENLAUNCHER_PREVIEW_KEYSTORE_PATH").orNull?.let {
-                storeFile = file(it)
-                storePassword = providers.environmentVariable("OPENLAUNCHER_PREVIEW_KEYSTORE_PASSWORD").get()
-                keyPassword = storePassword
-                keyAlias = "openlauncher-preview"
-            }
-        }
-    }
-
     buildTypes {
         debug {
             applicationIdSuffix = ".preview"
@@ -37,9 +26,6 @@ android {
         release {
             applicationIdSuffix = ".preview"
             manifestPlaceholders["appLabel"] = "Open Launcher Preview"
-            if (providers.environmentVariable("OPENLAUNCHER_PREVIEW_KEYSTORE_PATH").isPresent) {
-                signingConfig = signingConfigs.getByName("debug")
-            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
