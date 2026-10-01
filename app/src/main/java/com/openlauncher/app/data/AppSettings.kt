@@ -7,7 +7,7 @@ enum class ClockStyle { DIGITAL, ANALOG }
 enum class UnitSystem { METRIC, IMPERIAL }
 enum class AppFont { SYSTEM, JETBRAINS_MONO, SOURCE_CODE_PRO }
 enum class DayNightMode { DARK, LIGHT, AUTO, SYSTEM }
-enum class SidebarPosition { LEFT, RIGHT, BOTTOM }
+enum class SidebarPosition { LEFT, RIGHT, BOTTOM, TOP }
 enum class GradientDirection { TOP_TO_BOTTOM, LEFT_TO_RIGHT, DIAGONAL, RADIAL }
 
 enum class DefaultShortcutIcon {

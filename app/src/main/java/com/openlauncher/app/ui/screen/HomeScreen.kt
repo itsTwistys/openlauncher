@@ -156,6 +156,8 @@ fun HomeScreen(
     onRadioSwitchAm: () -> Unit = {},
     onRadioTune: (band: String, freq: Float) -> Unit = { _, _ -> },
     onAssignRadio: () -> Unit = {},
+    dashboardAction: String? = null,
+    onDashboardActionHandled: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val accent       = Color(settings.accentColor)
@@ -171,10 +173,6 @@ fun HomeScreen(
         hasWallpaper -> Color(0x22FFFFFF)
         else         -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
     }
-    val headerTextColor   = if (isDayMode) Color(0xFF111111) else accent
-    val statusIconColor   = if (isDayMode) Color(0xFF444444) else Color(0xFFBFC7D2)
-    val controlIconColor  = if (isDayMode) Color(0xFF666666) else Color(0xFFBFC7D2)
-
     var toolsPage by rememberSaveable { mutableStateOf<String?>(null) }
     var expandedWidget by rememberSaveable { mutableStateOf<String?>(null) }
     BackHandler(enabled = expandedWidget != null) { expandedWidget = null }
@@ -198,84 +196,25 @@ fun HomeScreen(
     LaunchedEffect(removedLayout) {
         if (removedLayout != null) { kotlinx.coroutines.delay(8000); removedLayout = null }
     }
-    Column(modifier = modifier.fillMaxSize()) {
-
-        // ── Header ──────────────────────────────────────────────────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text          = settings.vehicleName.uppercase(),
-                style         = MaterialTheme.typography.titleLarge,
-                color         = headerTextColor,
-                letterSpacing = 3.sp,
-                fontSize      = 14.sp,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            if (expandedWidget != null) {
-                TextButton(onClick = { expandedWidget = null }) { Text("Back to dashboard", fontSize = 16.sp) }
-            }
-            if (settings.layoutProfiles.isNotEmpty() && expandedWidget == null) {
-                Box {
-                    TextButton(onClick = { profileMenu = true }) {
-                        Text(settings.activeLayoutProfile.ifBlank { "Layouts" }, fontSize = 14.sp)
-                    }
-                    DropdownMenu(expanded = profileMenu, onDismissRequest = { profileMenu = false }) {
-                        settings.layoutProfiles.forEach { profile ->
-                            DropdownMenuItem(text = { Text(profile.name) }, onClick = {
-                                profileMenu = false; removedLayout = null; onApplyProfile(profile.name)
-                            })
-                        }
-                    }
-                }
-            }
-            IconButton(onClick = { toolsPage = "Quick controls" }, modifier = Modifier.size(48.dp)) {
-                Icon(Icons.Default.Tune, "Dashboard controls", tint = controlIconColor, modifier = Modifier.size(24.dp))
-            }
-            AnimatedVisibility(visible = isWifi, enter = fadeIn(), exit = fadeOut()) {
-                Icon(Icons.Default.Wifi, "WiFi", tint = statusIconColor, modifier = Modifier.size(16.dp))
-            }
-            if (isWifi) Spacer(Modifier.width(6.dp))
-            AnimatedVisibility(visible = isData, enter = fadeIn(), exit = fadeOut()) {
-                Icon(Icons.Default.SignalCellularAlt, "Data", tint = statusIconColor, modifier = Modifier.size(16.dp))
-            }
-            run {
-                Spacer(Modifier.width(8.dp))
-                if (editMode) {
-                    IconButton(
-                        onClick  = { widgetLibraryOpen = true },
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector        = Icons.Default.Dashboard,
-                            contentDescription = "Widget library",
-                            tint               = controlIconColor,
-                            modifier           = Modifier.size(24.dp)
-                        )
-                    }
-                    Spacer(Modifier.width(2.dp))
-                }
-                IconButton(
-                    onClick  = { expandedWidget = null; if (editMode) editMode = false else widgetLibraryOpen = true },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        imageVector        = Icons.Default.Edit,
-                        contentDescription = if (editMode) "Finish arranging" else "Edit Dashboard",
-                        tint               = if (editMode) accent else controlIconColor,
-                        modifier           = Modifier.size(24.dp)
-                    )
-                }
-            }
+    LaunchedEffect(dashboardAction) {
+        when (dashboardAction) {
+            "controls" -> toolsPage = "Quick controls"
+            "edit" -> { expandedWidget = null; editMode = false; widgetLibraryOpen = true }
+            "layouts" -> profileMenu = true
+            "home" -> { expandedWidget = null; editMode = false; toolsPage = null; widgetLibraryOpen = false }
         }
-
-        HorizontalDivider(color = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF141414))
+        if (dashboardAction != null) onDashboardActionHandled()
+    }
+    if (profileMenu) AlertDialog(onDismissRequest = { profileMenu = false },
+        title = { Text("Dashboard layouts") }, text = {
+            Column(Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
+                settings.layoutProfiles.forEach { profile ->
+                    TextButton(onClick = { profileMenu = false; removedLayout = null; onApplyProfile(profile.name) },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(profile.name) }
+                }
+            }
+        }, confirmButton = { TextButton(onClick = { profileMenu = false }) { Text("Close") } })
+    Column(modifier = modifier.fillMaxSize()) {
 
         if (removedLayout != null) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {

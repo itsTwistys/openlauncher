@@ -1,7 +1,7 @@
 'use strict';
 const map = L.map('map', { fadeAnimation: false, zoomAnimation: false, attributionControl: true, rotate: true, rotateControl: false, dragRotate: false, touchRotate: false, shiftKeyRotate: false }).setView([0, 0], 2);
 const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, keepBuffer: 4, updateWhenIdle: true, updateWhenZooming: false, updateInterval: 250,
+    maxZoom: 19, keepBuffer: 4, updateWhenIdle: false, updateWhenZooming: false, updateInterval: 250,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 });
 let positionFrame = null, accuracyRing = null, gpsFresh = true;

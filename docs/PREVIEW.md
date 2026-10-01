@@ -1,5 +1,15 @@
 # Open Launcher preview: installation and testing
 
+## Compact navigation and app rail in 0.0.17
+
+- The dashboard no longer reserves a separate 48 dp title/status row. Quick controls (with network status), Edit Dashboard and saved layouts move into the existing app rail on every screen. Home also exits a temporarily expanded widget. Existing widget sizes, positions, shortcuts and rail position are retained.
+- Settings → Sidebar Position adds **Top** alongside Left, Right and Bottom. App shortcuts scroll within the remaining rail space; Apps, Settings and Home remain pinned. The vehicle name remains saved in Settings.
+- Active navigation uses a fixed 72–80 dp strip with next-turn distance, one instruction and the navigation app's supplied image when present. Explicit English maneuver wording provides a fallback arrow. Road names or unsupported wording get a neutral navigation icon; the launcher does not guess the next turn. Tap the strip for trip details and Open navigation.
+- Map options move to a 48 dp overlay; the former Open navigation / Map options row no longer consumes map height. GPS/error states, recenter, pan/follow, zoom and attribution remain. Dark styling is applied to individual raster tiles instead of the moving pane, with muted colors and tile updates during pans. This targets rendering/compositing trouble, but the photographed solid-color failure still needs verification on the QUZHIDA head unit.
+- Directions require notification access and an active route in Google Maps or Waze on the head unit. Notification images/content vary by provider and version. The built-in map is OpenStreetMap with the head unit's GPS position; it does not receive Google/Waze route geometry or mirror their map/PiP window. The external app's floating PiP is separate from this tile.
+
+The original signing-key blocker described below still applies. No incompatible APK is published, and no installed setup or head-unit system settings are changed.
+
 ## Consistent appearance and in-place updates in 0.0.16
 
 Map controls now use the dashboard accent and matching bundled font, with the same flat controls and small corners. Media controls use the dashboard accent and contrast color; media, clock and directions honor the chosen font. Album art and map content remain visible within the existing card design.

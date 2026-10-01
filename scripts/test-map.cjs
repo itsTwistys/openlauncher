@@ -9,7 +9,7 @@ const assert=require('node:assert/strict');
  const page=await browser.newPage({viewport:{width:800,height:480}});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  let fail=false, requests=0;
- await page.route('https://tile.openstreetmap.org/**',r=>{requests++;return fail?r.abort():r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#ddd"/></svg>'});});
+ await page.route('https://tile.openstreetmap.org/**',r=>{requests++;return fail?r.abort():r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#e7eadf"/><path d="M0 70H256M0 170H256M65 0V256M190 0V256" stroke="#fff" stroke-width="12"/><path d="M0 128H256" stroke="#e7bf85" stroke-width="16"/></svg>'});});
  await page.route('https://appassets.androidplatform.net/**',r=>{
   const file=path.basename(new URL(r.request().url()).pathname);
   if (file.endsWith('.ttf')) return r.fulfill({path:path.join('app/src/main/res/font',file),contentType:'font/ttf'});
@@ -101,7 +101,8 @@ const assert=require('node:assert/strict');
  const loadsBeforeTheme = await page.evaluate(()=>totalLoaded);
  await page.evaluate(()=>window.setMapTheme(true));
  assert.equal(await page.locator('html.dark-map').count(),1);
- assert.notEqual(await page.locator('.leaflet-tile-pane').evaluate(e=>getComputedStyle(e).filter),'none');
+ assert.equal(await page.locator('.leaflet-tile-pane').evaluate(e=>getComputedStyle(e).filter),'none','Avoid a filtered moving pane on head-unit WebViews');
+ assert.notEqual(await page.locator('.leaflet-tile').first().evaluate(e=>getComputedStyle(e).filter),'none');
  assert.equal(await page.locator('.leaflet-marker-pane').evaluate(e=>getComputedStyle(e).filter),'none');
  assert.equal(await page.evaluate(()=>totalLoaded),loadsBeforeTheme);
  await page.screenshot({path:'app/build/outputs/ui-checks/map-dark-landscape.png'});
