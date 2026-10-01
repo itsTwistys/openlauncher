@@ -13,6 +13,38 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[34])
 class UpgradeSettingsTest {
+    @Test fun exportedBackupPreservesDashboardAcrossSigningMigration() {
+        val saved = AppSettings(onboardingCompleted = true, vehicleName = "My Jeep",
+            preferredMediaPackage = "com.spotify.music", navigationPackage = "com.waze",
+            clockTimeZone = "America/New_York", use12HourTime = true,
+            mapTheme = "DARK", onlineMapEnabled = true, mapHeadingUp = true,
+            sidebarPosition = SidebarPosition.TOP,
+            wallpaperUri = "content://example/wallpaper",
+            appFont = AppFont.SOURCE_CODE_PRO, accentColor = 0xff33aa88.toInt(),
+            shortcuts = listOf(ShortcutConfig("com.spotify.music", "Spotify")),
+            homeDestination = "Saved home", workDestination = "Saved work",
+            widgetLayout = listOf(WidgetConfig("NOW_PLAYING", 0, 0, 2, 2),
+                WidgetConfig("CLOCK", 2, 0), WidgetConfig("MAP", 2, 1)))
+        val restored = SettingsBackup.decode(SettingsBackup.encode(saved))
+        assertTrue(restored.onboardingCompleted)
+        assertEquals(saved.widgetLayout, restored.widgetLayout)
+        assertEquals(saved.shortcuts, restored.shortcuts)
+        assertEquals(saved.preferredMediaPackage, restored.preferredMediaPackage)
+        assertEquals(saved.navigationPackage, restored.navigationPackage)
+        assertEquals(saved.clockTimeZone, restored.clockTimeZone)
+        assertEquals(saved.use12HourTime, restored.use12HourTime)
+        assertEquals(saved.mapTheme, restored.mapTheme)
+        assertEquals(saved.mapHeadingUp, restored.mapHeadingUp)
+        assertEquals(saved.sidebarPosition, restored.sidebarPosition)
+        assertEquals(saved.appFont, restored.appFont)
+        assertEquals(saved.accentColor, restored.accentColor)
+        assertEquals(saved.homeDestination, restored.homeDestination)
+        assertEquals(saved.workDestination, restored.workDestination)
+        assertEquals("", restored.wallpaperUri)
+        assertFalse(restored.onlineMapEnabled)
+        assertTrue(restored.soundboardPads.all { it.audioUri.isEmpty() })
+    }
+
     @Test fun reopeningRepositoryPreservesSetupAndLaterEditsDoNotResetIt() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val repo = SettingsRepository(context)

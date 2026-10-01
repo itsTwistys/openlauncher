@@ -27,17 +27,23 @@ jobs:
           log-accepted-android-sdk-licenses: false
       - run: sdkmanager 'platforms;android-36.1' 'build-tools;36.0.0'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Restore original preview signing key
+      - name: Restore permanent preview signing key
         id: preview-signing
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         env:
           PREVIEW_KEYSTORE_BASE64: ${{ secrets.OPENLAUNCHER_PREVIEW_KEYSTORE_BASE64 }}
+          PREVIEW_KEYSTORE_PASSWORD: ${{ secrets.OPENLAUNCHER_PREVIEW_KEYSTORE_PASSWORD }}
         run: |
           if [ -z "$PREVIEW_KEYSTORE_BASE64" ]; then
-            echo '::warning::Original preview signing key is unavailable. Build and tests will continue, but publication is blocked to protect in-place updates.'
+            echo '::warning::Permanent preview signing key is not configured. Build and tests will continue, but publication is blocked to protect in-place updates.'
             echo "available=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          if [ -z "$PREVIEW_KEYSTORE_PASSWORD" ]; then
+            echo '::error::The permanent keystore password secret is missing.'
+            exit 1
+          fi
+          echo "OPENLAUNCHER_PREVIEW_KEYSTORE_PASSWORD=$PREVIEW_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
           umask 077
           printf '%s' "$PREVIEW_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/openlauncher-preview.keystore"
           test -s "$RUNNER_TEMP/openlauncher-preview.keystore"
@@ -52,16 +58,36 @@ jobs:
           npx playwright install --with-deps chromium
           node scripts/test-map.cjs
       - run: python3 scripts/test-apk-upgrade.py
-      - run: ./gradlew :app:lintDebug :app:testDebugUnitTest :app:assembleDebug --continue --no-daemon
-      - name: Verify APK updates the existing preview in place
+      - run: ./gradlew :app:lintDebug :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease --continue --no-daemon
+      - name: Verify APK uses the permanent preview identity
         if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && steps.preview-signing.outputs.available == 'true'
         id: upgrade-check
-        run: python3 scripts/check-apk-upgrade.py scripts/preview-baseline.json app/build/outputs/apk/debug/app-debug.apk
+        run: python3 scripts/check-apk-upgrade.py scripts/preview-baseline.json app/build/outputs/apk/release/app-release.apk
       - uses: actions/upload-artifact@v4
         if: steps.upgrade-check.outcome == 'success'
         with:
           name: openlauncher-preview
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+      - name: Prepare unsigned recovery bundle
+        if: steps.preview-signing.outputs.available != 'true'
+        run: |
+          mkdir -p offline-signing/build-tools/lib
+          cp app/build/outputs/apk/release/app-release-unsigned.apk offline-signing/
+          cp "$ANDROID_HOME/build-tools/36.0.0/apksigner" "$ANDROID_HOME/build-tools/36.0.0/aapt" "$ANDROID_HOME/build-tools/36.0.0/zipalign" offline-signing/build-tools/
+          cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" offline-signing/build-tools/lib/
+          if [ -d "$ANDROID_HOME/build-tools/36.0.0/lib64" ]; then
+            cp -a "$ANDROID_HOME/build-tools/36.0.0/lib64" offline-signing/build-tools/
+          fi
+          cp "$ANDROID_HOME/build-tools/36.0.0/NOTICE.txt" offline-signing/build-tools/
+          printf '%s\n' "$GITHUB_SHA" > offline-signing/source-commit.txt
+          echo 'UNSIGNED build input. Not installable. Must be signed with the backed-up permanent key and verified before distribution.' > offline-signing/README.txt
+      - uses: actions/upload-artifact@v4
+        if: steps.preview-signing.outputs.available != 'true'
+        with:
+          name: openlauncher-unsigned-recovery
+          path: offline-signing
+          retention-days: 7
           if-no-files-found: error
       - name: Report APK readiness
         if: always()
@@ -74,10 +100,10 @@ jobs:
             echo '## APK readiness'
             echo "Build/check status: $BUILD_STATUS."
             if [ "$UPGRADE_CHECK" = success ]; then
-              echo 'APK matches the pinned preview identity and has a higher version code. Publication can proceed if all build steps succeeded.'
+              echo 'APK matches the permanent preview identity and exceeds the version floor. Legacy-key installations require migration. Publication can proceed if all build steps succeeded.'
             elif [ "$SIGNING_AVAILABLE" != true ]; then
-              echo 'No installable update was uploaded: the original preview signing key is unavailable (or this is a validation-only run outside main).'
-              echo 'Restore OPENLAUNCHER_PREVIEW_KEYSTORE_BASE64 with the original key, then run Android preview manually on main. A passing validation build alone is not a release.'
+              echo 'No signed APK was uploaded: the permanent preview signing key is not configured (or this is a validation-only run outside main).'
+              echo 'Use the private backup and restore-preview-signing.ps1 to configure both signing secrets, then run Android preview manually on main. The unsigned recovery bundle is not installable. A passing validation build alone is not a release.'
             else
               echo 'No installable update was uploaded: build or APK upgrade verification did not succeed. Review the failed step.'
             fi
@@ -113,12 +139,12 @@ jobs:
           VERSION=$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' app/build.gradle.kts | head -n 1)
           test -n "$VERSION" || { echo 'Missing versionName'; exit 1; }
           TAG="preview-${COMMIT_SHA:0:7}"
-          mv app-debug.apk openlauncher-preview.apk
+          mv app-release.apk openlauncher-preview.apk
           sha256sum openlauncher-preview.apk > SHA256SUMS.txt
           cat > RELEASE_NOTES.md <<EOF
-          Open Launcher $VERSION is an installable, debug-signed development preview with a separate app ID. Build and unit tests passed. The preview has not been confirmed on all physical head units. See the [installation guide](https://github.com/$GH_REPO/blob/$TAG/docs/PREVIEW.md) for setup, features and known limits.
+          Open Launcher $VERSION is an installable development preview signed with the permanent key. Build and unit tests passed. The preview has not been confirmed on all physical head units. See the [installation guide](https://github.com/$GH_REPO/blob/$TAG/docs/PREVIEW.md) for setup, features and known limits.
 
-          Download the APK below, not the source archives. A checksum is provided in SHA256SUMS.txt. Install this APK over the existing Open Launcher Preview to keep your setup. Do not uninstall or clear storage. Publication verifies the pinned preview-25a391c signing certificate and application ID, and a higher version code. An installation from another signing key cannot be updated by this APK. A missing signing key blocks publication.
+          Download the APK below, not the source archives. A checksum is provided in SHA256SUMS.txt. This is the new permanent-key channel. Old previews signed with the lost key cannot be updated in place: export settings and trip CSV, verify the backups, then perform the one-time reinstall and restore described in the guide. Wallpaper/audio files and Android grants require reassignment. Subsequent permanent-key releases install over this version and preserve app data. Publication verifies the permanent certificate, application ID and version floor. A missing or incorrect signing key blocks publication.
           EOF
           gh release create "$TAG" openlauncher-preview.apk SHA256SUMS.txt \
             --target "$COMMIT_SHA" --prerelease --title "Open Launcher $VERSION development preview" \

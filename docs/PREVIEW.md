@@ -1,5 +1,15 @@
 # Open Launcher preview: installation and testing
 
+## Current release: 0.0.18 permanent-key migration
+
+The original private signing key could not be recovered. At the owner's request a new permanent key was generated and privately backed up. The application ID remains `com.openlauncher.app.preview`; versionCode is 19. The home-screen design and existing features are unchanged. The release APK is not debuggable.
+
+**Old-key installations cannot be upgraded in place. Follow [SIGNING-MIGRATION.md](SIGNING-MIGRATION.md) to export supported settings and trip history before the one-time reinstall.** Subsequent releases use this same permanent key. Earlier no-uninstall/original-key instructions below are historical and do not describe this migration.
+
+CI validates the new public certificate in `scripts/preview-baseline.json`, builds lint/tests plus debug and release APKs, and signs releases only on `main` when both permanent-key secrets exist. The prior public identity is retained in `scripts/legacy-preview-baseline.json` for rejection tests. Without the secrets, CI provides only an explicitly unsigned recovery bundle for local signing and independent verification. No private key or password is uploaded in that bundle. The archive contains the Android signing/inspection tools and their license notice.
+
+Configure future builds using the private backup's `restore-preview-signing.ps1`; it sets `OPENLAUNCHER_PREVIEW_KEYSTORE_BASE64` and `OPENLAUNCHER_PREVIEW_KEYSTORE_PASSWORD` through GitHub CLI. It never generates another key. The GitHub connector available here cannot edit Actions secrets directly.
+
 ## Compact navigation and app rail in 0.0.17
 
 - The dashboard no longer reserves a separate 48 dp title/status row. Quick controls (with network status), Edit Dashboard and saved layouts move into the existing app rail on every screen. Home also exits a temporarily expanded widget. Existing widget sizes, positions, shortcuts and rail position are retained.

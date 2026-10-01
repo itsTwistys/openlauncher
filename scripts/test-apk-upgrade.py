@@ -8,13 +8,19 @@ upgrade = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(upgrade)
 
 class UpgradeTest(unittest.TestCase):
-    def test_pinned_baseline_and_original_certificate(self):
+    def test_pinned_baseline_and_permanent_certificate(self):
         baseline = upgrade.load_baseline(Path(__file__).with_name('preview-baseline.json'))
-        self.assertEqual(baseline[:2], ('com.openlauncher.app.preview', 16))
-        self.assertEqual(baseline[2], ['aeb220393976d7db6c4247785c1c3ab3ef6b9242ea3003dfaae23288fa2e43ca'])
-        upgrade.validate(baseline, (baseline[0], 18, baseline[2]))
+        self.assertEqual(baseline[:2], ('com.openlauncher.app.preview', 18))
+        self.assertEqual(baseline[2], ['9994a7888b6f5b7d3c3d58b14463ead3eae8ccd5d35060886407e523d2120e3f'])
+        upgrade.validate(baseline, (baseline[0], 19, baseline[2]))
         with self.assertRaises(ValueError):
-            upgrade.validate(baseline, (baseline[0], 18, ['0' * 64]))
+            upgrade.validate(baseline, (baseline[0], 19, ['0' * 64]))
+
+    def test_legacy_signer_cannot_enter_new_release_channel(self):
+        baseline = upgrade.load_baseline(Path(__file__).with_name('preview-baseline.json'))
+        legacy = upgrade.load_baseline(Path(__file__).with_name('legacy-preview-baseline.json'))
+        with self.assertRaises(ValueError):
+            upgrade.validate(baseline, (baseline[0], 19, legacy[2]))
 
     def test_invalid_baseline_fails_closed(self):
         valid = {'application_id': 'com.openlauncher.app.preview', 'version_code': 16,
