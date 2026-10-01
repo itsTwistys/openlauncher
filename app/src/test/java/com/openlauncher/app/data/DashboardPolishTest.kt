@@ -87,6 +87,11 @@ class DashboardPolishTest {
         assertEquals(DefaultShortcutIcon.CHROME, automaticShortcutIcon("com.android.chrome"))
         assertEquals(DefaultShortcutIcon.SPOTIFY, automaticShortcutIcon("com.spotify.music"))
         assertEquals(DefaultShortcutIcon.GOOGLE_MAPS, automaticShortcutIcon("com.google.android.apps.maps"))
+        assertEquals(DefaultShortcutIcon.YOUTUBE, automaticShortcutIcon("com.google.android.youtube"))
+        assertEquals(DefaultShortcutIcon.YOUTUBE_MUSIC, automaticShortcutIcon("com.google.android.apps.youtube.music"))
+        assertEquals(DefaultShortcutIcon.WAZE, automaticShortcutIcon("com.waze"))
+        val original = AppSettings(shortcuts = listOf(ShortcutConfig("com.google.android.youtube", "YouTube", customIconOverride = DefaultShortcutIcon.YOUTUBE)))
+        assertEquals(original.shortcuts, SettingsBackup.decode(SettingsBackup.encode(original)).shortcuts)
         assertNull(automaticShortcutIcon("other.installed.app"))
     }
 }

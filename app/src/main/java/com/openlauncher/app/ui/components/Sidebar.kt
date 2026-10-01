@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -59,6 +60,7 @@ fun Sidebar(
     isHorizontal: Boolean = false,
     isWifi: Boolean = false,
     isData: Boolean = false,
+    internetValidated: Boolean = false,
     onDashboardAction: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -159,7 +161,7 @@ fun Sidebar(
     }
 
     val dashboardControls: @Composable () -> Unit = {
-        DashboardRailControls(isWifi, isData, settings.layoutProfiles.isNotEmpty(), onDashboardAction)
+        DashboardRailControls(isWifi, isData, settings.layoutProfiles.isNotEmpty(), onDashboardAction, internetValidated)
     }
     if (isHorizontal) {
         Row(modifier.fillMaxWidth().height(56.dp).background(sidebarBg),
@@ -167,17 +169,17 @@ fun Sidebar(
             if (settings.bottomBarShortcutsRight) navButtons()
             Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
                 shortcutsContent()
-                dashboardControls()
             }
+            dashboardControls()
             if (!settings.bottomBarShortcutsRight) navButtons()
         }
     } else {
         Column(modifier.width(56.dp).fillMaxHeight().background(sidebarBg),
             horizontalAlignment = Alignment.CenterHorizontally) {
+            dashboardControls()
+            HorizontalDivider(color = dividerColor)
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
                 .padding(top = 6.dp, bottom = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                dashboardControls()
-                HorizontalDivider(color = dividerColor)
                 shortcutsContent()
             }
             HorizontalDivider(color = dividerColor)
@@ -526,6 +528,9 @@ fun DefaultShortcutIcon.toIcon(): ImageVector = when (this) {
     DefaultShortcutIcon.SETTINGS    -> Icons.Default.Settings
     DefaultShortcutIcon.FAVORITE    -> Icons.Default.Favorite
     // Web / location
+    DefaultShortcutIcon.YOUTUBE     -> YouTubeSidebarIcon
+    DefaultShortcutIcon.YOUTUBE_MUSIC -> Icons.Default.PlayCircleOutline
+    DefaultShortcutIcon.WAZE        -> WazeSidebarIcon
     DefaultShortcutIcon.CHROME      -> ChromeSidebarIcon
     DefaultShortcutIcon.SPOTIFY     -> SpotifySidebarIcon
     DefaultShortcutIcon.GOOGLE_MAPS -> Icons.Default.Place
@@ -534,23 +539,51 @@ fun DefaultShortcutIcon.toIcon(): ImageVector = when (this) {
     DefaultShortcutIcon.NONE        -> Icons.Default.Apps
 }
 
-/** The same controls live in the app rail on every launcher screen. */
+/** One anchored, theme-aware menu keeps controls reachable without crowding app shortcuts. */
 @Composable
 internal fun DashboardRailControls(isWifi: Boolean, isData: Boolean, hasLayouts: Boolean,
-    onAction: (String) -> Unit) {
+    onAction: (String) -> Unit, internetValidated: Boolean = false) {
+    var expanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
-    IconButton(onClick = { onAction("controls") }, modifier = Modifier.size(52.dp)) {
-        Box(Modifier.size(32.dp)) {
-            Icon(Icons.Default.Tune, "Dashboard controls", Modifier.size(24.dp).align(Alignment.Center), tint = tint)
-            Icon(if (isWifi) Icons.Default.Wifi else if (isData) Icons.Default.SignalCellularAlt else Icons.Default.WifiOff,
-                if (isWifi) "WiFi" else if (isData) "Mobile data" else "No WiFi or mobile data",
-                Modifier.size(12.dp).align(Alignment.BottomEnd), tint = tint)
+    val connection = when {
+        isWifi -> "Wi-Fi connected"
+        isData -> "Mobile data"
+        internetValidated -> "Network connected"
+        else -> "Not connected"
+    }
+    val status = if (internetValidated) "Internet available" else "No verified internet"
+    Box {
+        IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(52.dp)) {
+            Icon(Icons.Default.Tune, "Dashboard controls", Modifier.size(28.dp), tint = tint)
         }
-    }
-    IconButton(onClick = { onAction("edit") }, modifier = Modifier.size(52.dp)) {
-        Icon(Icons.Default.Edit, "Edit Dashboard", Modifier.size(24.dp), tint = tint)
-    }
-    if (hasLayouts) IconButton(onClick = { onAction("layouts") }, modifier = Modifier.size(52.dp)) {
-        Icon(Icons.Default.Dashboard, "Dashboard layouts", Modifier.size(24.dp), tint = tint)
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false },
+            modifier = Modifier.width(280.dp), shape = RoundedCornerShape(4.dp),
+            containerColor = MaterialTheme.colorScheme.background,
+            border = androidx.compose.foundation.BorderStroke(1.dp, tint.copy(alpha = 0.2f))) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Text(connection, style = MaterialTheme.typography.titleSmall)
+                Text(status, style = MaterialTheme.typography.bodySmall, color = tint)
+            }
+            HorizontalDivider(color = tint.copy(alpha = 0.15f))
+            DropdownMenuItem(text = { Text("Wi-Fi settings") },
+                leadingIcon = { Icon(if (isWifi) Icons.Default.Wifi else Icons.Default.WifiOff, null) },
+                modifier = Modifier.heightIn(min = 56.dp), onClick = {
+                    expanded = false
+                    runCatching {
+                        context.startActivity(android.content.Intent(android.provider.Settings.ACTION_WIFI_SETTINGS))
+                    }.onFailure {
+                        android.widget.Toast.makeText(context, "Wi-Fi settings unavailable", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                })
+            listOf("edit" to "Edit Dashboard", "controls" to "Dashboard tools").forEach { (action, label) ->
+                DropdownMenuItem(text = { Text(label) }, modifier = Modifier.heightIn(min = 56.dp),
+                    leadingIcon = { Icon(if (action == "edit") Icons.Default.Edit else Icons.Default.Tune, null) },
+                    onClick = { expanded = false; onAction(action) })
+            }
+            if (hasLayouts) DropdownMenuItem(text = { Text("Saved layouts") },
+                leadingIcon = { Icon(Icons.Default.Dashboard, null) }, modifier = Modifier.heightIn(min = 56.dp),
+                onClick = { expanded = false; onAction("layouts") })
+        }
     }
 }

@@ -1,14 +1,20 @@
 # Open Launcher preview: installation and testing
 
-## Current release: 0.0.18 permanent-key migration
+## Current release: 0.0.19 controls flyout
 
-The original private signing key could not be recovered. At the owner's request a new permanent key was generated and privately backed up. The application ID remains `com.openlauncher.app.preview`; versionCode is 19. The home-screen design and existing features are unchanged. The release APK is not debuggable.
+The original private signing key could not be recovered. At the owner's request a new permanent key was generated and privately backed up. The application ID remains `com.openlauncher.app.preview`; versionCode is 20. This release groups rail controls into a matching flyout and adds YouTube, YouTube Music and Waze shortcut symbols. Existing layouts and settings are retained. The release APK is not debuggable.
 
 **Old-key installations cannot be upgraded in place. Follow [SIGNING-MIGRATION.md](SIGNING-MIGRATION.md) to export supported settings and trip history before the one-time reinstall.** Subsequent releases use this same permanent key.
 
 CI validates the new public certificate in `scripts/preview-baseline.json`, builds lint/tests plus debug and release APKs, and signs releases only on `main` when both permanent-key secrets exist. The prior public identity is retained in `scripts/legacy-preview-baseline.json` for rejection tests. Without the secrets, CI provides only an explicitly unsigned recovery bundle for local signing and independent verification. No private key or password is uploaded in that bundle. The archive contains the Android signing/inspection tools and their license notice.
 
 Configure future builds using the private backup's `restore-preview-signing.ps1`; it sets `OPENLAUNCHER_PREVIEW_KEYSTORE_BASE64` and `OPENLAUNCHER_PREVIEW_KEYSTORE_PASSWORD` through GitHub CLI. It never generates another key. The GitHub connector available here cannot edit Actions secrets directly.
+
+## Controls flyout in 0.0.19
+
+Tap the rail's sliders icon for connection status, Wi-Fi settings, Edit Dashboard, Dashboard tools and saved layouts (when present). The menu follows the launcher theme and font and dismisses after selection, with Back or an outside tap. Its button stays outside the scrolling shortcut list on all four rail edges. Wi-Fi connection and verified internet access are reported separately; opening Wi-Fi settings does not silently toggle the radio.
+
+YouTube, YouTube Music and Waze now have monochrome symbols alongside Chrome, Spotify and Google Maps. Other apps retain native icons; long-press a shortcut to select a custom or native icon. Check flyout placement and touch targets on the head unit while parked.
 
 ## Compact navigation and app rail in 0.0.17
 
@@ -67,7 +73,7 @@ CI runs Android lint, unit/Compose tests, APK assembly and map browser checks wi
 
 Physical QUZHIDA rendering and ignition behavior still require a head-unit check. While parked, verify cold start, switching from navigation back to Home, map expansion/collapse, hotspot reconnection and ignition sleep/wake. For a blank map, export diagnostics before and after changing Compatibility rendering, using the existing evidence procedure below. Browser tiles are simulated; passing CI does not prove live tile delivery or physical head-unit pixels.
 
-Check the [current preview status on the main README](https://github.com/itsTwistys/openlauncher#download-the-android-preview). The previous 0.0.15 release download is unavailable. Version 0.0.18 uses the new permanent key and the migration process above. When a verified release is available, the README will link to its APK. Choose `openlauncher-preview.apk`, not a source archive. `SHA256SUMS.txt` accompanies each APK. The GitHub Actions build and unit tests must succeed before a preview is published.
+Check the [current preview status on the main README](https://github.com/itsTwistys/openlauncher#download-the-android-preview). The previous 0.0.15 release download is unavailable. Version 0.0.19 uses the same permanent key introduced in 0.0.18; it updates 0.0.18 in place. Older-key installations require the migration process above. When a verified release is available, the README will link to its APK. Choose `openlauncher-preview.apk`, not a source archive. `SHA256SUMS.txt` accompanies each APK. The GitHub Actions build and unit tests must succeed before a preview is published.
 
 The release APK installs as **Open Launcher Preview** (`com.openlauncher.app.preview`) and is not debuggable. It uses the privately backed-up permanent key. Old-key previews require a verified settings export before the one-time reinstall; later permanent-key updates preserve app data in place. Settings and external-file grants do not automatically move between the original app and Preview.
 

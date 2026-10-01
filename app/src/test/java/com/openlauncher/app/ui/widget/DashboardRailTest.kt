@@ -26,12 +26,22 @@ class DashboardRailTest {
     @get:Rule val compose = createComposeRule()
     @Test fun relocatedActionsRemainAccessibleAndTopPositionRoundTrips() {
         var action = ""
-        compose.setContent { OpenLauncherTheme { Column { DashboardRailControls(true, false, true) { action = it } } } }
-        compose.onNodeWithContentDescription("Dashboard controls", substring=true).performClick()
-        assertEquals("controls", action)
-        compose.onNodeWithContentDescription("Edit Dashboard").performClick()
+        compose.setContent { OpenLauncherTheme { Column {
+            DashboardRailControls(true, false, true, { action = it }, internetValidated = false)
+        } } }
+        compose.onNodeWithText("Edit Dashboard").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Dashboard controls").performClick()
+        compose.onNodeWithText("Wi-Fi connected").assertIsDisplayed()
+        compose.onNodeWithText("No verified internet").assertIsDisplayed()
+        compose.onNodeWithText("Wi-Fi settings").assertIsDisplayed()
+        compose.onNodeWithText("Edit Dashboard").performClick()
         assertEquals("edit", action)
-        compose.onNodeWithContentDescription("Dashboard layouts").performClick()
+        compose.onNodeWithText("Wi-Fi settings").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Dashboard controls").performClick()
+        compose.onNodeWithText("Dashboard tools").performClick()
+        assertEquals("controls", action)
+        compose.onNodeWithContentDescription("Dashboard controls").performClick()
+        compose.onNodeWithText("Saved layouts").performClick()
         assertEquals("layouts", action)
         assertEquals(SidebarPosition.TOP, SettingsBackup.decode(SettingsBackup.encode(AppSettings(sidebarPosition=SidebarPosition.TOP))).sidebarPosition)
         assertEquals(SidebarPosition.LEFT, SettingsBackup.decode(SettingsBackup.encode(AppSettings())).sidebarPosition)
