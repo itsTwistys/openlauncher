@@ -23,8 +23,9 @@ class NavigationBannerTest {
     @Test fun compactTurnRemainsStableAndOpensDetailsOnTap() {
         var info by mutableStateOf(NavigationInfo("com.waze", "300 ft", "Turn right", null, "9 min · 1.9 mi"))
         var tapped = false
+        var expanded = false
         compose.setContent { OpenLauncherTheme(textScale = 1.2f) { Box(Modifier.width(320.dp)) {
-            NavigationBanner(info, false, { tapped = true })
+            NavigationBanner(info, false, { tapped = true }, onExpand = { expanded = true })
         } } }
         val banner = compose.onNodeWithContentDescription("Navigation directions")
         val before = banner.fetchSemanticsNode().boundsInRoot.height
@@ -35,6 +36,9 @@ class NavigationBannerTest {
         compose.runOnIdle { info = info.copy(details="Turn left onto a much longer street name toward the city center") }
         compose.onNodeWithContentDescription("LEFT", useUnmergedTree = true).assertIsDisplayed()
         assertEquals(before, banner.fetchSemanticsNode().boundsInRoot.height)
+        compose.onNodeWithContentDescription("Expand MAP").performClick()
+        assertTrue(expanded)
+        assertFalse(tapped)
         banner.performClick()
         assertTrue(tapped)
         compose.runOnIdle { info = info.copy(details="SW 57th Ave / Coral Gables Blvd") }

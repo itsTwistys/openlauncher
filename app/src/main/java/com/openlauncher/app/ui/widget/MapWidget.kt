@@ -281,7 +281,8 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
               onMapOptions: (Boolean, Boolean) -> Unit = { _, _ -> },
               softwareRendering: Boolean = true, onSoftwareRendering: (Boolean) -> Unit = {},
               networkAvailable: Boolean = true, navigationPackage: String = "", modifier: Modifier = Modifier,
-              mapTheme: String = "AUTO", isDayMode: Boolean = false, mapFont: String = "SYSTEM", onMapTheme: (String) -> Unit = {}) {
+              mapTheme: String = "AUTO", isDayMode: Boolean = false, mapFont: String = "SYSTEM", onMapTheme: (String) -> Unit = {},
+              expanded: Boolean = false, onExpand: (() -> Unit)? = null) {
     val context = LocalContext.current
     val directions by com.openlauncher.app.service.MediaListenerService.navigation.collectAsState()
     val connected by com.openlauncher.app.service.MediaListenerService.isConnected.collectAsState()
@@ -313,11 +314,14 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
         dismissButton = { TextButton(onClick = { navigationDetailsOpen = false }) { Text("Close") } })
     Column(Modifier.fillMaxSize()) {
         if (!isEditing && navigation != null) {
-            NavigationBanner(navigation, compactDirections) { navigationDetailsOpen = true }
+            NavigationBanner(navigation, compactDirections, onOpen = { navigationDetailsOpen = true }, onExpand = onExpand, expanded = expanded)
         } else if (!isEditing) {
-            Text(if (connected) "Start a route in Google Maps or Waze to see turns here" else "Enable Notification Access for turn directions",
-                Modifier.fillMaxWidth().clickable(onClick = ::openNavigation).padding(horizontal = 12.dp, vertical = 6.dp),
-                fontSize = 13.sp, maxLines = 2)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(if (connected) "Start a route in Google Maps or Waze to see turns here" else "Enable Notification Access for turn directions",
+                    Modifier.weight(1f).clickable(onClick = ::openNavigation).padding(horizontal = 12.dp, vertical = 6.dp),
+                    fontSize = 13.sp, maxLines = 2)
+                if (onExpand != null) MapExpandButton(expanded, onExpand)
+            }
         }
         LocationMap(location, isEditing, onlineEnabled, mapTheme == "DARK" || (mapTheme == "AUTO" && !isDayMode), mapTheme, onMapTheme, mapFont, autoZoom, headingUp, onMapOptions,
             softwareRendering, onSoftwareRendering, if (connected) "Open navigation" else "Enable directions", onOpenNavigation = ::openNavigation,
@@ -328,7 +332,7 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
 
 @Composable
 internal fun NavigationBanner(navigation: com.openlauncher.app.service.MediaListenerService.NavigationInfo,
-    compact: Boolean, onOpen: () -> Unit) {
+    compact: Boolean, onOpen: () -> Unit, onExpand: (() -> Unit)? = null, expanded: Boolean = false) {
     val cue = turnCue(navigation.title, navigation.details)
     // Constant height across maneuvers prevents map re-layout while driving.
     Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()
@@ -363,7 +367,16 @@ internal fun NavigationBanner(navigation: com.openlauncher.app.service.MediaList
                 Text(cue.instruction, fontSize = if (cue.distance.isBlank()) 20.sp else 16.sp,
                     maxLines = if (cue.distance.isBlank()) 2 else 1, overflow = TextOverflow.Ellipsis)
             }
+            if (onExpand != null) MapExpandButton(expanded, onExpand)
         }
+    }
+}
+
+@Composable
+private fun MapExpandButton(expanded: Boolean, onExpand: () -> Unit) {
+    IconButton(onClick = onExpand, modifier = Modifier.size(48.dp)) {
+        Icon(if (expanded) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+            if (expanded) "Return to dashboard" else "Expand MAP")
     }
 }
 

@@ -400,7 +400,7 @@ fun HomeScreen(
                             } else Modifier
                         )
                 ) {
-                    Box(Modifier.fillMaxSize().padding(top = if (w.id == "MAP" && !editMode) 48.dp else 0.dp)) {
+                    Box(Modifier.fillMaxSize()) {
                     when (w.id) {
                         "CLOCK" -> ClockWidget(
                             style      = settings.clockStyle,
@@ -487,6 +487,7 @@ fun HomeScreen(
                             modifier  = Modifier.fillMaxSize()
                         )
                         "MAP" -> MapWidget(
+                            expanded = expanded, onExpand = { expandedWidget = if (expanded) null else w.id },
                             mapTheme = settings.mapTheme, isDayMode = isDayMode, mapFont = settings.appFont.name,
                             onMapTheme = { value -> onSettings { copy(mapTheme = value) } },
                             autoZoom = settings.mapAutoZoom,
@@ -526,7 +527,7 @@ fun HomeScreen(
                     }
 
                     }
-                    if (expandable && !editMode) {
+                    if (expandable && !editMode && w.id != "MAP") {
                         Row(Modifier.align(Alignment.TopStart).fillMaxWidth().height(48.dp).padding(start = 12.dp),
                             verticalAlignment = Alignment.CenterVertically) {
                             if (w.id == "MAP") Text("Map", fontSize = 16.sp,
