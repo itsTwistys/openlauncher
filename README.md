@@ -7,7 +7,7 @@
 ## Download the Android preview
 
 <!-- preview-download:start -->
-**0.0.18 migration APK is being prepared with a new, backed-up permanent signing key.**
+**0.0.18 uses a new, backed-up permanent signing key. Automated GitHub publication awaits signing-secret setup.**
 
 Old-key previews require a one-time backup and reinstall. Read the [migration guide](docs/SIGNING-MIGRATION.md) before removing the existing app. [Build status](https://github.com/itsTwistys/openlauncher/actions/workflows/android.yml).
 <!-- preview-download:end -->

@@ -57,7 +57,7 @@ jobs:
           printf '%s' "$PREVIEW_KEYSTORE_PASSWORD" > "$password_file"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign \
             --ks "$key_file" --ks-key-alias openlauncher-preview \
-            --ks-pass "file:$password_file" --key-pass "file:$password_file" \
+            --ks-pass "file:$password_file" \
             --out app/build/outputs/apk/release/app-release.apk \
             app/build/outputs/apk/release/app-release-unsigned.apk
           echo "available=true" >> "$GITHUB_OUTPUT"
