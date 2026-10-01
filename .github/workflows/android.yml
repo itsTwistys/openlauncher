@@ -29,7 +29,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Restore original preview signing key
         id: preview-signing
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         env:
           PREVIEW_KEYSTORE_BASE64: ${{ secrets.OPENLAUNCHER_PREVIEW_KEYSTORE_BASE64 }}
         run: |
@@ -76,7 +76,7 @@ jobs:
             if [ "$UPGRADE_CHECK" = success ]; then
               echo 'APK matches the pinned preview identity and has a higher version code. Publication can proceed if all build steps succeeded.'
             elif [ "$SIGNING_AVAILABLE" != true ]; then
-              echo 'No installable update was uploaded: the original preview signing key is unavailable (or this is a PR validation run).'
+              echo 'No installable update was uploaded: the original preview signing key is unavailable (or this is a validation-only run outside main).'
               echo 'Restore OPENLAUNCHER_PREVIEW_KEYSTORE_BASE64 with the original key, then run Android preview manually on main. A passing validation build alone is not a release.'
             else
               echo 'No installable update was uploaded: build or APK upgrade verification did not succeed. Review the failed step.'
@@ -94,7 +94,7 @@ jobs:
             app/build/reports/lint-results-debug.*
             app/build/outputs/ui-checks
   publish:
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.build.outputs.preview_signing_available == 'true'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.build.outputs.preview_signing_available == 'true'
     needs: build
     runs-on: ubuntu-latest
     permissions:
