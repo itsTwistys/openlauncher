@@ -538,18 +538,19 @@ fun DefaultShortcutIcon.toIcon(): ImageVector = when (this) {
 @Composable
 internal fun DashboardRailControls(isWifi: Boolean, isData: Boolean, hasLayouts: Boolean,
     onAction: (String) -> Unit) {
+    val tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
     IconButton(onClick = { onAction("controls") }, modifier = Modifier.size(52.dp)) {
         Box(Modifier.size(32.dp)) {
-            Icon(Icons.Default.Tune, "Dashboard controls", Modifier.size(24.dp).align(Alignment.Center))
+            Icon(Icons.Default.Tune, "Dashboard controls", Modifier.size(24.dp).align(Alignment.Center), tint = tint)
             Icon(if (isWifi) Icons.Default.Wifi else if (isData) Icons.Default.SignalCellularAlt else Icons.Default.WifiOff,
                 if (isWifi) "WiFi" else if (isData) "Mobile data" else "No WiFi or mobile data",
-                Modifier.size(12.dp).align(Alignment.BottomEnd), tint = MaterialTheme.colorScheme.primary)
+                Modifier.size(12.dp).align(Alignment.BottomEnd), tint = tint)
         }
     }
     IconButton(onClick = { onAction("edit") }, modifier = Modifier.size(52.dp)) {
-        Icon(Icons.Default.Edit, "Edit Dashboard", Modifier.size(24.dp))
+        Icon(Icons.Default.Edit, "Edit Dashboard", Modifier.size(24.dp), tint = tint)
     }
     if (hasLayouts) IconButton(onClick = { onAction("layouts") }, modifier = Modifier.size(52.dp)) {
-        Icon(Icons.Default.Dashboard, "Dashboard layouts", Modifier.size(24.dp))
+        Icon(Icons.Default.Dashboard, "Dashboard layouts", Modifier.size(24.dp), tint = tint)
     }
 }

@@ -355,7 +355,7 @@ internal fun NavigationBanner(navigation: com.openlauncher.app.service.MediaList
                     TurnManeuver.UNKNOWN -> Icons.Default.Navigation
                 }
                 Icon(icon, if (cue.maneuver == TurnManeuver.UNKNOWN) "Maneuver unavailable" else cue.maneuver.name.replace('_', ' '),
-                    Modifier.size(44.dp), tint = MaterialTheme.colorScheme.primary)
+                    Modifier.size(44.dp), tint = MaterialTheme.colorScheme.onSurface)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
                 if (cue.distance.isNotBlank()) Text(cue.distance, fontSize = 23.sp, fontWeight = FontWeight.SemiBold,
