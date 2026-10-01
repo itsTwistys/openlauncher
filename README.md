@@ -7,9 +7,9 @@
 ## Download the Android preview
 
 <!-- preview-download:start -->
-**[Download Open Launcher 0.0.18-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-74c62aa/openlauncher-preview.apk)**
+**[Download Open Launcher 0.0.19-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-3f4a021/openlauncher-preview.apk)**
 
-[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-74c62aa) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-74c62aa/docs/PREVIEW.md)
+[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-3f4a021) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-3f4a021/docs/PREVIEW.md)
 <!-- preview-download:end -->
 
 This permanently signed preview installs as **Open Launcher Preview** alongside an existing launcher. Source version 0.0.19 adds a single theme-aware controls flyout for Wi-Fi status/settings, dashboard editing, tools and saved layouts, plus matching YouTube, YouTube Music and Waze shortcut icons. It consolidates dashboard controls into the app rail, adds a Top rail option, compact next-turn cues and map controls that preserve tile space. It also includes richer weather, icon-only media actions, automatic/manual dark maps and steadier map updates with a fixed directions banner. It includes full-card media, local-time overrides, smoother GPS markers and matching app icons. It retains the compact widget editor and adds dashboard controls, saved trips, expanded forecast, nearby stops, diagnostics, updates and layout recovery. It includes saved media-app selection, temporary card expansion, map orientation/automatic zoom, map recovery and the combined Clock + Weather card. It includes the YouTube removal from 0.0.9.
