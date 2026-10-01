@@ -16,10 +16,6 @@ fun automaticShortcutIcon(packageName: String): DefaultShortcutIcon? = when (pac
     "com.google.android.youtube", "com.google.android.youtube.tv" -> DefaultShortcutIcon.YOUTUBE
     "com.google.android.apps.youtube.music" -> DefaultShortcutIcon.YOUTUBE_MUSIC
     "com.waze" -> DefaultShortcutIcon.WAZE
-    "org.videolan.vlc" -> DefaultShortcutIcon.TV
-    "com.google.android.dialer", "com.android.dialer" -> DefaultShortcutIcon.PHONE
-    "com.google.android.apps.messaging" -> DefaultShortcutIcon.MESSAGE
-    "com.google.android.apps.podcasts" -> DefaultShortcutIcon.HEADSET
     else -> null
 }
 val ChromeSidebarIcon = ImageVector.Builder("Chrome", 24.dp, 24.dp, 24f, 24f).apply {
