@@ -7,12 +7,12 @@
 ## Download the Android preview
 
 <!-- preview-download:start -->
-**Updated APK pending — original signing key required.**
+**0.0.18 uses a new, backed-up permanent signing key. Automated GitHub publication awaits signing-secret setup.**
 
-The previous 0.0.15 download is no longer available. Current source fixes are not yet available as an update that preserves the existing installation. [Build and release status](https://github.com/itsTwistys/openlauncher/actions/workflows/android.yml) · [Installation and signing details](docs/PREVIEW.md)
+Old-key previews require a one-time backup and reinstall. Read the [migration guide](docs/SIGNING-MIGRATION.md) before removing the existing app. [Build status](https://github.com/itsTwistys/openlauncher/actions/workflows/android.yml).
 <!-- preview-download:end -->
 
-This debug-signed preview installs as **Open Launcher Preview** alongside an existing launcher. Source version 0.0.17 consolidates dashboard controls into the app rail, adds a Top rail option, compact next-turn cues and map controls that preserve tile space. It also includes richer weather, icon-only media actions, automatic/manual dark maps and steadier map updates with a fixed directions banner. It includes full-card media, local-time overrides, smoother GPS markers and matching app icons. It retains the compact widget editor and adds dashboard controls, saved trips, expanded forecast, nearby stops, diagnostics, updates and layout recovery. It includes saved media-app selection, temporary card expansion, map orientation/automatic zoom, map recovery and the combined Clock + Weather card. It includes the YouTube removal from 0.0.9.
+This permanently signed preview installs as **Open Launcher Preview** alongside an existing launcher. Source version 0.0.18 consolidates dashboard controls into the app rail, adds a Top rail option, compact next-turn cues and map controls that preserve tile space. It also includes richer weather, icon-only media actions, automatic/manual dark maps and steadier map updates with a fixed directions banner. It includes full-card media, local-time overrides, smoother GPS markers and matching app icons. It retains the compact widget editor and adds dashboard controls, saved trips, expanded forecast, nearby stops, diagnostics, updates and layout recovery. It includes saved media-app selection, temporary card expansion, map orientation/automatic zoom, map recovery and the combined Clock + Weather card. It includes the YouTube removal from 0.0.9.
 
 ![Earlier Open Launcher dashboard screenshot; current preview layout and controls may differ](https://github.com/user-attachments/assets/a1bc63f3-2d4e-4ac0-bd56-b5d181681658)
 
@@ -30,7 +30,7 @@ This debug-signed preview installs as **Open Launcher Preview** alongside an exi
 
 ## Update without repeating setup
 
-Install the published APK over **Open Launcher Preview**. Do not uninstall or clear storage. Layouts, shortcuts and saved settings remain. The new publishing workflow checks for matching application ID and signing certificate and an increased version code. Publication is currently blocked because the previous workflow did not retain the original signing key; that key must be recovered before an in-place update can be released. Build/lint/tests still run without it, but a passing build does not publish an APK. After restoring the original key, run **Actions → Android preview → Run workflow** on `main`. Historical releases do not contain the latest source fixes and may use a different signing key. Upgrade verification uses the pinned preview-25a391c identity; previews signed with another key cannot use that update. Spotify, Google Maps and Waze remain separately installed apps.
+Version 0.0.18 starts a new permanent-key channel after the old build process lost its signing key. Export your settings and trip CSV before the one-time reinstall; follow [the migration guide](docs/SIGNING-MIGRATION.md). Later builds signed with this permanent key can update the new installation without clearing its data. The app ID, home-screen appearance and settings format are unchanged. GitHub signing requires the backed-up keystore and password secrets; missing or mismatched keys block signed publication. An unsigned recovery artifact is a build input, not an installable APK.
 
 ## Set up a preview
 

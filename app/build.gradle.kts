@@ -14,16 +14,8 @@ android {
         manifestPlaceholders["appLabel"] = "Open Launcher"
         minSdk         = 21
         targetSdk      = 36
-        versionCode    = 18
-        versionName    = "0.0.17-preview"
-    }
-
-    signingConfigs {
-        getByName("debug") {
-            providers.environmentVariable("OPENLAUNCHER_PREVIEW_KEYSTORE_PATH").orNull?.let {
-                storeFile = file(it)
-            }
-        }
+        versionCode    = 19
+        versionName    = "0.0.18-preview"
     }
 
     buildTypes {
@@ -32,6 +24,8 @@ android {
             manifestPlaceholders["appLabel"] = "Open Launcher Preview"
         }
         release {
+            applicationIdSuffix = ".preview"
+            manifestPlaceholders["appLabel"] = "Open Launcher Preview"
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

@@ -13,6 +13,10 @@ release/*.aab
 # Signing keys — never commit
 *.jks
 *.keystore
+*.p12
+*.pfx
+keystore-password.txt
+*PRIVATE-signing-backup*
 keystore/
 
 # Android Studio / IntelliJ IDEA
@@ -38,3 +42,7 @@ Thumbs.db
 
 # Kotlin
 .kotlin/
+
+# Python test cache
+__pycache__/
+*.pyc

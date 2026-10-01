@@ -35,7 +35,7 @@ def validate(previous, candidate):
     if previous[0] != 'com.openlauncher.app.preview' or candidate[0] != previous[0]:
         raise ValueError('Preview application ID changed; refusing a separate installation')
     if candidate[2] != previous[2]:
-        raise ValueError('Signing certificate changed; restore the existing signing key, do not uninstall')
+        raise ValueError('Signing certificate changed; restore the permanent signing key; do not replace it again')
     if candidate[1] <= previous[1]:
         raise ValueError('Update versionCode must increase')
 
