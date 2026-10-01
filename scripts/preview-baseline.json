@@ -1,0 +1,10 @@
+{
+  "application_id": "com.openlauncher.app.preview",
+  "version_code": 16,
+  "signer_sha256": ["aeb220393976d7db6c4247785c1c3ab3ef6b9242ea3003dfaae23288fa2e43ca"],
+  "source_commit": "25a391c5bd27f7f170f7d6de9f3f38fb72737086",
+  "source_workflow_run": 36705611309,
+  "source_artifact_id": 11092061416,
+  "source_artifact_sha256": "b2c656ab017572dbbcc2ce18e626d363c10db2ba4c9fc3511bfc8f732723ea78",
+  "apk_sha256": "c5c38f59e804b25de199eac75ea89769a2be0b8440fc15bdc613b40cf44278f0"
+}
