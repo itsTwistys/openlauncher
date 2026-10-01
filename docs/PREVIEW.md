@@ -57,7 +57,7 @@ CI runs Android lint, unit/Compose tests, APK assembly and map browser checks wi
 
 Physical QUZHIDA rendering and ignition behavior still require a head-unit check. While parked, verify cold start, switching from navigation back to Home, map expansion/collapse, hotspot reconnection and ignition sleep/wake. For a blank map, export diagnostics before and after changing Compatibility rendering, using the existing evidence procedure below. Browser tiles are simulated; passing CI does not prove live tile delivery or physical head-unit pixels.
 
-Use the [current preview download on the main README](https://github.com/itsTwistys/openlauncher#download-the-android-preview). It points to the tested release for that APK. Choose `openlauncher-preview.apk`, not a source archive. `SHA256SUMS.txt` accompanies each APK. The GitHub Actions build and unit tests must succeed before a preview is published.
+Check the [current preview status on the main README](https://github.com/itsTwistys/openlauncher#download-the-android-preview). The previous 0.0.15 release download is unavailable; no replacement containing the current fixes is published until signing is restored. When a verified release is available, the README will link to its APK. Choose `openlauncher-preview.apk`, not a source archive. `SHA256SUMS.txt` accompanies each APK. The GitHub Actions build and unit tests must succeed before a preview is published.
 
 The preview is debug signed and installs as **Open Launcher Preview** (`com.openlauncher.app.preview`) alongside the original app. The prior signing-key cache was ineffective; new publication is blocked until the original signer can be restored and verified. If Android reports a signature mismatch, keep the existing app installed and recover a correctly signed update. Do not uninstall as an update workaround. Settings and granted files do not automatically move between the original app and Preview.
 
@@ -112,7 +112,7 @@ The OpenStreetMap GPS map remains available. Earlier browser checks used simulat
 
 ### QUZHIDA blank-map evidence to collect
 
-Use a newly published, signature-compatible preview containing the current source fixes. The older 0.0.15 download does not contain the 0.0.17 map and rail changes. Record its full commit or release tag with the export (the app version alone can be shared by several preview commits). Leave firmware, MCU, WebView provider and system settings unchanged.
+Use a newly published, signature-compatible preview containing the current source fixes. Historical releases do not contain the 0.0.17 map and rail changes. Record its full commit or release tag with the export (the app version alone can be shared by several preview commits). Leave firmware, MCU, WebView provider and system settings unchanged.
 
 1. While parked, open the existing Map with its current online-map consent and permissions. Wait at least 20 seconds. Note whether the map is blank, shows a loading/error message, or draws tiles. In **Dashboard tools > Diagnostics**, export `openlauncher-diagnostics.txt` before closing the app.
 2. Retain the App, Device, WebView package/version, GPS permission/fix age/accuracy, Internet, Map status/time, Map engine, Map tiles and all Map failure rows. Add whether this was first open, after **Reload**, after returning from another app, or after a normal ignition sleep/wake. Note approximate elapsed time since opening the map. Do not send coordinates, addresses, media titles, full URLs or raw console/logcat output.

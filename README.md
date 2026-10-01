@@ -7,12 +7,12 @@
 ## Download the Android preview
 
 <!-- preview-download:start -->
-**[Download Open Launcher 0.0.15-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-b69400d/openlauncher-preview.apk)**
+**Updated APK pending — original signing key required.**
 
-[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-b69400d) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-b69400d/docs/PREVIEW.md)
+The previous 0.0.15 download is no longer available. Current source fixes are not yet available as an update that preserves the existing installation. [Build and release status](https://github.com/itsTwistys/openlauncher/actions/workflows/android.yml) · [Installation and signing details](docs/PREVIEW.md)
 <!-- preview-download:end -->
 
-This debug-signed preview installs as **Open Launcher Preview** alongside an existing launcher. The download above identifies its exact release. Source version 0.0.17 consolidates dashboard controls into the app rail, adds a Top rail option, compact next-turn cues and map controls that preserve tile space. It also includes richer weather, icon-only media actions, automatic/manual dark maps and steadier map updates with a fixed directions banner. It includes full-card media, local-time overrides, smoother GPS markers and matching app icons. It retains the compact widget editor and adds dashboard controls, saved trips, expanded forecast, nearby stops, diagnostics, updates and layout recovery. It includes saved media-app selection, temporary card expansion, map orientation/automatic zoom, map recovery and the combined Clock + Weather card. It includes the YouTube removal from 0.0.9.
+This debug-signed preview installs as **Open Launcher Preview** alongside an existing launcher. Source version 0.0.17 consolidates dashboard controls into the app rail, adds a Top rail option, compact next-turn cues and map controls that preserve tile space. It also includes richer weather, icon-only media actions, automatic/manual dark maps and steadier map updates with a fixed directions banner. It includes full-card media, local-time overrides, smoother GPS markers and matching app icons. It retains the compact widget editor and adds dashboard controls, saved trips, expanded forecast, nearby stops, diagnostics, updates and layout recovery. It includes saved media-app selection, temporary card expansion, map orientation/automatic zoom, map recovery and the combined Clock + Weather card. It includes the YouTube removal from 0.0.9.
 
 ![Earlier Open Launcher dashboard screenshot; current preview layout and controls may differ](https://github.com/user-attachments/assets/a1bc63f3-2d4e-4ac0-bd56-b5d181681658)
 
@@ -30,7 +30,7 @@ This debug-signed preview installs as **Open Launcher Preview** alongside an exi
 
 ## Update without repeating setup
 
-Install the published APK over **Open Launcher Preview**. Do not uninstall or clear storage. Layouts, shortcuts and saved settings remain. The new publishing workflow checks for matching application ID and signing certificate and an increased version code. Publication is currently blocked because the previous workflow did not retain the original signing key; that key must be recovered before an in-place update can be released. Build/lint/tests still run without it, but a passing build does not publish an APK. After restoring the original key, run **Actions → Android preview → Run workflow** on `main`. The older download above does not contain the latest source fixes. Upgrade verification uses the pinned preview-25a391c identity; previews signed with another key cannot use that update. Spotify, Google Maps and Waze remain separately installed apps.
+Install the published APK over **Open Launcher Preview**. Do not uninstall or clear storage. Layouts, shortcuts and saved settings remain. The new publishing workflow checks for matching application ID and signing certificate and an increased version code. Publication is currently blocked because the previous workflow did not retain the original signing key; that key must be recovered before an in-place update can be released. Build/lint/tests still run without it, but a passing build does not publish an APK. After restoring the original key, run **Actions → Android preview → Run workflow** on `main`. Historical releases do not contain the latest source fixes and may use a different signing key. Upgrade verification uses the pinned preview-25a391c identity; previews signed with another key cannot use that update. Spotify, Google Maps and Waze remain separately installed apps.
 
 ## Set up a preview
 
