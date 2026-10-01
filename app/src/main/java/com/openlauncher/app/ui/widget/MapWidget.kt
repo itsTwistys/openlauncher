@@ -303,7 +303,7 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
     }
     BoxWithConstraints(modifier) {
     val compactDirections = maxHeight < 360.dp
-    var navigationDetailsOpen by remember { mutableStateOf(false) }
+    var navigationDetailsOpen by remember(navigation?.packageName) { mutableStateOf(false) }
     LaunchedEffect(navigation) {
         if (navigation == null) navigationDetailsOpen = false
     }

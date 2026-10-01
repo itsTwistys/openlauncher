@@ -9,15 +9,17 @@ internal data class TurnCue(val distance: String, val instruction: String, val m
 internal fun turnCue(title: String, details: String): TurnCue {
     val distancePattern = Regex("^(?:in\\s+)?(\\d+(?:[.,]\\d+)?\\s*(?:ft|feet|mi|mile(?:s)?|m|km|meter(?:s)?|metre(?:s)?))(?=\\s|$)", RegexOption.IGNORE_CASE)
     val match = distancePattern.find(title.trim())
-    val distance = match?.groupValues?.get(1).orEmpty()
+    val localizedDistance = Regex("\\d+(?:[.,]\\d+)?\\s*(?:ft|feet|mi|miles?|km|m)(?=\\s|$)", RegexOption.IGNORE_CASE).find(title)
+    val distance = match?.groupValues?.get(1) ?: localizedDistance?.value.orEmpty()
     val titleRemainder = if (match == null) title.trim() else title.trim().removeRange(match.range).trim(' ', '·', '-', ':')
     // Trip totals belong in the details sheet, not the next-turn line.
-    val instruction = (if (titleRemainder.isNotBlank()) titleRemainder else details).split(" · ").first().trim()
-    val text = "$titleRemainder $details".lowercase(java.util.Locale.ROOT)
+    val instruction = (if (localizedDistance != null && details.isNotBlank()) details
+        else titleRemainder.ifBlank { details }).split(" · ").first().trim()
+    val text = "$title $details".lowercase(java.util.Locale.ROOT)
     fun has(pattern: String) = Regex(pattern).containsMatchIn(text)
     val maneuver = when {
-        has("\\b(?:left\\s+u[- ]?turn|u[- ]?turn\\s+left)\\b") -> TurnManeuver.UTURN_LEFT
-        has("\\b(?:right\\s+u[- ]?turn|u[- ]?turn\\s+right)\\b") -> TurnManeuver.UTURN_RIGHT
+        has("\\b(?:left\\s+u[- ]?turn|u[- ]?turn\\s+(?:to the\\s+)?left)\\b") -> TurnManeuver.UTURN_LEFT
+        has("\\b(?:right\\s+u[- ]?turn|u[- ]?turn\\s+(?:to the\\s+)?right)\\b") -> TurnManeuver.UTURN_RIGHT
         has("\\bleft\\s+(?:at|onto|around)\\s+(?:the\\s+)?(?:roundabout|traffic circle)\\b|\\b(?:roundabout|traffic circle)\\s+(?:to the\\s+)?left\\b") -> TurnManeuver.ROUNDABOUT_LEFT
         has("\\bright\\s+(?:at|onto|around)\\s+(?:the\\s+)?(?:roundabout|traffic circle)\\b|\\b(?:roundabout|traffic circle)\\s+(?:to the\\s+)?right\\b") -> TurnManeuver.ROUNDABOUT_RIGHT
         has("\\bu[- ]?turn\\b|\\broundabout\\b|\\btraffic circle\\b") -> TurnManeuver.UNKNOWN
