@@ -74,35 +74,29 @@ class LocationCompassManager(private val context: Context) {
             val fixTime = loc.elapsedRealtimeNanos / 1_000_000
             if (!loc.latitude.isFinite() || !loc.longitude.isFinite() || loc.latitude !in -90.0..90.0 || loc.longitude !in -180.0..180.0) return
             if (!acceptLocationFix(_location.value, fixTime, loc.accuracy)) return
+            val course = travelHeading(lastLocationForBearing, loc)
+            val previous = lastLocationForBearing
+            val interval = previous?.let { (loc.elapsedRealtimeNanos - it.elapsedRealtimeNanos) / 1_000_000_000f } ?: 0f
+            val inferredSpeed = if (course != null && previous != null && interval in 0.001f..15f)
+                previous.distanceTo(loc) / interval else 0f
             _location.value = LocationData(
                 latitude  = loc.latitude,
                 longitude = loc.longitude,
                 altitude  = loc.altitude,
                 accuracy  = loc.accuracy,
-                speedMps  = if (loc.hasSpeed()) loc.speed else 0f,
+                speedMps  = if (loc.hasSpeed()) loc.speed else inferredSpeed,
                 elapsedRealtimeMs = fixTime,
-                travelBearing = if (loc.hasBearing() && loc.bearing.isFinite()) loc.bearing else null
+                travelBearing = course
             )
 
-            // 1. If GPS has a hardware-computed bearing, use it (works offline)
-            if (loc.hasBearing() && loc.bearing != 0f) {
-                _bearing.value = loc.bearing
-            } else {
-                // 2. Math fallback: Calculate bearing between consecutive location points (works offline & sensor-less!)
-                val lastLoc = lastLocationForBearing
-                if (lastLoc != null) {
-                    val distance = lastLoc.distanceTo(loc)
-                    // Ensure the distance is enough to overcome GPS jitter (e.g. 3 meters)
-                    if (distance > 3f) {
-                        val computedBearing = lastLoc.bearingTo(loc)
-                        // Normalize bearing to 0-360
-                        _bearing.value = (computedBearing + 360f) % 360f
-                        lastLocationForBearing = loc
-                    }
-                } else {
-                    lastLocationForBearing = loc
-                }
+            course?.let { _bearing.value = it }
+            // Accumulate enough movement for a fallback, but never retain a stale anchor.
+            val anchor = lastLocationForBearing
+            if (loc.provider == LocationManager.GPS_PROVIDER && (anchor == null || course != null ||
+                    fixTime - anchor.elapsedRealtimeNanos / 1_000_000 > 15_000)) {
+                lastLocationForBearing = Location(loc)
             }
+
         }
         @Deprecated("Deprecated in Java")
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}

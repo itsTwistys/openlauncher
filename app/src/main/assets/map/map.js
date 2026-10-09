@@ -7,6 +7,7 @@ const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 let positionFrame = null, accuracyRing = null, gpsFresh = true;
 let marker = null, follow = true, last = null, started = false, online = true;
 let autoZoom = true, headingUp = false, autoZoomPaused = false, programmaticZoom = false;
+let lastHeadingAt = 0;
 let speedKmh = 0, heading = null, zoomTier = 17, lastZoomChange = 0;
 function withProgrammaticZoom(action) { programmaticZoom = true; try { action(); } finally { programmaticZoom = false; } }
 function updateMotionView(force = false) {
@@ -39,7 +40,7 @@ window.setDashboardStyle = (accent, foreground, font) => {
         font === 'SOURCE_CODE_PRO' ? 'LauncherCode, monospace' : 'sans-serif');
 };
 window.setMapTheme = dark => document.documentElement.classList.toggle('dark-map', !!dark);
-window.clearMotion = () => { gpsFresh = false; heading = null; speedKmh = 0; if (marker) marker.getElement()?.classList.add('stale'); updateMotionView(); renderStatus(); };
+window.clearMotion = () => { gpsFresh = false; heading = null; lastHeadingAt = 0; speedKmh = 0; if (marker) marker.getElement()?.classList.add('stale'); updateMotionView(); renderStatus(); };
 let loading = false, failed = 0, loaded = 0, retries = 0, retryTimer = null, watchdog = null;
 let totalLoaded = 0, totalErrors = 0, totalTimeouts = 0;
 const followButton = document.getElementById('follow');
@@ -51,7 +52,7 @@ function message() {
     if (loading && !totalLoaded) return 'Loading map tiles…';
     if (failed) return 'Some map tiles unavailable · check internet';
     if (!loaded && !totalLoaded) return 'Waiting for map tiles…';
-    if (headingUp && !Number.isFinite(heading)) return 'Heading unavailable · north up';
+    if (headingUp && !Number.isFinite(heading)) return 'Move to establish heading · north up';
     if (autoZoom && autoZoomPaused) return 'Manual zoom · Recenter resumes auto zoom';
     return 'Map ready';
 }
@@ -96,7 +97,11 @@ tiles.on('load', () => {
 window.updatePosition = (lat, lon, speedMps = 0, travelHeading = null, accuracy = 0, fresh = true) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
     speedKmh = Number.isFinite(speedMps) ? Math.max(0, speedMps) * 3.6 : 0;
-    heading = Number.isFinite(travelHeading) && speedKmh >= 7.2 ? ((travelHeading % 360) + 360) % 360 : null;
+    if (fresh && Number.isFinite(travelHeading) && speedKmh >= 7.2) {
+        heading = ((travelHeading % 360) + 360) % 360;
+        lastHeadingAt = Date.now();
+    } else if (!fresh || Date.now() - lastHeadingAt > 30000) heading = null;
+    // A short stop or missing course keeps the last trusted direction, not a north-up snap.
     gpsFresh = fresh;
     const first = !last;
     last = [lat, lon];
@@ -118,7 +123,7 @@ window.updatePosition = (lat, lon, speedMps = 0, travelHeading = null, accuracy 
             positionFrame = requestAnimationFrame(step);
         } else marker.setLatLng(last);
         if (follow && map.distance(map.getCenter(), target) > 0.5)
-            map.panTo(last, { animate: fresh && distance < 150, duration: 0.65 });
+            map.panTo(last, { animate: !headingUp && fresh && distance < 150, duration: 0.65 });
     }
     marker.getElement()?.classList.toggle('stale', !fresh);
     if (accuracyRing) accuracyRing.setLatLng(last).setRadius(Number.isFinite(accuracy) ? Math.min(Math.max(accuracy, 0), 2000) : 0);

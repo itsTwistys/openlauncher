@@ -1,8 +1,8 @@
 # Open Launcher preview: installation and testing
 
-## Current release: 0.0.19 controls flyout
+## Current release: 0.0.20 heading-up recovery
 
-The original private signing key could not be recovered. At the owner's request a new permanent key was generated and privately backed up. The application ID remains `com.openlauncher.app.preview`; versionCode is 20. This release groups rail controls into a matching flyout and adds YouTube, YouTube Music and Waze shortcut symbols. Existing layouts and settings are retained. The release APK is not debuggable.
+The original private signing key could not be recovered. At the owner's request a new permanent key was generated and privately backed up. The application ID remains `com.openlauncher.app.preview`; versionCode is 21. This release adds GPS movement-based heading when course is missing, retains direction briefly in slow traffic, and avoids simultaneous rotated follow/pan animations. It retains the controls flyout and app symbols. Existing layouts and settings are retained. The release APK is not debuggable.
 
 **Old-key installations cannot be upgraded in place. Follow [SIGNING-MIGRATION.md](SIGNING-MIGRATION.md) to export supported settings and trip history before the one-time reinstall.** Subsequent releases use this same permanent key.
 
@@ -73,7 +73,7 @@ CI runs Android lint, unit/Compose tests, APK assembly and map browser checks wi
 
 Physical QUZHIDA rendering and ignition behavior still require a head-unit check. While parked, verify cold start, switching from navigation back to Home, map expansion/collapse, hotspot reconnection and ignition sleep/wake. For a blank map, export diagnostics before and after changing Compatibility rendering, using the existing evidence procedure below. Browser tiles are simulated; passing CI does not prove live tile delivery or physical head-unit pixels.
 
-Check the [current preview status on the main README](https://github.com/itsTwistys/openlauncher#download-the-android-preview). The previous 0.0.15 release download is unavailable. Version 0.0.19 uses the same permanent key introduced in 0.0.18; it updates 0.0.18 in place. Older-key installations require the migration process above. When a verified release is available, the README will link to its APK. Choose `openlauncher-preview.apk`, not a source archive. `SHA256SUMS.txt` accompanies each APK. The GitHub Actions build and unit tests must succeed before a preview is published.
+Check the [current preview status on the main README](https://github.com/itsTwistys/openlauncher#download-the-android-preview). The previous 0.0.15 release download is unavailable. Version 0.0.20 uses the same permanent key introduced in 0.0.18; it updates 0.0.18 in place. Older-key installations require the migration process above. When a verified release is available, the README will link to its APK. Choose `openlauncher-preview.apk`, not a source archive. `SHA256SUMS.txt` accompanies each APK. The GitHub Actions build and unit tests must succeed before a preview is published.
 
 The release APK installs as **Open Launcher Preview** (`com.openlauncher.app.preview`) and is not debuggable. It uses the privately backed-up permanent key. Old-key previews require a verified settings export before the one-time reinstall; later permanent-key updates preserve app data in place. Settings and external-file grants do not automatically move between the original app and Preview.
 

@@ -69,6 +69,19 @@ const assert=require('node:assert/strict');
  await page.waitForFunction(()=>Math.abs(map.getBearing()-270)<1);
  await page.locator('#center').click();
  assert.equal(await page.evaluate(()=>map.getZoom()),16);
+ // Slow traffic/missing bearing retains a recent trusted heading; stale GPS resets it.
+ await page.evaluate(()=>window.updatePosition(25.761,-80.191,0,null,8,true));
+ assert.ok(Math.abs(await page.evaluate(()=>map.getBearing())-270)<1);
+ for (let i=1;i<=12;i++) {
+   await page.evaluate(i=>window.updatePosition(25.761+i*0.0001,-80.191,15,90,8,true),i);
+   await page.waitForTimeout(80);
+ }
+ await page.waitForFunction(()=>!window.mapStatus().loading);
+ const movingCenter=await page.evaluate(()=>map.latLngToContainerPoint(L.latLng(last)));
+ assert.ok(Math.abs(movingCenter.x-400)<2 && Math.abs(movingCenter.y-240)<2,'Rotated moving map stays centered');
+ assert.ok(await page.locator('.leaflet-tile-loaded').count()>0,'Tiles retained while following and rotating');
+ await page.evaluate(()=>{lastHeadingAt=Date.now()-31000;window.updatePosition(25.761,-80.191,0,null,8,true);});
+ assert.equal(await page.evaluate(()=>map.getBearing()),0,'Old course expires instead of inventing a direction');
  // Faster speeds widen the view; boundaries resist small speed fluctuations.
  await page.evaluate(()=>{lastZoomChange=0;window.updatePosition(25.761,-80.191,30,0);});
  assert.equal(await page.evaluate(()=>map.getZoom()),15);
