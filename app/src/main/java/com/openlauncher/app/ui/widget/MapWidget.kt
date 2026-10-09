@@ -132,7 +132,7 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
             if (fix != null && fix.latitude.isFinite() && fix.longitude.isFinite()) {
                 val fresh = android.os.SystemClock.elapsedRealtime() - fix.elapsedRealtimeMs < 30_000
                 val speed = if (fresh && fix.speedMps.isFinite()) fix.speedMps.coerceAtLeast(0f) else 0f
-                val heading = fix.travelBearing?.takeIf { fresh && speed >= 2f && fix.accuracy <= 50f && it.isFinite() }
+                val heading = fix.travelBearing?.takeIf { fresh && fix.accuracy <= 50f && it.isFinite() }
                 view?.let { evaluate(it, "window.updatePosition(${fix.latitude},${fix.longitude},$speed,${heading ?: "null"},${fix.accuracy.takeIf { it.isFinite() } ?: 0f},$fresh);") }
             }
         }
