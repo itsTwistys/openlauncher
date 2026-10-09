@@ -11,8 +11,8 @@ let lastHeadingAt = 0;
 let speedKmh = 0, heading = null, zoomTier = 17, lastZoomChange = 0;
 function withProgrammaticZoom(action) { programmaticZoom = true; try { action(); } finally { programmaticZoom = false; } }
 function updateMotionView(force = false) {
-    if (headingUp && Number.isFinite(heading)) map.setHeading(heading);
-    else { map.stopHeadingUp(); if (Math.abs(map.getBearing()) > 0.01) map.setBearing(0); }
+    // Raster labels are baked into tiles. Keep this compatibility fallback north-up.
+    map.stopHeadingUp(); if (Math.abs(map.getBearing()) > 0.01) map.setBearing(0);
     if (!last || !follow || !autoZoom || autoZoomPaused) return;
     // Hysteresis prevents repeated zoom changes around the speed boundaries.
     let target = zoomTier;
@@ -52,7 +52,7 @@ function message() {
     if (loading && !totalLoaded) return 'Loading map tiles…';
     if (failed) return 'Some map tiles unavailable · check internet';
     if (!loaded && !totalLoaded) return 'Waiting for map tiles…';
-    if (headingUp && !Number.isFinite(heading)) return 'Move to establish heading · north up';
+    if (headingUp) return 'Compatibility map · north up for readable labels';
     if (autoZoom && autoZoomPaused) return 'Manual zoom · Recenter resumes auto zoom';
     return 'Map ready';
 }

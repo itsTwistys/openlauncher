@@ -46,3 +46,7 @@ Thumbs.db
 # Python test cache
 __pycache__/
 *.pyc
+
+# Pinned renderer assets prepared and verified by Gradle
+app/src/main/assets/map/maplibre-gl.js
+app/src/main/assets/map/maplibre-gl.css

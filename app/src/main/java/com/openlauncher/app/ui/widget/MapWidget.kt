@@ -196,8 +196,8 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                 try { WebView(context).also { created = it }.apply {
                     view = this
                     setBackgroundColor(if (dark) android.graphics.Color.rgb(24, 28, 32) else android.graphics.Color.rgb(230, 232, 230))
-                    setLayerType(if (softwareRendering) android.view.View.LAYER_TYPE_SOFTWARE
-                        else android.view.View.LAYER_TYPE_NONE, null)
+                    // Vector labels require GPU rendering. The saved software choice applies to raster fallback.
+                    setLayerType(android.view.View.LAYER_TYPE_NONE, null)
                     settings.javaScriptEnabled = true
                     settings.allowFileAccess = false
                     settings.allowContentAccess = false
@@ -224,7 +224,9 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                         override fun shouldInterceptRequest(web: WebView, request: WebResourceRequest): android.webkit.WebResourceResponse? =
                             assets.shouldInterceptRequest(request.url)
                         override fun onPageFinished(web: WebView, url: String) {
-                            if (view !== web || url == "about:blank") return
+                            if (view !== web || url == "about:blank" || url != web.url) return
+                            if (url.endsWith("/map.html")) web.setLayerType(
+                                if (softwareRendering) android.view.View.LAYER_TYPE_SOFTWARE else android.view.View.LAYER_TYPE_NONE, null)
                             evaluate(web, "typeof window.updatePosition === 'function' && typeof window.mapStatus === 'function'") { result ->
                                 if (view === web) {
                                     ready = result == "true"
@@ -244,12 +246,13 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                         }
                         override fun shouldOverrideUrlLoading(web: WebView, request: WebResourceRequest): Boolean {
                             if (!request.isForMainFrame) return false
+                            if (request.url.toString() == "https://appassets.androidplatform.net/assets/map/map.html") return false
                             if (request.hasGesture() && request.url.scheme == "https")
                                 runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, request.url)) }
                             return true
                         }
                     }
-                    loadUrl("https://appassets.androidplatform.net/assets/map/map.html")
+                    loadUrl("https://appassets.androidplatform.net/assets/map/vector-map.html")
                 } } catch (_: RuntimeException) {
                     view = null
                     runCatching { created?.destroy() }

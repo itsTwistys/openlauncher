@@ -64,9 +64,9 @@ const assert=require('node:assert/strict');
  assert.ok(zoomBounds.width>=48&&zoomBounds.height>=48,'Map zoom targets are at least 48px');
  fs.mkdirSync('app/build/outputs/ui-checks',{recursive:true});
  await page.screenshot({path:'app/build/outputs/ui-checks/map-recovered-landscape.png'});
- // Heading rotates map content; UI and gesture coordinates remain usable.
+ // Raster fallback remains north-up so baked-in road labels stay readable.
  await page.evaluate(()=>{window.setMapOptions(true,true);window.updatePosition(25.761,-80.191,15,90);});
- await page.waitForFunction(()=>Math.abs(map.getBearing()-270)<1);
+ await page.waitForFunction(()=>Math.abs(map.getBearing())<1);
  await page.locator('#center').click();
  assert.equal(await page.evaluate(()=>map.getZoom()),16);
  // Slow traffic/missing bearing retains a recent trusted heading; stale GPS resets it.
@@ -78,7 +78,7 @@ const assert=require('node:assert/strict');
  }
  await page.waitForFunction(()=>!window.mapStatus().loading);
  const movingCenter=await page.evaluate(()=>map.latLngToContainerPoint(marker.getLatLng()));
- assert.ok(Math.abs(movingCenter.x-400)<2 && Math.abs(movingCenter.y-240)<2,'Rotated moving map stays centered');
+ assert.ok(Math.abs(movingCenter.x-400)<2 && Math.abs(movingCenter.y-240)<2,'Compatibility map stays centered');
  assert.ok(await page.locator('.leaflet-tile-loaded').count()>0,'Tiles retained while following and rotating');
  await page.evaluate(()=>{lastHeadingAt=Date.now()-31000;window.updatePosition(25.761,-80.191,0,null,8,true);});
  assert.equal(await page.evaluate(()=>map.getBearing()),0,'Old course expires instead of inventing a direction');
@@ -97,7 +97,7 @@ const assert=require('node:assert/strict');
  // Heading 0 is valid. Missing/stale heading returns to north-up.
  await page.waitForFunction(()=>Math.abs(map.getBearing())<1);
  await page.evaluate(()=>window.updatePosition(25.761,-80.191,15,90));
- await page.waitForFunction(()=>Math.abs(map.getBearing()-270)<1);
+ await page.waitForFunction(()=>Math.abs(map.getBearing())<1);
  await page.evaluate(()=>window.clearMotion());
  assert.equal(await page.evaluate(()=>map.getBearing()),0);
  await page.evaluate(()=>window.setMapOptions(false,false));
