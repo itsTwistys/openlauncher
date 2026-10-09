@@ -1,3 +1,6 @@
+import java.net.URI
+import java.security.MessageDigest
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -115,12 +118,12 @@ val prepareVectorAssets = tasks.register("prepareVectorAssets") {
         val spec = groovy.json.JsonSlurper().parse(manifest) as Map<*, *>
         val version = spec["version"] as String
         val files = spec["files"] as Map<*, *>
-        fun digest(bytes: ByteArray) = java.security.MessageDigest.getInstance("SHA-256")
+        fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256")
             .digest(bytes).joinToString("") { "%02x".format(it) }
         for ((name, expected) in files) {
             val target = assetDir.resolve(name as String)
             if (target.exists() && digest(target.readBytes()) == expected) continue
-            val connection = java.net.URI("https://unpkg.com/maplibre-gl@$version/dist/$name").toURL().openConnection()
+            val connection = URI("https://unpkg.com/maplibre-gl@$version/dist/$name").toURL().openConnection()
             connection.connectTimeout = 15_000
             connection.readTimeout = 30_000
             val bytes = connection.getInputStream().use { it.readBytes() }
