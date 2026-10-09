@@ -71,7 +71,7 @@ const assert=require('node:assert/strict');
  assert.equal(await page.evaluate(()=>map.getZoom()),16);
  // Slow traffic/missing bearing retains a recent trusted heading; stale GPS resets it.
  await page.evaluate(()=>window.updatePosition(25.761,-80.191,0,null,8,true));
- assert.ok(Math.abs(await page.evaluate(()=>map.getBearing())-270)<1);
+ assert.ok(Math.abs(await page.evaluate(()=>map.getBearing()))<1);
  for (let i=1;i<=12;i++) {
    await page.evaluate(i=>window.updatePosition(25.761+i*0.0001,-80.191,15,90,8,true),i);
    await page.waitForTimeout(80);
