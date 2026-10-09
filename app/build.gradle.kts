@@ -1,3 +1,6 @@
+import java.net.URI
+import java.security.MessageDigest
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -14,8 +17,8 @@ android {
         manifestPlaceholders["appLabel"] = "Open Launcher"
         minSdk         = 21
         targetSdk      = 36
-        versionCode    = 21
-        versionName    = "0.0.20-preview"
+        versionCode    = 22
+        versionName    = "0.0.21-preview"
     }
 
     buildTypes {
@@ -104,3 +107,29 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
+
+// Package a pinned, verified renderer locally; the installed app loads no CDN scripts.
+val prepareVectorAssets = tasks.register("prepareVectorAssets") {
+    val manifest = rootProject.file("scripts/maplibre-assets.json")
+    inputs.file(manifest)
+    val assetDir = file("src/main/assets/map")
+    outputs.files(file("src/main/assets/map/maplibre-gl.js"), file("src/main/assets/map/maplibre-gl.css"))
+    doLast {
+        val spec = groovy.json.JsonSlurper().parse(manifest) as Map<*, *>
+        val version = spec["version"] as String
+        val files = spec["files"] as Map<*, *>
+        fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256")
+            .digest(bytes).joinToString("") { "%02x".format(it) }
+        for ((name, expected) in files) {
+            val target = assetDir.resolve(name as String)
+            if (target.exists() && digest(target.readBytes()) == expected) continue
+            val connection = URI("https://unpkg.com/maplibre-gl@$version/dist/$name").toURL().openConnection()
+            connection.connectTimeout = 15_000
+            connection.readTimeout = 30_000
+            val bytes = connection.getInputStream().use { it.readBytes() }
+            check(digest(bytes) == expected) { "MapLibre asset checksum mismatch: $name" }
+            target.writeBytes(bytes)
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(prepareVectorAssets) }

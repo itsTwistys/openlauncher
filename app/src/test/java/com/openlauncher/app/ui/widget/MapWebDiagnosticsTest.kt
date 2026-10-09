@@ -61,6 +61,7 @@ class MapWebDiagnosticsTest {
     @Test fun classificationUsesExactHosts() {
         assertEquals(MapResource.TILE, mapResource(Uri.parse("https://tile.openstreetmap.org/1/2/3.png")))
         assertEquals(MapResource.OTHER, mapResource(Uri.parse("https://tile.openstreetmap.org.evil.invalid/1/2/3.png")))
+        assertEquals(MapResource.TILE, mapResource(Uri.parse("https://tiles.openfreemap.org/planet/17/123/456.pbf")))
         assertEquals(MapResource.OTHER, mapResource(null))
         assertEquals(MapResource.PAGE, mapResource(null, true))
     }

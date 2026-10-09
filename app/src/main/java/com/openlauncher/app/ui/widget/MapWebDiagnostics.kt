@@ -9,7 +9,7 @@ import com.openlauncher.app.data.*
 internal fun mapResource(uri: Uri?, mainFrame: Boolean = false): MapResource = when {
     mainFrame -> MapResource.PAGE
     uri?.host == "appassets.androidplatform.net" -> MapResource.LOCAL_ASSET
-    uri?.host == "tile.openstreetmap.org" -> MapResource.TILE
+    uri?.host in setOf("tile.openstreetmap.org", "tiles.openfreemap.org") -> MapResource.TILE
     else -> MapResource.OTHER
 }
 
