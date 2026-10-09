@@ -56,6 +56,7 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
     }
     val owner = LocalLifecycleOwner.current
     var ready by remember { mutableStateOf(false) }
+    var pageGeneration by remember { mutableIntStateOf(0) }
     var failure by remember { mutableStateOf<String?>(null) }
     var attempt by remember { mutableIntStateOf(0) }
     var autoRetries by remember { mutableIntStateOf(0) }
@@ -119,14 +120,14 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
         }
     }
     // Options and theme must not restart heading/zoom animation on every GPS update.
-    LaunchedEffect(ready, resumed, networkAvailable, autoZoom, headingUp, dark, controlAccent, controlText, fontChoice) {
+    LaunchedEffect(ready, pageGeneration, resumed, networkAvailable, autoZoom, headingUp, dark, controlAccent, controlText, fontChoice) {
         if (ready && resumed) view?.let {
             it.setBackgroundColor(if (dark) android.graphics.Color.rgb(24, 28, 32) else android.graphics.Color.rgb(230, 232, 230))
             evaluate(it, "window.setNetworkAvailable($networkAvailable); window.setMapOptions($autoZoom,$headingUp); window.setMapTheme($dark); window.setDashboardStyle('$controlAccent','$controlText','$fontChoice');")
         }
     }
     // Re-send coordinates after page creation, GPS updates and resume. Never inject app text or URLs.
-    LaunchedEffect(ready, location, resumed) {
+    LaunchedEffect(ready, pageGeneration, location, resumed) {
         if (ready && resumed) {
             val fix = latestLocation
             if (fix != null && fix.latitude.isFinite() && fix.longitude.isFinite()) {
@@ -137,7 +138,7 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
             }
         }
     }
-    LaunchedEffect(ready, resumed, attempt) {
+    LaunchedEffect(ready, pageGeneration, resumed, attempt) {
         if (ready && resumed) {
             view?.let { evaluate(it, "window.resumeMap();") }
             while (true) {
@@ -230,6 +231,7 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                             evaluate(web, "typeof window.updatePosition === 'function' && typeof window.mapStatus === 'function'") { result ->
                                 if (view === web) {
                                     ready = result == "true"
+                                    if (ready) pageGeneration++
                                     DashboardDiagnostics.engine(if (ready) MapEngine.READY else MapEngine.SCRIPT_FAILED)
                                     failure = if (ready) null else "Map script did not initialize. Retrying…"
                                 }

@@ -1,12 +1,13 @@
 'use strict';
 (() => {
     const fallback = () => window.location.replace('map.html');
-    if (!window.maplibregl || !maplibregl.supported()) { fallback(); return; }
+    if (!window.maplibregl) { fallback(); return; }
     let map;
     try {
         map = new maplibregl.Map({container: 'map', style: {version: 8, sources: {}, layers: []},
             center: [0, 0], zoom: 2, maxZoom: 19, attributionControl: false,
             dragRotate: false, pitchWithRotate: false, touchPitch: false, fadeDuration: 0});
+        if (!map.getCanvas().getContext("webgl2")) throw new Error("WebGL unavailable");
     } catch (_) { fallback(); return; }
     window.map = map;
     map.touchZoomRotate.disableRotation();
@@ -86,7 +87,7 @@
                 if (!line) layer.layout['icon-rotation-alignment'] = 'viewport';
             }
             style.metadata = {...style.metadata, openlauncherGeneration: generation};
-            map.setStyle(style); motion();
+            map.setStyle(style, {diff: false}); motion();
         } catch (_) {
             if (generation !== styleGeneration || !online) return;
             clearTimeout(watchdog); loading = false; failed++; totalErrors++; renderStatus(); retry();

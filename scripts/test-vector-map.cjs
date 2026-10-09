@@ -46,6 +46,7 @@ const fs=require('fs'), path=require('path'), assert=require('node:assert/strict
   assert.equal(await page.evaluate(()=>window.mapStatus().bearing),180,'Hold course through a short stop');
   await page.evaluate(()=>window.clearMotion());
   assert.equal(await page.evaluate(()=>window.mapStatus().bearing),0,'Stale GPS returns north up');
+  await page.evaluate(()=>window.updatePosition(25.761,-80.191,0,null,8,true));
   await page.evaluate(()=>window.setMapTheme(true));
   await page.waitForFunction(()=>!window.mapStatus().loading);
   assert.ok(await page.evaluate(()=>document.documentElement.classList.contains('dark-map')));

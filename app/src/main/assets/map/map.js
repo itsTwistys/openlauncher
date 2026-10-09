@@ -57,8 +57,8 @@ function message() {
     return 'Map ready';
 }
 function renderStatus() {
-    statusBox.textContent = message();
-    statusBox.style.display = online && last && gpsFresh && totalLoaded && !failed ? 'none' : 'block';
+    const text = message(); statusBox.textContent = text;
+    statusBox.style.display = text === 'Map ready' || text.startsWith('Manual zoom') ? 'none' : 'block';
 }
 function cancelRetry() { clearTimeout(retryTimer); retryTimer = null; }
 function scheduleRetry() {
