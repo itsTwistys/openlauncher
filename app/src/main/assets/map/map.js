@@ -113,7 +113,7 @@ window.updatePosition = (lat, lon, speedMps = 0, travelHeading = null, accuracy 
     } else {
         if (positionFrame !== null) cancelAnimationFrame(positionFrame);
         const from = marker.getLatLng(), target = L.latLng(last), distance = from.distanceTo(target);
-        if (fresh && distance > 0.5 && distance < 150 && !document.hidden) {
+        if (!(headingUp && follow) && fresh && distance > 0.5 && distance < 150 && !document.hidden) {
             const began = performance.now();
             const step = time => {
                 const t = Math.min(1, (time - began) / 650), eased = t * (2 - t);

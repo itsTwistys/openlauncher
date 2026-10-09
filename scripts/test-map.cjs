@@ -77,7 +77,7 @@ const assert=require('node:assert/strict');
    await page.waitForTimeout(80);
  }
  await page.waitForFunction(()=>!window.mapStatus().loading);
- const movingCenter=await page.evaluate(()=>map.latLngToContainerPoint(L.latLng(last)));
+ const movingCenter=await page.evaluate(()=>map.latLngToContainerPoint(marker.getLatLng()));
  assert.ok(Math.abs(movingCenter.x-400)<2 && Math.abs(movingCenter.y-240)<2,'Rotated moving map stays centered');
  assert.ok(await page.locator('.leaflet-tile-loaded').count()>0,'Tiles retained while following and rotating');
  await page.evaluate(()=>{lastHeadingAt=Date.now()-31000;window.updatePosition(25.761,-80.191,0,null,8,true);});

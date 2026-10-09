@@ -75,16 +75,13 @@ class LocationCompassManager(private val context: Context) {
             if (!loc.latitude.isFinite() || !loc.longitude.isFinite() || loc.latitude !in -90.0..90.0 || loc.longitude !in -180.0..180.0) return
             if (!acceptLocationFix(_location.value, fixTime, loc.accuracy)) return
             val course = travelHeading(lastLocationForBearing, loc)
-            val previous = lastLocationForBearing
-            val interval = previous?.let { (loc.elapsedRealtimeNanos - it.elapsedRealtimeNanos) / 1_000_000_000f } ?: 0f
-            val inferredSpeed = if (course != null && previous != null && interval in 0.001f..15f)
-                previous.distanceTo(loc) / interval else 0f
+            val inferredSpeed = inferredTravelSpeed(lastLocationForBearing, loc)
             _location.value = LocationData(
                 latitude  = loc.latitude,
                 longitude = loc.longitude,
                 altitude  = loc.altitude,
                 accuracy  = loc.accuracy,
-                speedMps  = if (loc.hasSpeed()) loc.speed else inferredSpeed,
+                speedMps  = if (loc.hasSpeed()) loc.speed else inferredSpeed ?: 0f,
                 elapsedRealtimeMs = fixTime,
                 travelBearing = course
             )
@@ -92,7 +89,7 @@ class LocationCompassManager(private val context: Context) {
             course?.let { _bearing.value = it }
             // Accumulate enough movement for a fallback, but never retain a stale anchor.
             val anchor = lastLocationForBearing
-            if (loc.provider == LocationManager.GPS_PROVIDER && (anchor == null || course != null ||
+            if (loc.provider == LocationManager.GPS_PROVIDER && (anchor == null || !anchor.hasAccuracy() || anchor.accuracy !in 0f..50f || inferredSpeed != null ||
                     fixTime - anchor.elapsedRealtimeNanos / 1_000_000 > 15_000)) {
                 lastLocationForBearing = Location(loc)
             }

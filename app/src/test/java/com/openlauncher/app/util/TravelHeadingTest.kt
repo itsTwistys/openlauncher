@@ -23,6 +23,14 @@ class TravelHeadingTest {
         b.bearing = 0f
         assertEquals(0f, travelHeading(a, b)!!, 0f)
     }
+    @Test fun hardwareBearingCannotTurnJitterIntoSpeed() {
+        val a = fix(25.0, -80.0, 1000)
+        val jitter = fix(25.000001, -80.0, 2000).apply { bearing = 90f }
+        assertNotNull(travelHeading(a, jitter))
+        assertNull(inferredTravelSpeed(a, jitter))
+        assertNull(inferredTravelSpeed(fix(25.0, -80.0, 1000, 100f), jitter))
+        assertNotNull(inferredTravelSpeed(a, fix(25.0, -79.9998, 6000)))
+    }
     @Test fun jitterStaleAndNetworkFixesCannotSetCourse() {
         val a = fix(25.0, -80.0, 1000)
         assertNull(travelHeading(a, fix(25.000001, -80.0, 2000)))
