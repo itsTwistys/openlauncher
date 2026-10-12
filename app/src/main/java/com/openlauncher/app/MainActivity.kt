@@ -68,10 +68,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         // Optional steering-wheel mapping; keys are consumed only when the owner bound them.
-        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0 && vm.handleKeyEvent(event.keyCode)) return true
-        return super.dispatchKeyEvent(event)
+        if (event.repeatCount == 0 && vm.handleKeyEvent(keyCode)) return true
+        return super.onKeyDown(keyCode, event)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
