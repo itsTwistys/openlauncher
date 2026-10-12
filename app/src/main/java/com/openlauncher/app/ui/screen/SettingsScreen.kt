@@ -459,6 +459,14 @@ fun SettingsScreen(
             if (backupStatus.isNotBlank()) Text(backupStatus, style = MaterialTheme.typography.bodyMedium)
         }
 
+        if (category == "All" || category == "Connected") SettingsSection("Now Playing") {
+            SettingsRow("Start last music app", "Reconnect at startup or after sleep. Audio is not started automatically.", Icons.Default.MusicNote) {
+                Switch(settings.autoLaunchMedia, { enabled -> onUpdate { copy(autoLaunchMedia = enabled) } }, colors = switchColors(accent))
+            }
+            if (settings.lastMediaPackage.isNotBlank()) Text("Last used: ${settings.lastMediaPackage}", style = MaterialTheme.typography.bodySmall)
+            Text("Choose a specific player from the Now Playing header. Apps without background media startup open their own screen once.", style = MaterialTheme.typography.bodySmall)
+        }
+
         if (category == "All" || category == "Connected") SettingsSection("Destinations") {
             Text("Preferred navigation app", style = MaterialTheme.typography.bodyMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

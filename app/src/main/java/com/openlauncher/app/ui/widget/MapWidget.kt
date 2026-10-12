@@ -66,6 +66,7 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
     var tileState by remember { mutableStateOf("Loading map engine…") }
     var rawTileState by remember { mutableStateOf("Loading map engine…") }
     var now by remember { mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
+    var following by remember { mutableStateOf(true) }
     var optionsOpen by remember { mutableStateOf(false) }
     var previousRendering by remember { mutableStateOf(softwareRendering) }
     val latestLocation by rememberUpdatedState(location)
@@ -156,6 +157,7 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                             val renderer = status.optString("renderer")
                             val reason = status.optString("fallbackReason").takeIf { it in setOf("unsupported", "context-lost", "init-failed", "missing-asset") } ?: "unknown"
                             val rendererName = if (renderer == "vector") "Vector map · WebGL ${status.optInt("webglVersion")}" else "Compatibility map ($reason)"
+                            following = status.optBoolean("follow", true)
                             rawTileState = status.getString("message")
                             tileState = "$rendererName · $rawTileState"
                             DashboardDiagnostics.renderer(if (renderer == "vector") MapRenderer.VECTOR else MapRenderer.RASTER,
@@ -198,7 +200,10 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
         if (optionsOpen) MapOptionsDialog(autoZoom, headingUp, softwareRendering, gpsText,
             failure ?: if (!networkAvailable) "Offline · waiting for internet" else tileState,
             onMapOptions, onSoftwareRendering, onReload = { autoRetries = 0; reload(); optionsOpen = false },
-            onDismiss = { optionsOpen = false }, mapTheme = mapTheme, onMapTheme = onMapTheme)
+            onDismiss = { optionsOpen = false }, mapTheme = mapTheme, onMapTheme = onMapTheme,
+            following = following, onFollow = { follow -> following = follow; view?.let { evaluate(it, "window.setMapFollow($follow);") } },
+            onRecenter = { following = true; view?.let { evaluate(it, "window.recenterMap();") }; optionsOpen = false },
+            onZoom = { delta -> view?.let { evaluate(it, "window.zoomMap($delta);") } })
         key(attempt) {
             EmbeddedWebFrame(Modifier.fillMaxSize(), create = {
                 DashboardDiagnostics.beginPage()
@@ -405,10 +410,20 @@ private fun MapExpandButton(expanded: Boolean, onExpand: () -> Unit) {
 internal fun MapOptionsDialog(autoZoom: Boolean, headingUp: Boolean, softwareRendering: Boolean,
     gpsStatus: String, mapStatus: String, onMapOptions: (Boolean, Boolean) -> Unit,
     onSoftwareRendering: (Boolean) -> Unit, onReload: () -> Unit, onDismiss: () -> Unit,
-    mapTheme: String = "AUTO", onMapTheme: (String) -> Unit = {}) {
+    mapTheme: String = "AUTO", onMapTheme: (String) -> Unit = {},
+    following: Boolean = true, onFollow: (Boolean) -> Unit = {}, onRecenter: () -> Unit = {}, onZoom: (Int) -> Unit = {}) {
     SettingsDialog(onDismissRequest = onDismiss, title = { Text("Map options") }, text = {
         Column(Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            MapOptionSwitch("Follow location", following, onFollow)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { onZoom(-1) }, modifier = Modifier.size(48.dp)) { Icon(Icons.Default.Remove, "Zoom out") }
+                IconButton(onClick = { onZoom(1) }, modifier = Modifier.size(48.dp)) { Icon(Icons.Default.Add, "Zoom in") }
+                com.openlauncher.app.ui.components.SettingsOutlinedButton(onClick = onRecenter) {
+                    Icon(Icons.Default.MyLocation, null); Spacer(Modifier.width(8.dp)); Text("Recenter")
+                }
+            }
+            HorizontalDivider()
             Text("Map appearance", style = MaterialTheme.typography.bodyMedium)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 listOf("AUTO" to "Auto", "DARK" to "Dark", "LIGHT" to "Light").forEach { (value, label) ->

@@ -690,91 +690,203 @@ private fun WidgetContextMenu(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 ContextRow(
                     label   = "BARS VIEW",
-                   …23431 tokens truncated…se.ui.graphics.Color(0xFFE7EBEF),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)) {
-                    Image(symbol.asImageBitmap(), "Navigation symbol supplied by navigation app", Modifier.size(48.dp).padding(4.dp))
-                }
-            } else {
-                val icon = when (cue.maneuver) {
-                    TurnManeuver.LEFT -> Icons.Default.TurnLeft
-                    TurnManeuver.RIGHT -> Icons.Default.TurnRight
-                    TurnManeuver.SLIGHT_LEFT -> Icons.Default.TurnSlightLeft
-                    TurnManeuver.SLIGHT_RIGHT -> Icons.Default.TurnSlightRight
-                    TurnManeuver.UTURN_LEFT -> Icons.Default.UTurnLeft
-                    TurnManeuver.UTURN_RIGHT -> Icons.Default.UTurnRight
-                    TurnManeuver.ROUNDABOUT_LEFT -> Icons.Default.RoundaboutLeft
-                    TurnManeuver.ROUNDABOUT_RIGHT -> Icons.Default.RoundaboutRight
-                    TurnManeuver.STRAIGHT -> Icons.Default.Straight
-                    TurnManeuver.ARRIVE -> Icons.Default.Flag
-                    TurnManeuver.UNKNOWN -> Icons.Default.Navigation
-                }
-                Icon(icon, if (cue.maneuver == TurnManeuver.UNKNOWN) "Maneuver unavailable" else cue.maneuver.name.replace('_', ' '),
-                    Modifier.size(44.dp), tint = MaterialTheme.colorScheme.onSurface)
+                    icon    = Icons.Default.FormatAlignLeft,
+                    tint    = if (vitalsAsBars) accent else inactiveMenuTint,
+                    onClick = { onSetVitalsAsBars(true); onDismiss() },
+                    isDayMode = isDayMode
+                )
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-                if (cue.distance.isNotBlank()) Text(cue.distance, fontSize = 23.sp, fontWeight = FontWeight.SemiBold,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(cue.instruction, fontSize = if (cue.distance.isBlank()) 20.sp else 16.sp,
-                    maxLines = if (cue.distance.isBlank()) 2 else 1, overflow = TextOverflow.Ellipsis)
+            if (widgetId == "SPEEDOMETER") {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                ContextRow(
+                    label   = "DIAL TRACK",
+                    icon    = Icons.Default.Speed,
+                    tint    = if (!speedometerDigitalOnly) accent else inactiveMenuTint,
+                    onClick = { onSetSpeedometerDigitalOnly(false); onDismiss() },
+                    isDayMode = isDayMode
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                ContextRow(
+                    label   = "DIGITAL ONLY",
+                    icon    = Icons.Default.Dialpad,
+                    tint    = if (speedometerDigitalOnly) accent else inactiveMenuTint,
+                    onClick = { onSetSpeedometerDigitalOnly(true); onDismiss() },
+                    isDayMode = isDayMode
+                )
             }
-            if (onExpand != null) MapExpandButton(expanded, onExpand)
-        }
+            if (widgetId == "NOW_PLAYING") {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                ContextRow("ASSIGN CARPLAY APP",      Icons.Default.PhoneAndroid,  accent, onAssignCarPlay, isDayMode = isDayMode)
+                if (carPlayPackage.isNotEmpty()) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                    ContextRow("CLEAR CARPLAY APP", Icons.Default.PhoneAndroid, MaterialTheme.colorScheme.error, onClearCarPlay, isDayMode = isDayMode)
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                ContextRow("ASSIGN ANDROID AUTO APP", Icons.Default.DirectionsCar, accent, onAssignAndroidAuto, isDayMode = isDayMode)
+                if (androidAutoPackage.isNotEmpty()) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                    ContextRow("CLEAR ANDROID AUTO APP", Icons.Default.DirectionsCar, MaterialTheme.colorScheme.error, onClearAndroidAuto, isDayMode = isDayMode)
+                }
+            }
+
     }
 }
 
 @Composable
-private fun MapExpandButton(expanded: Boolean, onExpand: () -> Unit) {
-    IconButton(onClick = onExpand, modifier = Modifier.size(48.dp)) {
-        Icon(if (expanded) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-            if (expanded) "Return to dashboard" else "Expand MAP")
-    }
+private fun ContextRow(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: Color,
+    onClick: () -> Unit,
+    isDayMode: Boolean = false
+) {
+    com.openlauncher.app.ui.components.SettingsAction(label, icon = icon, tint = tint, onClick = onClick)
 }
 
 @Composable
-internal fun MapOptionsDialog(autoZoom: Boolean, headingUp: Boolean, softwareRendering: Boolean,
-    gpsStatus: String, mapStatus: String, onMapOptions: (Boolean, Boolean) -> Unit,
-    onSoftwareRendering: (Boolean) -> Unit, onReload: () -> Unit, onDismiss: () -> Unit,
-    mapTheme: String = "AUTO", onMapTheme: (String) -> Unit = {},
-    following: Boolean = true, onFollow: (Boolean) -> Unit = {}, onRecenter: () -> Unit = {}, onZoom: (Int) -> Unit = {}) {
-    SettingsDialog(onDismissRequest = onDismiss, title = { Text("Map options") }, text = {
-        Column(Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            MapOptionSwitch("Follow location", following, onFollow)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { onZoom(-1) }, modifier = Modifier.size(48.dp)) { Icon(Icons.Default.Remove, "Zoom out") }
-                IconButton(onClick = { onZoom(1) }, modifier = Modifier.size(48.dp)) { Icon(Icons.Default.Add, "Zoom in") }
-                com.openlauncher.app.ui.components.SettingsOutlinedButton(onClick = onRecenter) {
-                    Icon(Icons.Default.MyLocation, null); Spacer(Modifier.width(8.dp)); Text("Recenter")
+private fun WidgetResizeDialog(
+    config: WidgetConfig,
+    settings: AppSettings,
+    accent: Color,
+    isDayMode: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (spanX: Int, spanY: Int) -> Unit
+) {
+    var spanX by remember { mutableStateOf(config.spanX) }
+    var spanY by remember { mutableStateOf(config.spanY) }
+
+    val preview = settings.resizePreview(config.id, spanX, spanY)
+    val maxSpanX = GRID_COLS
+    val maxSpanY = GRID_ROWS
+
+    val dialogBg     = MaterialTheme.colorScheme.surface
+    val dialogText   = MaterialTheme.colorScheme.onSurface
+    val cancelColor  = MaterialTheme.colorScheme.onSurfaceVariant
+    SettingsDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text          = config.id.replace('_', ' '),
+                color         = dialogText,
+                style = MaterialTheme.typography.bodyMedium,
+                letterSpacing = 2.sp
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                Text("QUICK SIZES", color = dialogText, style = MaterialTheme.typography.bodyMedium, letterSpacing = 1.sp)
+                (1..maxSpanY).forEach { height ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        (1..maxSpanX).forEach { width ->
+                            FilterChip(
+                                enabled = settings.resizePreview(config.id, width, height) != null,
+                                selected = spanX == width && spanY == height,
+                                onClick = { spanX = width; spanY = height },
+                                label = { Text("${width}×${height}", style = MaterialTheme.typography.bodyMedium) }
+                            )
+                        }
+                    }
                 }
-            }
-            HorizontalDivider()
-            Text("Map appearance", style = MaterialTheme.typography.bodyMedium)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                listOf("AUTO" to "Auto", "DARK" to "Dark", "LIGHT" to "Light").forEach { (value, label) ->
-                    FilterChip(selected = mapTheme == value, onClick = { onMapTheme(value) }, label = { Text(label) })
+                Text(if (preview == null) "This size does not fit. Remove or shrink another widget."
+                    else "Preview: the highlighted cells show this widget. Disabled sizes need more room.",
+                    color = dialogText.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
+                val target = preview?.firstOrNull { it.id == config.id }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    repeat(GRID_ROWS) { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            repeat(GRID_COLS) { col ->
+                                val highlighted = target != null && col in target.gridX until target.gridX + target.spanX &&
+                                    row in target.gridY until target.gridY + target.spanY
+                                Box(Modifier.size(width = 52.dp, height = 30.dp).background(
+                                    if (highlighted) accent else dialogText.copy(alpha = 0.12f)))
+                            }
+                        }
+                    }
                 }
+                SpanRow(label = "WIDTH",  value = spanX, min = 1, max = maxSpanX, accent = accent, isDayMode = isDayMode) { spanX = it }
+                SpanRow(label = "HEIGHT", value = spanY, min = 1, max = maxSpanY, accent = accent, isDayMode = isDayMode) { spanY = it }
             }
-            Text("Auto follows the dashboard day/night theme.", style = MaterialTheme.typography.bodyMedium)
-            MapOptionSwitch("Auto zoom", autoZoom) { onMapOptions(it, headingUp) }
-            MapOptionSwitch("Heading up", headingUp) { onMapOptions(autoZoom, it) }
-            HorizontalDivider()
-            MapOptionSwitch("Compatibility rendering", softwareRendering, onSoftwareRendering)
-            Text("This controls the raster fallback. Vector maps use GPU rendering. Reload retries vector initialization.", style = MaterialTheme.typography.bodyMedium)
-            Text(gpsStatus, style = MaterialTheme.typography.bodyMedium)
-            Text(mapStatus, style = MaterialTheme.typography.bodyMedium)
-            com.openlauncher.app.ui.components.SettingsOutlinedButton(onClick = onReload, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                Text("Reload map", style = MaterialTheme.typography.bodyMedium)
+        },
+        confirmButton = {
+            TextButton(enabled = preview != null, onClick = { onConfirm(spanX, spanY) }) {
+                Text("APPLY", color = accent, style = MaterialTheme.typography.bodyMedium)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("CANCEL", color = cancelColor, style = MaterialTheme.typography.bodyMedium)
+            }
+        },
+        containerColor    = dialogBg,
+        titleContentColor = dialogText,
+        textContentColor  = dialogText
+    )
+}
+
+@Composable
+private fun SpanRow(
+    label: String,
+    value: Int,
+    min: Int,
+    max: Int,
+    accent: Color,
+    isDayMode: Boolean,
+    onChange: (Int) -> Unit
+) {
+    val textColor   = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
+    val dimColor    = if (isDayMode) Color(0xFF495057) else Color(0xFFBFC7D2)
+    val disabledC   = if (isDayMode) Color(0xFFCED4DA) else Color(0xFF333333)
+    val inactiveBg  = if (isDayMode) Color(0xFFE9ECEF) else Color(0xFF2A2A2A)
+    Row(
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text          = label,
+            color         = dimColor,
+            fontSize      = 10.sp,
+            letterSpacing = 1.sp,
+            modifier      = Modifier.width(52.dp)
+        )
+        IconButton(
+            onClick  = { if (value > min) onChange(value - 1) },
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                Icons.Default.Remove, "Decrease $label",
+                tint     = if (value > min) textColor else disabledC,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+        Text(
+            text      = "$value",
+            color     = textColor,
+            fontSize  = 16.sp,
+            textAlign = TextAlign.Center,
+            modifier  = Modifier.width(24.dp)
+        )
+        IconButton(
+            onClick  = { if (value < max) onChange(value + 1) },
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                Icons.Default.Add, "Increase $label",
+                tint     = if (value < max) accent else disabledC,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            repeat(max) { i ->
+                Box(
+                    modifier = Modifier
+                        .size(width = 14.dp, height = 10.dp)
+                        .background(
+                            if (i < value) accent.copy(alpha = 0.7f) else inactiveBg,
+                            RoundedCornerShape(1.dp)
+                        )
+                )
             }
         }
-    }, confirmButton = { TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 56.dp)) {
-        Text("Done", style = MaterialTheme.typography.bodyMedium)
-    } })
-}
-
-@Composable
-private fun MapOptionSwitch(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-        Switch(checked, onCheckedChange, modifier = Modifier.semantics { contentDescription = label })
     }
 }
