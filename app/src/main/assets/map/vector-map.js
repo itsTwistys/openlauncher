@@ -60,7 +60,8 @@
         const targetBearing = headingUp && Number.isFinite(heading) ? heading : 0;
         const wrap = value => (value + 540) % 360 - 180;
         const moveMeters = from && last ? new maplibregl.LngLat(...from).distanceTo(new maplibregl.LngLat(...last)) : 0;
-        const smooth = animate && gpsFresh && !document.hidden && moveMeters < 250;
+        const smooth = animate && gpsFresh && !document.hidden && moveMeters < 250 &&
+            (moveMeters > 0.3 || Math.abs(wrap(targetBearing - startBearing)) > 0.2 || Math.abs(zoom - startZoom) > 0.01);
         const duration = smooth ? 650 : 0, began = performance.now();
         function draw(t) {
             const point = from && last ? [from[0] + wrap(last[0] - from[0]) * t, from[1] + (last[1] - from[1]) * t] : null;
@@ -141,8 +142,9 @@
         renderStatus();
     });
     map.on('error', () => { failed++; totalErrors++; renderStatus(); retry(); });
-    map.on('dragstart', () => setFollow(false));
-    map.on('zoomstart', event => { if (!programmatic && event.originalEvent) autoZoomPaused = true; });
+    function stopMotion() { if (motionFrame !== null) cancelAnimationFrame(motionFrame); motionFrame = null; if (marker && last) marker.setLngLat(last); }
+    map.on('dragstart', () => { stopMotion(); setFollow(false); });
+    map.on('zoomstart', event => { if (!programmatic && event.originalEvent) { stopMotion(); autoZoomPaused = true; } });
     followButton.onclick = () => { setFollow(!follow); if (follow) { autoZoomPaused = false; motion(true); } renderStatus(); };
     document.getElementById('center').onclick = () => { setFollow(true); autoZoomPaused = false; motion(true); renderStatus(); };
     window.updatePosition = (lat, lon, speed = 0, bearing = null, accuracy = 0, fresh = true) => {

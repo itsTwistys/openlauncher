@@ -74,6 +74,14 @@ const fs=require('fs'), path=require('path'), assert=require('node:assert/strict
   }
   await page.waitForFunction(()=>!window.mapStatus().animating);
   assert.equal(styles,requestsBeforeDriving,'Driving never refetches the style');
+  await page.evaluate(()=>window.updatePosition(25.761,-80.1898,12,90,8,true));
+  await page.mouse.move(280,120);await page.mouse.down();await page.mouse.move(340,155,{steps:5});await page.mouse.up();
+  assert.equal(await page.locator('#follow').innerText(),'Follow off');
+  const freeCenter=await page.evaluate(()=>map.getCenter().toArray());
+  await page.evaluate(()=>window.updatePosition(25.761,-80.1897,12,90,8,true));
+  await page.waitForFunction(()=>!window.mapStatus().animating);
+  const heldCenter=await page.evaluate(()=>map.getCenter().toArray());
+  assert.ok(heldCenter.every((value,i)=>Math.abs(value-freeCenter[i])<1e-9),'Manual pan cancels follow motion and holds the chosen view');
   assert.deepEqual(errors,[]);
   const fallback=await browser.newPage();
   await fallback.addInitScript(()=>{HTMLCanvasElement.prototype.getContext=()=>null;});
