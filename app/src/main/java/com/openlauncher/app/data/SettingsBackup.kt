@@ -8,7 +8,7 @@ import com.google.gson.JsonParser
 object SettingsBackup {
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val ids = setOf("CLOCK", "WEATHER", "NOW_PLAYING", "TELEMETRY", "ALTIMETER", "SPEEDOMETER",
-        "VITALS", "TRIP_TRACKER", "SOUNDBOARD", "MAP", "CONNECTIVITY", "DESTINATIONS", "RADAR", "TRAFFIC")
+        "VITALS", "TRIP_TRACKER", "SOUNDBOARD", "MAP", "CONNECTIVITY", "DESTINATIONS", "RADAR", "TRAFFIC", "SPORTS")
 
     fun encode(settings: AppSettings): String = gson.toJson(JsonObject().apply {
         addProperty("format", "openlauncher-settings")
@@ -43,6 +43,10 @@ object SettingsBackup {
         require(s.vehicleName.length <= 100 && s.homeDestination.length <= 500 && s.workDestination.length <= 500)
         require(s.clockTimeZone in setOf("AUTO", "SYSTEM") || s.clockTimeZone in java.util.TimeZone.getAvailableIDs())
         require(s.mapTheme in setOf("AUTO", "DARK", "LIGHT"))
+        require(s.sportsLeague in setOf("NFL", "NBA", "NHL", "MLB", "F1"))
+        require(s.sportsView in setOf("LIVE", "RESULTS", "UPCOMING"))
+        require(s.sportsLeagues.isNotEmpty() && s.sportsLeagues.size <= 5 && s.sportsLeagues.distinct().size == s.sportsLeagues.size &&
+            s.sportsLeagues.all { it in setOf("NFL", "NBA", "NHL", "MLB", "F1") })
         require(s.clockDateFormat in setOf("LONG", "SHORT"))
         require(s.recentDestinations.size <= 5 && s.recentDestinations.all { it.length <= 500 })
         require(s.preferredMediaPackage.length <= 255 && (s.preferredMediaPackage in setOf("", "@radio") ||

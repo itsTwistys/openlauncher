@@ -161,7 +161,7 @@ window.resumeMap = () => {
     if (online && started && (loading || failed || !loaded)) reloadTiles();
     renderStatus();
 };
-window.mapStatus = () => ({ message: message(), gpsFresh, started, loading, failed, loaded, totalLoaded, totalErrors, totalTimeouts, autoZoomPaused, headingUp, bearing: map.getBearing(), zoom: map.getZoom() });
+window.mapStatus = () => ({ renderer: "raster", fallbackReason: new URLSearchParams(location.search).get("fallback") || "unknown", message: message(), gpsFresh, started, loading, failed, loaded, totalLoaded, totalErrors, totalTimeouts, autoZoomPaused, headingUp, bearing: map.getBearing(), zoom: map.getZoom() });
 if (window.ResizeObserver) new ResizeObserver(() => window.resizeMap()).observe(document.body);
 window.addEventListener('resize', () => window.resizeMap());
 document.addEventListener('visibilitychange', () => {

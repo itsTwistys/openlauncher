@@ -4,6 +4,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class MapDiagnosticsTest {
+    @Test fun rendererEvidenceContainsOnlySafeEnumsAndVersions() {
+        val diagnostics = MapDiagnostics { 100L }
+        diagnostics.renderer(MapRenderer.VECTOR, MapFallback.UNKNOWN, 1)
+        assertEquals(1, diagnostics.map.value.webglVersion)
+        diagnostics.renderer(MapRenderer.RASTER, MapFallback.CONTEXT_LOST, 999)
+        assertEquals(0, diagnostics.map.value.webglVersion)
+        assertTrue(diagnostics.map.value.evidenceLines().any { it.second.contains("CONTEXT_LOST") })
+    }
     @Test fun recoveryAndPageReloadRetainFailureEvidence() {
         var now = 100L
         val diagnostics = MapDiagnostics { now }
