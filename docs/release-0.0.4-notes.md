@@ -1,3 +1,5 @@
+> Historical notes for v0.0.4, kept for reference. See [PREVIEW.md](PREVIEW.md) for the current release.
+
 # Release v0.0.4: The Customizer & Vitals Update
 
 This release brings ultimate personalization and robust diagnostic telemetry to your dashboard. Version 0.0.4 resolves critical styling and day/night mode conflicts, overhauls the soundboard with intuitive management options, adds new visualization views for your device vitals, introduces a minimalist digital-only speedometer, and stabilizes the launcher across a wider array of OEM head units.
