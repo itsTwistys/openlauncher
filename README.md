@@ -7,9 +7,9 @@
 ## Download the Android preview
 
 <!-- preview-download:start -->
-**[Download Open Launcher 0.0.22-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-420a7d3/openlauncher-preview.apk)**
+**[Download Open Launcher 0.0.23-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-b31e738/openlauncher-preview.apk)**
 
-[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-420a7d3) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-420a7d3/docs/PREVIEW.md)
+[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-b31e738) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-b31e738/docs/PREVIEW.md)
 <!-- preview-download:end -->
 
 This permanently signed preview installs as **Open Launcher Preview**. Version 0.0.23 unifies Settings, dashboard tools, widget options, shortcut customization, sound assignment and confirmation/color dialogs with the same flat bordered surfaces, font, theme and control shapes. Settings has All, Dashboard, Display, Connected and System categories. Long dialogs scroll while their confirmation controls stay reachable. It preserves layouts, media preferences, shortcuts and setup when installed over the permanent-key preview channel.
