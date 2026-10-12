@@ -1,5 +1,6 @@
 package com.openlauncher.app.ui.widget
 
+import com.openlauncher.app.ui.components.SettingsDialog
 import android.media.MediaMetadata
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -169,7 +170,7 @@ fun NowPlayingWidget(
         }
         if (pickerOpen) {
             var query by remember { mutableStateOf("") }
-            AlertDialog(onDismissRequest = { pickerOpen = false }, title = { Text("Choose media app") },
+            SettingsDialog(onDismissRequest = { pickerOpen = false }, title = { Text("Choose media app") },
                 text = {
                     Column {
                         Text("The app must expose Android media controls while playing.", fontSize = 14.sp)

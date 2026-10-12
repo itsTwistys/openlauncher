@@ -1,5 +1,7 @@
 package com.openlauncher.app.ui.widget
 
+import com.openlauncher.app.ui.components.SettingsFilledButton as Button
+import com.openlauncher.app.ui.components.SettingsOutlinedButton as OutlinedButton
 import android.content.Intent
 import android.media.MediaPlayer
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -138,6 +140,7 @@ fun SoundboardWidget(
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun PadAssignDialog(
     pad: SoundPadConfig,
@@ -147,11 +150,6 @@ private fun PadAssignDialog(
     onSave: (SoundPadConfig) -> Unit
 ) {
     val context    = LocalContext.current
-    val menuBg     = if (isDayMode) Color(0xFFF0F0F0) else MaterialTheme.colorScheme.background
-    val menuBorder = if (isDayMode) Color(0xFFCCCCCC) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f)
-    val contentColor = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
-    val dimColor   = if (isDayMode) Color(0xFF888888) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-    val fieldBorder = if (isDayMode) Color(0xFFCCCCCC) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
 
     var labelText   by remember { mutableStateOf(pad.label) }
     var synthType   by remember { mutableStateOf(pad.synthType) }
@@ -172,184 +170,43 @@ private fun PadAssignDialog(
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(menuBg)
-                .border(1.dp, menuBorder, RoundedCornerShape(6.dp))
-                .padding(18.dp)
-                .width(340.dp), // Fixed size: increased from 220dp to 340dp for landscape headunit displays
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(
-                "ASSIGN PAD SOUND",
-                color = contentColor,
-                fontSize = 10.sp,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp
-            )
-
-            // Label field
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("PAD LABEL", color = dimColor, fontSize = 7.sp, fontFamily = FontFamily.Monospace, letterSpacing = 1.5.sp)
-                BasicTextField(
-                    value = labelText,
-                    onValueChange = { if (it.length <= 12) labelText = it },
-                    singleLine = true,
-                    textStyle = TextStyle(
-                        color = contentColor,
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace
-                    ),
-                    cursorBrush = SolidColor(accent),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, fieldBorder, RoundedCornerShape(2.dp))
-                        .padding(horizontal = 8.dp, vertical = 6.dp)
-                )
-            }
-
-            // Preloaded Audio Selector (replaces old raw waveform synth generation)
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("PRELOADED AUDIO", color = dimColor, fontSize = 7.sp, fontFamily = FontFamily.Monospace, letterSpacing = 1.5.sp)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    val preloadedSounds = listOf(
-                        "mario_jump" to "mario_jump",
-                        "mario_coin" to "mario_coin",
-                        "boom" to "boom",
-                        "loud_fart" to "loud_fart"
-                    )
-                    preloadedSounds.forEach { (type, chipLabel) ->
-                        val active = synthType == type && audioUri.isEmpty()
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(28.dp)
-                                .border(1.dp, if (active) accent else fieldBorder, RoundedCornerShape(3.dp))
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(if (active) accent.copy(alpha = 0.12f) else Color.Transparent)
-                                .clickable { 
-                                    synthType = type
-                                    audioUri = ""
-                                    labelText = type
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                chipLabel,
-                                color = if (active) accent else dimColor,
-                                fontSize = 8.sp,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+    com.openlauncher.app.ui.components.SettingsDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Assign pad sound") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(labelText, { if (it.length <= 12) labelText = it },
+                    label = { Text("Pad label") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Text("Preloaded audio", style = MaterialTheme.typography.labelLarge)
+                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("mario_jump" to "Mario jump", "mario_coin" to "Mario coin",
+                        "boom" to "Boom", "loud_fart" to "Fart").forEach { (type, name) ->
+                        FilterChip(synthType == type && audioUri.isEmpty(),
+                            { synthType = type; audioUri = ""; labelText = name }, label = { Text(name) })
                     }
                 }
-            }
-
-            // Custom audio file picker
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("CUSTOM AUDIO FILE", color = dimColor, fontSize = 7.sp, fontFamily = FontFamily.Monospace, letterSpacing = 1.5.sp)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedButton(
-                        onClick = { filePicker.launch(arrayOf("audio/*")) },
-                        modifier = Modifier.weight(1f).height(30.dp),
-                        shape = RoundedCornerShape(2.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = accent),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (audioUri.isNotEmpty()) accent else fieldBorder),
-                        contentPadding = PaddingValues(horizontal = 8.dp)
-                    ) {
-                        Icon(Icons.Default.AudioFile, null, tint = accent, modifier = Modifier.size(12.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            if (audioUri.isNotEmpty()) "CUSTOM FILE ASSIGNED" else "PICK AUDIO FILE",
-                            color = accent,
-                            fontSize = 7.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    if (audioUri.isNotEmpty()) {
-                        IconButton(
-                            onClick = { audioUri = "" },
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(Icons.Default.Clear, null, tint = dimColor, modifier = Modifier.size(14.dp))
-                        }
-                    }
+                OutlinedButton(onClick = { filePicker.launch(arrayOf("audio/*")) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Icon(Icons.Default.AudioFile, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (audioUri.isNotEmpty()) "Change audio file" else "Pick audio file")
                 }
                 if (audioUri.isNotEmpty()) {
-                    Text(
-                        audioUri.substringAfterLast('/').take(36),
-                        color = dimColor.copy(alpha = 0.6f),
-                        fontSize = 6.5.sp,
-                        fontFamily = FontFamily.Monospace,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Text(audioUri.substringAfterLast('/'), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextButton(onClick = { audioUri = "" }) { Text("Use preloaded audio") }
+                }
+                if (pad.label != "+" || pad.audioUri.isNotEmpty() || pad.synthType.isNotEmpty()) {
+                    TextButton(onClick = { onSave(SoundPadConfig(label = "+", audioUri = "", synthType = "")) }) {
+                        Text("Clear sound", color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
-
-            if (pad.label != "+" || pad.audioUri.isNotEmpty() || pad.synthType.isNotEmpty()) {
-                OutlinedButton(
-                    onClick = {
-                        onSave(SoundPadConfig(
-                            label     = "+",
-                            audioUri  = "",
-                            synthType = ""
-                        ))
-                    },
-                    modifier = Modifier.fillMaxWidth().height(32.dp),
-                    shape = RoundedCornerShape(2.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF884444)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF884444)),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text("CLEAR SOUND", color = Color(0xFF884444), fontSize = 7.5.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-                }
-            }
-
-            // Save / Cancel row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f).height(32.dp),
-                    shape = RoundedCornerShape(2.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = dimColor),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, fieldBorder),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text("CANCEL", color = dimColor, fontSize = 7.5.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-                }
-                Button(
-                    onClick = {
-                        onSave(SoundPadConfig(
-                            label     = labelText.trim().ifEmpty { pad.label },
-                            audioUri  = audioUri,
-                            synthType = synthType
-                        ))
-                    },
-                    modifier = Modifier.weight(1f).height(32.dp),
-                    shape = RoundedCornerShape(2.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = accent),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text("SAVE SOUND", color = if (isDayMode) Color.White else Color.Black, fontSize = 7.5.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
+        },
+        confirmButton = { TextButton(onClick = { onSave(SoundPadConfig(
+            label = labelText.trim().ifEmpty { pad.label }, audioUri = audioUri, synthType = synthType)) }) { Text("Save sound") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 private fun playSoundPad(context: android.content.Context, pad: SoundPadConfig, onDone: () -> Unit) {

@@ -1,5 +1,6 @@
 package com.openlauncher.app.ui.widget
 
+import com.openlauncher.app.ui.components.SettingsDialog
 import android.media.MediaMetadata
 import android.media.Rating
 import android.media.session.PlaybackState
@@ -138,7 +139,7 @@ internal fun MediaArtworkPlayer(state: NowPlayingState, accent: Color, editing: 
             }
         }
     }
-    if (showRating) AlertDialog(onDismissRequest = { showRating = false }, title = { Text("Rate this track") }, text = {
+    if (showRating) SettingsDialog(onDismissRequest = { showRating = false }, title = { Text("Rate this track") }, text = {
         Column {
             val maximum = when (state.ratingStyle) { Rating.RATING_3_STARS -> 3; Rating.RATING_4_STARS -> 4; Rating.RATING_5_STARS -> 5; else -> 0 }
             if (maximum > 0) (1..maximum).forEach { stars -> TextButton(onClick = {

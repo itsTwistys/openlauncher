@@ -1,6 +1,9 @@
 package com.openlauncher.app.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -8,6 +11,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.compositeOver
 import com.openlauncher.app.data.AppFont
 
 val LocalDayMode = staticCompositionLocalOf { false }
@@ -26,7 +30,7 @@ fun OpenLauncherTheme(
 ) {
     // Contrast-aware: the accent is user-chosen and can be any brightness,
     // so a fixed onPrimary (white) goes invisible on light accents
-    val onAccent = if (accent.luminance() > 0.5f) Color.Black else Color.White
+    val onAccent = if (accent.luminance() > 0.179f) Color.Black else Color.White
     val colorScheme = if (isDayMode) lightColorScheme(
         primary          = accent,
         onPrimary        = onAccent,
@@ -54,9 +58,19 @@ fun OpenLauncherTheme(
         onSurfaceVariant = TextMuted,
         outline          = DividerGray
     )
+    // Filter chips must share the chosen dashboard palette, including light mode.
+    val a = accent.luminance(); val b = colorScheme.surface.luminance()
+    val contrast = (maxOf(a, b) + 0.05f) / (minOf(a, b) + 0.05f)
+    val selectionTint = if (contrast >= 3f) accent else colorScheme.onSurface
+    val selection = selectionTint.copy(alpha = 0.16f).compositeOver(colorScheme.surface)
+    val unifiedColors = colorScheme.copy(primaryContainer = selection, onPrimaryContainer = colorScheme.onSurface,
+        secondaryContainer = selection, onSecondaryContainer = colorScheme.onSurface,
+        tertiaryContainer = selection, onTertiaryContainer = colorScheme.onSurface)
     CompositionLocalProvider(LocalDayMode provides isDayMode) {
         MaterialTheme(
-            colorScheme = colorScheme,
+            colorScheme = unifiedColors,
+            shapes = Shapes(extraSmall = RoundedCornerShape(4.dp), small = RoundedCornerShape(4.dp),
+                medium = RoundedCornerShape(4.dp), large = RoundedCornerShape(4.dp), extraLarge = RoundedCornerShape(4.dp)),
             typography  = launcherTypography(fontBold, textScale, appFont.toFontFamily()),
             content     = content
         )

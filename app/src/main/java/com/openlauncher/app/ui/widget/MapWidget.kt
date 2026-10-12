@@ -1,5 +1,6 @@
 package com.openlauncher.app.ui.widget
 
+import com.openlauncher.app.ui.components.SettingsDialog
 import android.content.Intent
 import android.net.Uri
 import android.webkit.WebResourceRequest
@@ -322,7 +323,7 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
     LaunchedEffect(navigation) {
         if (navigation == null) navigationDetailsOpen = false
     }
-    if (navigationDetailsOpen && navigation != null) AlertDialog(onDismissRequest = { navigationDetailsOpen = false },
+    if (navigationDetailsOpen && navigation != null) SettingsDialog(onDismissRequest = { navigationDetailsOpen = false },
         title = { Text(if (navigation.packageName == "com.waze") "Waze directions" else "Google Maps directions") },
         text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(navigation.title)
@@ -405,36 +406,36 @@ internal fun MapOptionsDialog(autoZoom: Boolean, headingUp: Boolean, softwareRen
     gpsStatus: String, mapStatus: String, onMapOptions: (Boolean, Boolean) -> Unit,
     onSoftwareRendering: (Boolean) -> Unit, onReload: () -> Unit, onDismiss: () -> Unit,
     mapTheme: String = "AUTO", onMapTheme: (String) -> Unit = {}) {
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Map options") }, text = {
-        Column(Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState()),
+    SettingsDialog(onDismissRequest = onDismiss, title = { Text("Map options") }, text = {
+        Column(Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Map appearance", fontSize = 16.sp)
+            Text("Map appearance", style = MaterialTheme.typography.bodyMedium)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 listOf("AUTO" to "Auto", "DARK" to "Dark", "LIGHT" to "Light").forEach { (value, label) ->
                     FilterChip(selected = mapTheme == value, onClick = { onMapTheme(value) }, label = { Text(label) })
                 }
             }
-            Text("Auto follows the dashboard day/night theme.", fontSize = 13.sp)
+            Text("Auto follows the dashboard day/night theme.", style = MaterialTheme.typography.bodyMedium)
             MapOptionSwitch("Auto zoom", autoZoom) { onMapOptions(it, headingUp) }
             MapOptionSwitch("Heading up", headingUp) { onMapOptions(autoZoom, it) }
             HorizontalDivider()
             MapOptionSwitch("Compatibility rendering", softwareRendering, onSoftwareRendering)
-            Text("This controls the raster fallback. Vector maps use GPU rendering. Reload retries vector initialization.", fontSize = 14.sp)
-            Text(gpsStatus, fontSize = 16.sp)
-            Text(mapStatus, fontSize = 14.sp)
-            OutlinedButton(onClick = onReload, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                Text("Reload map", fontSize = 16.sp)
+            Text("This controls the raster fallback. Vector maps use GPU rendering. Reload retries vector initialization.", style = MaterialTheme.typography.bodyMedium)
+            Text(gpsStatus, style = MaterialTheme.typography.bodyMedium)
+            Text(mapStatus, style = MaterialTheme.typography.bodyMedium)
+            com.openlauncher.app.ui.components.SettingsOutlinedButton(onClick = onReload, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                Text("Reload map", style = MaterialTheme.typography.bodyMedium)
             }
         }
     }, confirmButton = { TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 56.dp)) {
-        Text("Done", fontSize = 16.sp)
+        Text("Done", style = MaterialTheme.typography.bodyMedium)
     } })
 }
 
 @Composable
 private fun MapOptionSwitch(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.weight(1f), fontSize = 16.sp)
+        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
         Switch(checked, onCheckedChange, modifier = Modifier.semantics { contentDescription = label })
     }
 }

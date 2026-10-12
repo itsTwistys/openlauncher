@@ -350,38 +350,12 @@ private fun ShortcutActionDialog(
     onRemove: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(Color(0xFF111111))
-                .border(1.dp, Color(0xFF1E1E1E), RoundedCornerShape(4.dp))
-                .padding(vertical = 4.dp)
-                .width(260.dp)
-        ) {
-            ActionRow("CHANGE APP",     Icons.Default.SwapHoriz, accent, onChangeApp)
-            HorizontalDivider(color = Color(0xFF1A1A1A))
-            ActionRow("CUSTOMIZE ICON", Icons.Default.Palette,   accent, onCustomizeIcon)
-            HorizontalDivider(color = Color(0xFF1A1A1A))
-            ActionRow("REMOVE",         Icons.Default.Delete,     Color(0xFF993333), onRemove)
-        }
-    }
-}
-
-@Composable
-private fun ActionRow(label: String, icon: ImageVector, tint: Color, onClick: () -> Unit) {
-    val readableTint = if (tint == Color(0xFF993333)) Color(0xFFEF9A9A) else tint
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Icon(icon, null, tint = readableTint, modifier = Modifier.size(16.dp))
-        Text(label, color = readableTint, fontSize = 14.sp)
+    SettingsPanel("Shortcut options", onDismiss) {
+        SettingsAction("Change app", icon = Icons.Default.SwapHoriz, onClick = onChangeApp)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        SettingsAction("Customize icon", icon = Icons.Default.Palette, onClick = onCustomizeIcon)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        SettingsAction("Remove", icon = Icons.Default.Delete, tint = MaterialTheme.colorScheme.error, onClick = onRemove)
     }
 }
 
@@ -395,22 +369,7 @@ private fun IconPickerDialog(
 ) {
     val vectorOptions = DefaultShortcutIcon.entries.filter { it != DefaultShortcutIcon.NONE && it != DefaultShortcutIcon.APP_ICON }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(Color(0xFF111111))
-                .border(1.dp, Color(0xFF1E1E1E), RoundedCornerShape(4.dp))
-                .padding(12.dp)
-        ) {
-            Text(
-                "CHOOSE ICON",
-                color         = Color(0xFF888888),
-                fontSize      = 14.sp,
-                letterSpacing = 2.sp,
-                modifier      = Modifier.padding(bottom = 10.dp)
-            )
-
+    SettingsPanel("Choose icon", onDismiss) {
             if (hasNativeIcon) {
                 Row(
                     modifier = Modifier
@@ -422,15 +381,15 @@ private fun IconPickerDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(Icons.Default.Apps, null, tint = if (currentOverride == DefaultShortcutIcon.APP_ICON) accent else Color(0xFF666666), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Apps, null, tint = if (currentOverride == DefaultShortcutIcon.APP_ICON) accent else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                     Text(
                         "NATIVE APP ICON",
-                        color         = if (currentOverride == DefaultShortcutIcon.APP_ICON) accent else Color(0xFF888888),
-                        fontSize      = 14.sp,
+                        color         = if (currentOverride == DefaultShortcutIcon.APP_ICON) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
                         letterSpacing = 1.sp
                     )
                 }
-                HorizontalDivider(color = Color(0xFF1A1A1A), modifier = Modifier.padding(vertical = 6.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(vertical = 6.dp))
             }
 
             LazyVerticalGrid(
@@ -444,21 +403,20 @@ private fun IconPickerDialog(
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .aspectRatio(1f)
+                            .heightIn(min = 56.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(if (isSelected) accent.copy(alpha = 0.18f) else Color(0xFF1A1A1A))
+                            .background(if (isSelected) accent.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant)
                             .clickable { onPick(iconOption) }
                     ) {
                         Icon(
                             imageVector        = iconOption.toIcon(),
                             contentDescription = iconOption.name,
-                            tint               = if (isSelected) accent else Color(0xFF888888),
+                            tint               = if (isSelected) accent else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier           = Modifier.size(20.dp)
                         )
                     }
                 }
             }
-        }
     }
 }
 

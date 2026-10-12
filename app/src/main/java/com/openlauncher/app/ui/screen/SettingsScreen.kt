@@ -1,5 +1,7 @@
 package com.openlauncher.app.ui.screen
 
+import com.openlauncher.app.ui.components.SettingsFilledButton as Button
+import com.openlauncher.app.ui.components.SettingsDialog
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -11,6 +13,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.*
@@ -42,11 +46,15 @@ import com.openlauncher.app.ui.theme.LocalDayMode
 import com.openlauncher.app.util.SunriseSunset
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import com.openlauncher.app.ui.components.SettingsSection
+import com.openlauncher.app.ui.components.SettingsRow
+import com.openlauncher.app.ui.components.SettingsAction
 import com.openlauncher.app.ui.components.ColorPickerDialog
 import com.openlauncher.app.ui.components.ConfirmDialog
 
 // Resolved at call site via LocalDayMode — see SettingsDivider / SettingsSection
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     settings: AppSettings,
@@ -92,7 +100,7 @@ fun SettingsScreen(
         }
     }
     pendingRestore?.let { restored ->
-        AlertDialog(
+        SettingsDialog(
             onDismissRequest = { pendingRestore = null },
             title = { Text("Restore settings?") },
             text = { Text("Replace layouts, shortcuts, destinations and appearance? Wallpaper/audio files are not included. Enable the online map again after restoring.") },
@@ -126,34 +134,23 @@ fun SettingsScreen(
         }
     }
 
+    var category by rememberSaveable { mutableStateOf("All") }
+    val scroll = rememberScrollState()
+    LaunchedEffect(category) { scroll.scrollTo(0) }
     val isDayMode = LocalDayMode.current
     val screenBg  = MaterialTheme.colorScheme.background
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(screenBg)
-    ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // ── Title ────────────────────────────────────────────────────────────
-        Text(
-            text          = "SETTINGS",
-            style         = MaterialTheme.typography.titleLarge,
-            color         = if (isDayMode) Color(0xFF111111) else accent,
-            letterSpacing = 3.sp,
-            fontSize      = 14.sp
-        )
-
-        Spacer(Modifier.height(4.dp))
-
+    Column(modifier.fillMaxSize().background(screenBg).padding(horizontal = 20.dp)) {
+        Text("SETTINGS", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(top = 16.dp))
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("All", "Dashboard", "Display", "Connected", "System").forEach { name ->
+                FilterChip(category == name, { category = name }, label = { Text(name) })
+            }
+        }
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // ── Permissions ──────────────────────────────────────────────────────
-        SettingsSection("Permissions") {
+        if (category == "All" || category == "System") SettingsSection("Permissions") {
             val isMediaConnected by com.openlauncher.app.service.MediaListenerService.isConnected.collectAsState()
 
             // Bumped on ON_RESUME so statuses refresh when the user returns from
@@ -285,7 +282,7 @@ fun SettingsScreen(
         }
 
         // ── Vehicle Name ─────────────────────────────────────────────────────
-        SettingsSection("Vehicle") {
+        if (category == "All" || category == "Dashboard") SettingsSection("Vehicle") {
             var nameInput by remember(settings.vehicleName) { mutableStateOf(settings.vehicleName) }
             SettingsRow(
                 label    = "Vehicle Name",
@@ -296,14 +293,14 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value         = nameInput,
                         onValueChange = { nameInput = it },
-                        placeholder   = { Text("MY CAR", color = if (isDayMode) Color(0xFF999999) else Color(0xFF444444), fontSize = 12.sp) },
+                        placeholder   = { Text("MY CAR", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium) },
                         singleLine    = true,
-                        textStyle     = LocalTextStyle.current.copy(fontSize = 12.sp, color = if (isDayMode) Color(0xFF111111) else Color.White),
+                        textStyle     = LocalTextStyle.current.copy(fontSize = MaterialTheme.typography.bodyMedium.fontSize, color = MaterialTheme.colorScheme.onSurface),
                         colors        = outlinedFieldColors(accent),
-                        modifier      = Modifier.width(140.dp)
+                        modifier      = Modifier.widthIn(max = 240.dp).fillMaxWidth()
                     )
                     if (nameInput != settings.vehicleName) {
-                        IconButton(onClick = { onUpdate { copy(vehicleName = nameInput) } }, modifier = Modifier.size(32.dp)) {
+                        IconButton(onClick = { onUpdate { copy(vehicleName = nameInput) } }, modifier = Modifier.size(48.dp)) {
                             Icon(Icons.Default.Check, "Save", tint = accent, modifier = Modifier.size(16.dp))
                         }
                     }
@@ -322,7 +319,7 @@ fun SettingsScreen(
                 },
                 icon     = Icons.Default.SwapHoriz
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     SidebarPosition.entries.forEach { pos ->
                         FilterChip(
                             selected = settings.sidebarPosition == pos,
@@ -335,13 +332,13 @@ fun SettingsScreen(
                                         SidebarPosition.BOTTOM -> "Bottom"
                                         SidebarPosition.TOP -> "Top"
                                     },
-                                    fontSize = 9.sp,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     letterSpacing = 0.5.sp
                                 )
                             },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = accent,
-                                selectedLabelColor     = Color.Black
+                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                selectedLabelColor     = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         )
                     }
@@ -381,7 +378,7 @@ fun SettingsScreen(
                 TextButton(onClick = { open = true }) { Text("Choose") }
                 if (open) {
                     var query by remember { mutableStateOf("") }
-                    AlertDialog(onDismissRequest = { open = false }, title = { Text("Clock time zone") }, text = {
+                    SettingsDialog(onDismissRequest = { open = false }, title = { Text("Clock time zone") }, text = {
                         Column {
                             Text("Changes only the launcher display. If the date or minutes are also wrong, check the head unit's date/time settings.")
                             OutlinedTextField(query, { query = it }, label = { Text("Search city or zone") }, singleLine = true)
@@ -409,7 +406,7 @@ fun SettingsScreen(
                 FilterChip(
                     selected = settings.clockDateFormat == "SHORT",
                     onClick = { onUpdate { copy(clockDateFormat = if (clockDateFormat == "SHORT") "LONG" else "SHORT") } },
-                    label = { Text(if (settings.clockDateFormat == "SHORT") "Compact" else "Full", fontSize = 10.sp) }
+                    label = { Text(if (settings.clockDateFormat == "SHORT") "Compact" else "Full", style = MaterialTheme.typography.bodyMedium) }
                 )
             }
             SettingsDivider()
@@ -418,31 +415,31 @@ fun SettingsScreen(
                     FilterChip(
                         selected = settings.unitSystem == UnitSystem.METRIC,
                         onClick  = { onUpdate { copy(unitSystem = UnitSystem.METRIC) } },
-                        label    = { Text("Metric", fontSize = 11.sp) },
+                        label    = { Text("Metric", style = MaterialTheme.typography.bodyMedium) },
                         colors   = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = accent,
-                            selectedLabelColor     = Color.Black
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor     = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     )
                     Spacer(Modifier.width(6.dp))
                     FilterChip(
                         selected = settings.unitSystem == UnitSystem.IMPERIAL,
                         onClick  = { onUpdate { copy(unitSystem = UnitSystem.IMPERIAL) } },
-                        label    = { Text("Imperial", fontSize = 11.sp) },
+                        label    = { Text("Imperial", style = MaterialTheme.typography.bodyMedium) },
                         colors   = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = accent,
-                            selectedLabelColor     = Color.Black
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor     = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     )
                 }
             }
         }
 
-        SettingsSection("Online Map") {
-            Text("The embedded map uses OpenStreetMap. For Google Maps or Waze instructions, enable Notification Access, start navigation on this head unit, then return Home. Route lines and CarPlay navigation are not imported.", fontSize = 11.sp)
+        if (category == "All" || category == "Connected") SettingsSection("Online Map") {
+            Text("The embedded map uses OpenFreeMap and OpenStreetMap data. For Google Maps or Waze instructions, enable Notification Access, start navigation on this head unit, then return Home. Route lines and CarPlay navigation are not imported.", style = MaterialTheme.typography.bodyMedium)
             SettingsRow(
                 label = "Show Embedded Map",
-                sublabel = "Shares precise GPS location and map area with OpenStreetMap while the Map widget is visible",
+                sublabel = "Requests the viewed area from map providers while visible; GPS stays on the device",
                 icon = Icons.Default.Map
             ) {
                 Switch(
@@ -453,22 +450,22 @@ fun SettingsScreen(
             }
         }
 
-        SettingsSection("Backup and Restore") {
-            Text("Export settings and destination addresses to a local JSON file.", fontSize = 11.sp)
+        if (category == "All" || category == "System") SettingsSection("Backup and Restore") {
+            Text("Export settings and destination addresses to a local JSON file.", style = MaterialTheme.typography.bodyMedium)
             Row {
                 TextButton(onClick = { exportBackup.launch("openlauncher-settings.json") }) { Text("Export backup") }
                 TextButton(onClick = { importBackup.launch(arrayOf("application/json", "text/plain")) }) { Text("Restore backup") }
             }
-            if (backupStatus.isNotBlank()) Text(backupStatus, fontSize = 11.sp)
+            if (backupStatus.isNotBlank()) Text(backupStatus, style = MaterialTheme.typography.bodyMedium)
         }
 
-        SettingsSection("Destinations") {
-            Text("Preferred navigation app", fontSize = 12.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (category == "All" || category == "Connected") SettingsSection("Destinations") {
+            Text("Preferred navigation app", style = MaterialTheme.typography.bodyMedium)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("Default" to "", "Google Maps" to "com.google.android.apps.maps", "Waze" to "com.waze").forEach { (label, pkg) ->
                     FilterChip(selected = settings.navigationPackage == pkg,
                         onClick = { onUpdate { copy(navigationPackage = pkg) } },
-                        label = { Text(label, fontSize = 10.sp) })
+                        label = { Text(label, style = MaterialTheme.typography.bodyMedium) })
                 }
             }
             listOf("Home" to settings.homeDestination, "Work" to settings.workDestination).forEach { (label, address) ->
@@ -479,8 +476,8 @@ fun SettingsScreen(
                             value = input,
                             onValueChange = { input = it },
                             singleLine = true,
-                            modifier = Modifier.width(220.dp),
-                            textStyle = LocalTextStyle.current.copy(fontSize = 11.sp)
+                            modifier = Modifier.widthIn(max = 360.dp).weight(1f),
+                            textStyle = LocalTextStyle.current.copy(fontSize = MaterialTheme.typography.bodyMedium.fontSize)
                         )
                         IconButton(onClick = {
                             if (label == "Home") onUpdate { copy(homeDestination = input.trim()) }
@@ -494,15 +491,15 @@ fun SettingsScreen(
             }
         }
 
-        SettingsSection("Widget Layout Profiles") {
+        if (category == "All" || category == "Dashboard") SettingsSection("Widget Layout Profiles") {
             SettingsRow(label = "Automatic Day/Night Layout", sublabel = "Uses saved Day and Night layouts with the current display mode", icon = Icons.Default.Brightness6) {
                 Switch(checked = settings.autoDayNightProfiles,
                     onCheckedChange = { enabled -> onUpdate { copy(autoDayNightProfiles = enabled) } },
                     enabled = settings.layoutProfiles.any { it.name == "Day" } && settings.layoutProfiles.any { it.name == "Night" })
             }
-            Text("Save both Day and Night layouts to enable automatic switching.", fontSize = 10.sp)
+            Text("Save both Day and Night layouts to enable automatic switching.", style = MaterialTheme.typography.bodyMedium)
             Text("Save and restore Driving, Parked, Day, or Night layouts.",
-                fontSize = 10.sp, color = if (isDayMode) Color.DarkGray else Color.LightGray)
+                style = MaterialTheme.typography.bodyMedium, color = if (isDayMode) Color.DarkGray else Color.LightGray)
             listOf("Driving", "Parked", "Day", "Night").forEach { name ->
                 val saved = settings.layoutProfiles.firstOrNull { it.name == name }
                 SettingsRow(
@@ -516,13 +513,13 @@ fun SettingsScreen(
                                 val profile = LayoutProfile(name, widgetLayout, activeWidgetIds().toList())
                                 copy(layoutProfiles = layoutProfiles.filterNot { it.name == name } + profile)
                             }
-                        }) { Text("SAVE", fontSize = 10.sp) }
+                        }) { Text("SAVE", style = MaterialTheme.typography.bodyMedium) }
                         if (saved != null) {
                             TextButton(onClick = {
                                 onUpdate {
                                     copy(widgetLayout = saved.layout, activeLayoutProfile = name).withWidgetVisibility(saved.enabledIds.toSet())
                                 }
-                            }) { Text("LOAD", fontSize = 10.sp) }
+                            }) { Text("LOAD", style = MaterialTheme.typography.bodyMedium) }
                         }
                     }
                 }
@@ -531,7 +528,7 @@ fun SettingsScreen(
         }
 
         // ── Sidebar Shortcuts ─────────────────────────────────────────────────
-        SettingsSection("Sidebar") {
+        if (category == "All" || category == "Dashboard") SettingsSection("Sidebar") {
             settings.shortcuts.forEachIndexed { index, shortcut ->
                 if (index > 0) SettingsDivider()
                 SettingsRow(
@@ -550,9 +547,9 @@ fun SettingsScreen(
                                     copy(shortcuts = shortcuts.toMutableList().also { it.removeAt(index) })
                                 }
                             },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(48.dp)
                         ) {
-                            Icon(Icons.Default.Close, null, tint = Color(0xFF993333), modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Close, "Remove shortcut ${index + 1}", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(14.dp))
                         }
                     }
                 }
@@ -570,7 +567,7 @@ fun SettingsScreen(
         }
 
         // ── Appearance ───────────────────────────────────────────────────────
-        SettingsSection("Appearance") {
+        if (category == "All" || category == "Display") SettingsSection("Appearance") {
             // Display Mode
             SettingsRow(
                 label    = "Display Mode",
@@ -587,7 +584,7 @@ fun SettingsScreen(
                     DayNightMode.SYSTEM -> Icons.Default.PhoneAndroid
                 }
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     DayNightMode.entries.forEach { mode ->
                         FilterChip(
                             selected = settings.dayNightMode == mode,
@@ -600,13 +597,13 @@ fun SettingsScreen(
                                         DayNightMode.AUTO   -> "Sunset"
                                         DayNightMode.SYSTEM -> "System"
                                     },
-                                    fontSize  = 9.sp,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     letterSpacing = 0.5.sp
                                 )
                             },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = accent,
-                                selectedLabelColor     = Color.Black
+                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                selectedLabelColor     = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         )
                     }
@@ -645,7 +642,7 @@ fun SettingsScreen(
                     // Start color swatch
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(48.dp)
                             .clip(RoundedCornerShape(4.dp))
                             .background(Color(settings.backgroundColor))
                             .clickable { showBgPicker = true }
@@ -653,12 +650,12 @@ fun SettingsScreen(
                     if (settings.useGradient) {
                         androidx.compose.material3.Icon(
                             Icons.Default.ArrowForward, null,
-                            tint = if (isDayMode) Color(0xFF999999) else Color(0xFF555555), modifier = Modifier.size(14.dp)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp)
                         )
                         // End color swatch
                         Box(
                             modifier = Modifier
-                                .size(28.dp)
+                                .size(48.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(Color(settings.gradientEndColor))
                                 .clickable { showGradientEndPicker = true }
@@ -676,9 +673,9 @@ fun SettingsScreen(
                                 }
                             },
                             contentPadding = PaddingValues(horizontal = 6.dp),
-                            modifier = Modifier.height(28.dp)
+                            modifier = Modifier.heightIn(min = 48.dp)
                         ) {
-                            Text("DEFAULT", color = accent, fontSize = 9.sp, letterSpacing = 1.sp)
+                            Text("DEFAULT", color = accent, style = MaterialTheme.typography.bodyMedium, letterSpacing = 1.sp)
                         }
                     }
                 }
@@ -721,7 +718,7 @@ fun SettingsScreen(
                     },
                     icon     = Icons.Default.TrendingFlat
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         GradientDirection.entries.forEach { dir ->
                             FilterChip(
                                 selected = settings.gradientDirection == dir,
@@ -734,13 +731,13 @@ fun SettingsScreen(
                                             GradientDirection.DIAGONAL      -> "Diagonal"
                                             GradientDirection.RADIAL        -> "Radial"
                                         },
-                                        fontSize  = 9.sp,
+                                        style = MaterialTheme.typography.bodyMedium,
                                         letterSpacing = 0.5.sp
                                     )
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = accent,
-                                    selectedLabelColor     = Color.Black
+                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    selectedLabelColor     = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
                             )
                         }
@@ -764,7 +761,7 @@ fun SettingsScreen(
                         label    = "Wallpaper Dim",
                         sublabel = "${"%.0f".format(settings.wallpaperDim * 100)}%",
                         icon     = Icons.Default.BrightnessLow
-                    ) {}
+                    )
                     Slider(
                         value         = settings.wallpaperDim,
                         onValueChange = { onUpdate { copy(wallpaperDim = it) } },
@@ -778,24 +775,24 @@ fun SettingsScreen(
                         onClick  = { onUpdate { copy(wallpaperUri = "") } },
                         modifier = Modifier.align(Alignment.End)
                     ) {
-                        Text("REMOVE WALLPAPER", color = Color(0xFF993333), fontSize = 9.sp, letterSpacing = 1.sp)
+                        Text("REMOVE WALLPAPER", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium, letterSpacing = 1.sp)
                     }
                 }
             }
         }
 
         // ── Typography ───────────────────────────────────────────────────────
-        SettingsSection("Typography") {
+        if (category == "All" || category == "Display") SettingsSection("Typography") {
             SettingsRow(label = "Font", sublabel = fontDisplayName(settings.appFont), icon = Icons.Default.FontDownload) {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     com.openlauncher.app.data.AppFont.entries.forEach { font ->
                         FilterChip(
                             selected = settings.appFont == font,
                             onClick  = { onUpdate { copy(appFont = font) } },
-                            label    = { Text(fontDisplayName(font), fontSize = 9.sp, letterSpacing = 0.5.sp) },
+                            label    = { Text(fontDisplayName(font), style = MaterialTheme.typography.bodyMedium, letterSpacing = 0.5.sp) },
                             colors   = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = accent,
-                                selectedLabelColor     = Color.Black
+                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                selectedLabelColor     = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         )
                     }
@@ -819,7 +816,7 @@ fun SettingsScreen(
                     label    = "Text Scale",
                     sublabel = "${"%.0f".format(settings.textScale * 100)}%",
                     icon     = Icons.Default.TextFields
-                ) {}
+                )
                 Slider(
                     value         = settings.textScale,
                     onValueChange = { onUpdate { copy(textScale = it) } },
@@ -837,7 +834,7 @@ fun SettingsScreen(
                     label    = "UI Scale",
                     sublabel = "${"%.0f".format(settings.uiScale * 100)}%  — scales all elements",
                     icon     = Icons.Default.ZoomIn
-                ) {}
+                )
                 Slider(
                     value         = settings.uiScale,
                     onValueChange = { onUpdate { copy(uiScale = it) } },
@@ -850,7 +847,7 @@ fun SettingsScreen(
         }
 
         // ── GPS & Calibration ───────────────────────────────────────────────
-        SettingsSection("GPS & Calibration") {
+        if (category == "All" || category == "System") SettingsSection("GPS & Calibration") {
             var calibrationStatus by remember { mutableStateOf<String?>(null) }
             val coroutineScope = rememberCoroutineScope()
             var isCalibratingCompass by remember { mutableStateOf(false) }
@@ -859,7 +856,7 @@ fun SettingsScreen(
             // 1. Reset A-GPS Button
             SettingsButton(
                 label    = "Reset A-GPS Assistance Data",
-                sublabel = calibrationStatus ?: "Forces cold start to download fresh satellite orbits entirely offline",
+                sublabel = calibrationStatus ?: "Requests a fresh satellite lock; support depends on the GPS driver",
                 icon     = Icons.Default.MyLocation,
                 accent   = accent,
                 onClick  = {
@@ -923,7 +920,7 @@ fun SettingsScreen(
                     label    = "Compass Heading Offset",
                     sublabel = "Manual Alignment: ${if (settings.compassOffset >= 0) "+" else ""}${settings.compassOffset.toInt()}°  — aligns compass with vehicle front",
                     icon     = Icons.Default.Explore
-                ) {}
+                )
                 Slider(
                     value         = settings.compassOffset,
                     onValueChange = { onUpdate { copy(compassOffset = it) } },
@@ -936,31 +933,31 @@ fun SettingsScreen(
         }
 
         // ── Updates ──────────────────────────────────────────────────────────
-        SettingsSection("Updates") {
+        if (category == "All" || category == "System") SettingsSection("Updates") {
             SettingsButton(
                 label    = "Check for Updates",
                 sublabel = "View releases on GitHub",
                 icon     = Icons.Default.SystemUpdate,
                 accent   = accent,
                 onClick  = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/dw2lam/openlauncher/releases"))
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/itsTwistys/openlauncher/releases"))
                     context.startActivity(intent)
                 }
             )
         }
 
         // ── Maintenance ──────────────────────────────────────────────────────
-        SettingsSection("Maintenance") {
+        if (category == "All" || category == "System") SettingsSection("Maintenance") {
             Spacer(Modifier.height(8.dp))
             Button(
                 onClick  = { showResetDialog = true },
                 shape    = RoundedCornerShape(4.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A0000)),
-                modifier = Modifier.fillMaxWidth().height(44.dp)
+                colors   = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
             ) {
                 Icon(Icons.Default.RestartAlt, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Reset to Defaults", color = MaterialTheme.colorScheme.error, fontSize = 13.sp, letterSpacing = 1.sp)
+                Text("Reset to Defaults", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium, letterSpacing = 1.sp)
             }
             Spacer(Modifier.height(8.dp))
         }
@@ -968,9 +965,9 @@ fun SettingsScreen(
         Spacer(Modifier.height(32.dp))
 
         Text(
-            text          = "v0.0.5  ·  Made by David Lam  ·  2026",
-            color         = if (isDayMode) Color(0xFFAAAAAA) else Color(0xFF2A2A2A),
-            fontSize      = 10.sp,
+            text          = "Open Launcher ${com.openlauncher.app.BuildConfig.VERSION_NAME}",
+            color         = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
             letterSpacing = 1.sp,
             modifier      = Modifier
                 .align(Alignment.CenterHorizontally)
@@ -1044,129 +1041,35 @@ fun SettingsScreen(
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 @Composable
-private fun SettingsSection(
-    title: String,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    val isDayMode     = LocalDayMode.current
-    val sectionColor  = if (isDayMode) Color(0xFF888888) else Color(0xFF3A3A3A)
-    val dividerColor  = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF1E1E1E)
-    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-        Text(
-            text          = title.uppercase(),
-            style         = MaterialTheme.typography.labelSmall,
-            color         = sectionColor,
-            letterSpacing = 2.sp,
-            modifier      = Modifier.padding(top = 16.dp, bottom = 6.dp)
-        )
-        HorizontalDivider(color = dividerColor)
-        Column(modifier = Modifier.fillMaxWidth(), content = content)
-        HorizontalDivider(color = dividerColor)
-    }
-}
-
-@Composable
-private fun SettingsRow(
-    label: String,
-    sublabel: String = "",
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    content: @Composable RowScope.() -> Unit
-) {
-    val isDayMode   = LocalDayMode.current
-    val labelColor  = if (isDayMode) Color(0xFF111111) else Color(0xFFDDDDDD)
-    val subColor    = if (isDayMode) Color(0xFF888888) else Color(0xFF444444)
-    val iconTint    = if (isDayMode) Color(0xFF777777) else MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 0.dp, vertical = 11.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, null, tint = iconTint, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(14.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = labelColor, fontSize = 13.sp)
-            if (sublabel.isNotEmpty())
-                Text(sublabel, style = MaterialTheme.typography.labelSmall, color = subColor, fontSize = 11.sp)
-        }
-        content()
-    }
-}
-
-@Composable
-private fun ColumnScope.SettingsButton(
-    label: String,
-    sublabel: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    accent: Color,
-    onClick: () -> Unit
-) {
-    val isDayMode  = LocalDayMode.current
-    val labelColor = if (isDayMode) Color(0xFF111111) else Color(0xFFDDDDDD)
-    val subColor   = if (isDayMode) Color(0xFF888888) else Color(0xFF444444)
-    val chevronC   = if (isDayMode) Color(0xFFBBBBBB) else Color(0xFF2A2A2A)
-    val iconTint   = if (isDayMode) Color(0xFF777777) else MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 0.dp, vertical = 11.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, null, tint = iconTint, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(14.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = labelColor, fontSize = 13.sp)
-            if (sublabel.isNotEmpty())
-                Text(sublabel, style = MaterialTheme.typography.labelSmall, color = subColor, fontSize = 11.sp)
-        }
-        Icon(Icons.Default.ChevronRight, null, tint = chevronC, modifier = Modifier.size(16.dp))
-    }
+private fun ColumnScope.SettingsButton(label: String, sublabel: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector, accent: Color, onClick: () -> Unit) {
+    SettingsAction(label, sublabel, icon, tint = if (accent == Color(0xFF993333)) MaterialTheme.colorScheme.error
+        else MaterialTheme.colorScheme.onSurface, onClick = onClick)
 }
 
 @Composable
 private fun ColumnScope.SettingsDivider() {
     val isDayMode = LocalDayMode.current
-    HorizontalDivider(color = if (isDayMode) Color(0xFFDDDDDD) else Color(0xFF141414))
+    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 }
 
 @Composable
-private fun outlinedFieldColors(accent: Color): androidx.compose.material3.TextFieldColors {
-    val isDayMode = LocalDayMode.current
-    val textColor = if (isDayMode) Color(0xFF111111) else Color.White
-    val borderU   = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF2A2A2A)
-    return OutlinedTextFieldDefaults.colors(
-        focusedBorderColor   = accent,
-        unfocusedBorderColor = borderU,
-        focusedTextColor     = textColor,
-        unfocusedTextColor   = textColor,
-        cursorColor          = accent,
-        focusedLabelColor    = accent,
-        unfocusedLabelColor  = if (isDayMode) Color(0xFF888888) else Color(0xFF666666)
-    )
-}
+private fun outlinedFieldColors(accent: Color) = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = accent, unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+    focusedTextColor = MaterialTheme.colorScheme.onSurface, unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    cursorColor = accent, focusedLabelColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant)
 
 @Composable
-private fun switchColors(accent: Color): androidx.compose.material3.SwitchColors {
-    val isDayMode = LocalDayMode.current
-    return SwitchDefaults.colors(
-        checkedThumbColor    = if (isDayMode) Color.White else Color.Black,
-        checkedTrackColor    = accent,
-        uncheckedThumbColor  = if (isDayMode) Color(0xFFBBBBBB) else Color(0xFF888888),
-        uncheckedTrackColor  = if (isDayMode) Color(0xFFDDDDDD) else Color(0xFF1E1E1E),
-        uncheckedBorderColor = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF3A3A3A)
-    )
-}
+private fun switchColors(accent: Color) = SwitchDefaults.colors(
+    checkedTrackColor = accent, checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+    uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    uncheckedBorderColor = MaterialTheme.colorScheme.outline)
 
 @Composable
-private fun sliderColors(accent: Color): androidx.compose.material3.SliderColors {
-    val isDayMode = LocalDayMode.current
-    return SliderDefaults.colors(
-        thumbColor         = accent,
-        activeTrackColor   = accent,
-        inactiveTrackColor = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF2A2A2A)
-    )
-}
+private fun sliderColors(accent: Color) = SliderDefaults.colors(
+    thumbColor = accent, activeTrackColor = accent, inactiveTrackColor = MaterialTheme.colorScheme.outline)
 
 
 private fun fontDisplayName(font: AppFont): String = when (font) {
