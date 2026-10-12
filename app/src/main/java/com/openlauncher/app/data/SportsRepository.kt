@@ -37,7 +37,7 @@ class SportsRepository(context: Context) {
             file(league, view).openRead().use { input ->
                 val bytes = input.readBytesBounded(512_000)
                 gson.fromJson(String(bytes, Charsets.UTF_8), SportsSnapshot::class.java).takeIf {
-                    it.league == league && it.view == view && now - it.updatedAtMs in 0..48 * 60 * 60 * 1000L &&
+                    it.league == league && it.view == view && it.updatedAtMs > 0 && now - it.updatedAtMs >= -300_000 &&
                         it.events.size <= 200 && it.events.all { e -> e.startMs > 0 && e.title.length <= 180 && e.state in setOf("pre", "in", "post") }
                 }
             }

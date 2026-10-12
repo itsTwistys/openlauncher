@@ -41,7 +41,7 @@ class SportsWidgetTest {
             }
         }
         rule.waitUntil(5_000) { rule.onAllNodesWithText("MIA").fetchSemanticsNodes().isNotEmpty() }
-        rule.onNodeWithText("Offline · saved scores").assertExists()
+        rule.onNodeWithText("Offline · saved just now").assertExists()
         rule.onNodeWithText("Saved · Q4 2:10").assertExists()
         rule.onNodeWithText("0").assertExists()
         rule.onNodeWithText("LIVE · Q4 2:10").assertDoesNotExist()

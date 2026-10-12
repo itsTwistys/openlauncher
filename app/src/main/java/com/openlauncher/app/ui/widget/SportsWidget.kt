@@ -88,12 +88,19 @@ fun SportsWidget(settings: AppSettings, weather: WeatherState?, networkAvailable
         }, enabled = networkAvailable && !loading && !isEditing) { Icon(Icons.Default.Refresh, null); Text("Refresh") } })
     val age = snapshot?.let { (now - it.updatedAtMs).coerceAtLeast(0) }
     val current = networkAvailable && error == null && age != null && age < if (selection == SportsView.LIVE) 90_000 else 600_000
+    val ageText = when {
+        age == null -> ""
+        age < 60_000 -> "just now"
+        age < 3_600_000 -> "${age / 60_000}m ago"
+        age < 86_400_000 -> "${age / 3_600_000}h ago"
+        else -> "${age / 86_400_000}d ago"
+    }
     val status = when {
         isEditing -> "Live scores, results and schedules"
-        !networkAvailable -> if (snapshot != null) "Offline · saved scores" else "Offline · connect to load scores"
+        !networkAvailable -> if (snapshot != null) "Offline · saved $ageText" else "Offline · connect to load scores"
         error != null -> error!!
         snapshot == null && loading -> "Loading scores…"
-        age != null -> "${if (current) "Updated" else "Saved"} ${if (age < 60_000) "just now" else "${age / 60_000}m ago"}"
+        age != null -> "${if (current) "Updated" else "Saved"} $ageText"
         else -> "Waiting for scores"
     }
     Column(modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
@@ -147,6 +154,6 @@ private fun SportsEventRow(event: SportsEvent, league: SportsLeague, zone: TimeZ
                 Text(team.score ?: "–", fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
             }
         }
-        if (event.state == "post") Text(time, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (event.state == "post" || (event.state == "in" && !current)) Text(time, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
