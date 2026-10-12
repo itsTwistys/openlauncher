@@ -7,9 +7,9 @@
 ## Download the Android preview
 
 <!-- preview-download:start -->
-**[Download Open Launcher 0.0.23-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-b31e738/openlauncher-preview.apk)**
+**[Download Open Launcher 0.0.24-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-7af790b/openlauncher-preview.apk)**
 
-[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-b31e738) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-b31e738/docs/PREVIEW.md)
+[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-7af790b) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-7af790b/docs/PREVIEW.md)
 <!-- preview-download:end -->
 
 This permanently signed preview installs as **Open Launcher Preview**. Version 0.0.24 fixes ESPN HTTP 400 responses by requesting individual dates instead of unsupported team-scoreboard date ranges, adds partial-response recovery and a visible Retry action, and shows recent results / next events when no game is live. Map Follow, Recenter and zoom controls move into Map options, keeping the map canvas clear. Media rich actions reflect player-reported state instead of a local toggle. Now Playing remembers the last music app and can reconnect at startup or after sleep without automatically starting audio. Existing layouts, shortcuts, setup and the unified theme from 0.0.23 are retained.
