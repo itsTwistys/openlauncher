@@ -16,6 +16,9 @@ import com.openlauncher.app.data.resizePreview
 import com.openlauncher.app.data.withWidgetVisibility
 import com.openlauncher.app.data.AppSettings
 import com.openlauncher.app.data.DayNightMode
+import com.openlauncher.app.data.EventTrigger
+import com.openlauncher.app.data.LauncherCommand
+import com.openlauncher.app.data.isValidEventAction
 import com.openlauncher.app.data.DefaultShortcutIcon
 import com.openlauncher.app.data.GRID_COLS
 import com.openlauncher.app.data.GRID_ROWS
@@ -66,7 +69,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val tripError: StateFlow<String?> = _tripError
     private var tripsLoaded = false
     private var tripForeground = false
+    private var tripBackground = false
     fun setTripForeground(value: Boolean) { tripForeground = value; if (!value && tripsLoaded) tripWrites.trySend(_trips.value) }
+    /** True while the owner has asked for trips to keep recording with the launcher in the background. */
+    fun setTripBackground(value: Boolean) { tripBackground = value }
+    fun keepsLocationInBackground(): Boolean = tripBackground
     private fun changeTrip(transform: (com.openlauncher.app.data.TripLog) -> com.openlauncher.app.data.TripLog) {
         if (!tripsLoaded) return
         _trips.value = transform(_trips.value)
@@ -77,6 +84,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun finishTrip() = changeTrip { com.openlauncher.app.data.completeTrip(it, System.currentTimeMillis()) }
     fun resetTrip() = changeTrip { it.copy(current = com.openlauncher.app.data.TripRecord()) }
     fun clearTripHistory() = changeTrip { it.copy(history = emptyList()) }
+    fun deleteTrip(startedAtMs: Long) = changeTrip { log -> log.copy(history = log.history.filterNot { it.startedAtMs == startedAtMs }) }
     init {
         viewModelScope.launch {
             try { _trips.value = tripRepository.load(); tripsLoaded = true }
@@ -93,7 +101,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 delay(1000)
                 val now = android.os.SystemClock.elapsedRealtime()
                 val loc = locationMgr.location.value
-                if (tripForeground && loc != null) _trips.value = _trips.value.let { log -> log.copy(current =
+                if ((tripForeground || tripBackground) && loc != null) _trips.value = _trips.value.let { log -> log.copy(current =
                     com.openlauncher.app.data.advanceTrip(log.current, loc.speedMps, now - loc.elapsedRealtimeMs,
                         loc.accuracy, (now - last) / 1000.0)) }
                 last = now
@@ -160,7 +168,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     // ── CarPlay / Android Auto picker ─────────────────────────────────────────
-    enum class AppPickerTarget { CARPLAY, ANDROID_AUTO, PIP, RADIO }
+    enum class AppPickerTarget { CARPLAY, ANDROID_AUTO, PIP, RADIO, CAMERA }
 
     private val _appPickerTarget = MutableStateFlow<AppPickerTarget?>(null)
     val carPlayPickerActive: StateFlow<Boolean> = MutableStateFlow(false) // kept for compat
@@ -186,12 +194,18 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         _nav.value = NavDestination.APP_LIBRARY
     }
 
+    fun startCameraPicker() {
+        _appPickerTarget.value = AppPickerTarget.CAMERA
+        _nav.value = NavDestination.APP_LIBRARY
+    }
+
     fun assignPickerApp(app: AppInfo) {
         when (_appPickerTarget.value) {
             AppPickerTarget.CARPLAY      -> updateSettings { copy(carPlayPackage = app.packageName) }
             AppPickerTarget.ANDROID_AUTO -> updateSettings { copy(androidAutoPackage = app.packageName) }
             AppPickerTarget.PIP          -> updateSettings { copy(pipAppPackage = app.packageName) }
             AppPickerTarget.RADIO        -> updateSettings { copy(radioPackage = app.packageName) }
+            AppPickerTarget.CAMERA       -> updateSettings { copy(cameraPackage = app.packageName) }
             null -> {}
         }
         _appPickerTarget.value = null
@@ -271,6 +285,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 "RADAR" -> copy(showRadar = true)
                 "TRAFFIC" -> copy(showTraffic = true)
                 "SPORTS" -> copy(showSports = true)
+                "OBD" -> copy(showObd = true)
+                "AGENDA" -> copy(showAgenda = true)
+                "PHONE" -> copy(showPhone = true)
                 else          -> this
             }
             val idx       = layout.indexOfFirst { it.id == id }
@@ -308,6 +325,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 "RADAR" -> copy(showRadar = false)
                 "TRAFFIC" -> copy(showTraffic = false)
                 "SPORTS" -> copy(showSports = false)
+                "OBD" -> copy(showObd = false)
+                "AGENDA" -> copy(showAgenda = false)
+                "PHONE" -> copy(showPhone = false)
                 else          -> this
             }
         }
@@ -792,11 +812,69 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     override fun onCleared() {
         musicStarter.close()
         runCatching { getApplication<Application>().unregisterReceiver(musicScreenOff) }
+        triggerReceiver?.let { runCatching { getApplication<Application>().unregisterReceiver(it) } }
+        triggerReceiver = null
         runCatching { connectivity.unregisterNetworkCallback(networkCallback) }
         super.onCleared()
         locationMgr.stop()
         radioObserver?.let { getApplication<Application>().contentResolver.unregisterContentObserver(it) }
         radioObserver = null
+    }
+
+    // ── Launcher commands: broadcast event triggers and steering-wheel keys ────
+    private val _lastKeyCode = MutableStateFlow<Int?>(null)
+    /** The most recent hardware key seen by the launcher, shown by the key tester in Settings. */
+    val lastKeyCode: StateFlow<Int?> = _lastKeyCode
+
+    fun runLauncherCommand(command: LauncherCommand) {
+        when (command) {
+            LauncherCommand.OPEN_CAMERA -> settings.value.cameraPackage.takeIf { it.isNotBlank() }?.let { launchApp(it) }
+            LauncherCommand.GO_HOME -> {
+                navigate(NavDestination.HOME)
+                launchApp(getApplication<Application>().packageName)
+            }
+            LauncherCommand.MEDIA_PLAY_PAUSE -> playPause()
+            LauncherCommand.MEDIA_NEXT -> skipNext()
+            LauncherCommand.MEDIA_PREVIOUS -> skipPrev()
+        }
+    }
+
+    /** Returns true when [keyCode] was consumed as a launcher command. Only the visible launcher sees keys. */
+    fun handleKeyEvent(keyCode: Int): Boolean {
+        _lastKeyCode.value = keyCode
+        val s = settings.value
+        if (!s.steeringKeysEnabled) return false
+        val command = s.steeringKeys.firstOrNull { it.keyCode == keyCode }?.let { LauncherCommand.from(it.command) } ?: return false
+        runLauncherCommand(command)
+        return true
+    }
+
+    private var triggerReceiver: android.content.BroadcastReceiver? = null
+    private var lastTriggerMs = 0L
+    private fun applyEventTriggers(triggers: List<EventTrigger>) {
+        val app = getApplication<Application>()
+        triggerReceiver?.let { runCatching { app.unregisterReceiver(it) } }
+        triggerReceiver = null
+        val byAction = triggers.filter { isValidEventAction(it.action) }.associate { it.action to it.command }
+        if (byAction.isEmpty()) return
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val command = byAction[intent?.action]?.let { LauncherCommand.from(it) } ?: return
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (now - lastTriggerMs < 1_000) return
+                lastTriggerMs = now
+                runLauncherCommand(command)
+            }
+        }
+        val filter = android.content.IntentFilter().apply { byAction.keys.forEach { addAction(it) } }
+        // Head-unit services send these broadcasts, so the receiver must be exported.
+        androidx.core.content.ContextCompat.registerReceiver(app, receiver, filter, androidx.core.content.ContextCompat.RECEIVER_EXPORTED)
+        triggerReceiver = receiver
+    }
+    init {
+        viewModelScope.launch {
+            settings.map { it.eventTriggers }.distinctUntilChanged().collect { applyEventTriggers(it) }
+        }
     }
 
     init {

@@ -41,7 +41,7 @@ import kotlin.math.roundToInt
 internal fun DashboardTools(initialPage: String, settings: AppSettings, weather: WeatherState?, weatherError: String?,
     location: LocationData?, internet: Boolean, trips: TripLog, tripError: String?, onToggleTrip: () -> Unit, onFinishTrip: () -> Unit,
     onClearTrips: () -> Unit, onRefreshWeather: () -> Unit, onSettings: (AppSettings.() -> AppSettings) -> Unit,
-    onDismiss: () -> Unit, networkAvailable: Boolean = internet) {
+    onDismiss: () -> Unit, networkAvailable: Boolean = internet, onDeleteTrip: (Long) -> Unit = {}) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var page by remember(initialPage) { mutableStateOf(initialPage) }
@@ -73,7 +73,7 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
             dialogWindow?.let { it.attributes = it.attributes.apply { screenBrightness = settings.launcherBrightness } }
         }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Quick controls", "Nearby", "Trips", "Weather", "Diagnostics", "Updates").forEach { item ->
+            listOf("Quick controls", "Nearby", "Trips", "Weather", "Offline map", "Diagnostics", "Updates").forEach { item ->
                 FilterChip(page == item, { page = item; message = null }, label = { Text(item) })
             }
         }
@@ -130,16 +130,25 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                     val t = trips.current
                     Text(if (t.running) "Recording trip" else if (t.startedAtMs > 0) "Trip paused" else "Ready for a trip", style = MaterialTheme.typography.bodyMedium)
                     Text(tripSummary(t, metric))
-                    Text("Records while the launcher is visible. Stale GPS and sleep gaps are excluded. Restored trips start paused.", style = MaterialTheme.typography.bodyMedium)
+                    Text("Records while the launcher is visible, or in the background if you turned that on in Settings. Stale GPS and sleep gaps are excluded. Restored trips start paused.", style = MaterialTheme.typography.bodyMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = onToggleTrip) { Text(if (t.running) "Pause" else "Start / Resume") }
                         OutlinedButton(onClick = onFinishTrip, enabled = t.startedAtMs > 0) { Text("Save trip") }
                     }
+                    TripInsightsPanel(trips.history, metric)
+                    HorizontalDivider()
                     Text("Saved trips (${trips.history.size}/200)", style = MaterialTheme.typography.bodyMedium)
                     if (trips.history.isEmpty()) Text("Saved trips will appear here.")
                     var confirmClear by remember { mutableStateOf(false) }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { pendingExport = tripsCsv(trips.history); exportCsv.launch("openlauncher-trips.csv") }, enabled = trips.history.isNotEmpty()) { Text("Export CSV") }
+                        OutlinedButton(onClick = {
+                            val send = Intent(Intent.ACTION_SEND).setType("text/csv")
+                                .putExtra(Intent.EXTRA_SUBJECT, "Open Launcher trips")
+                                .putExtra(Intent.EXTRA_TEXT, tripsCsv(trips.history))
+                            runCatching { context.startActivity(Intent.createChooser(send, "Share trips").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                                .onFailure { message = "No app is available to share trips." }
+                        }, enabled = trips.history.isNotEmpty()) { Text("Share CSV") }
                         TextButton(onClick = { confirmClear = true }, enabled = trips.history.isNotEmpty()) { Text("Clear history") }
                     }
                     if (confirmClear) {
@@ -151,6 +160,7 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                         HorizontalDivider()
                         Text(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(trip.startedAtMs)))
                         Text(tripSummary(trip, metric))
+                        TextButton(onClick = { onDeleteTrip(trip.startedAtMs) }) { Text("Delete this trip") }
                     }
                     if (trips.history.size > visibleTrips) TextButton(onClick = { visibleTrips += 20 }) { Text("Show more trips") }
                 }
@@ -198,6 +208,7 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                     Text("Optional tint behind your existing dashboard. Off by default.", style = MaterialTheme.typography.bodyMedium)
                     TextButton(onClick = { open("https://open-meteo.com/") }) { Text("Weather by Open-Meteo") }
                 }
+                "Offline map" -> OfflineMapPanel(location, networkAvailable, settings.onlineMapEnabled)
                 "Diagnostics" -> {
                     val connected by MediaListenerService.isConnected.collectAsState()
                     val sessions by MediaListenerService.sessions.collectAsState()

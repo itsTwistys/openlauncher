@@ -61,7 +61,9 @@ fun SettingsScreen(
     accent: Color,
     onUpdate: (AppSettings.() -> AppSettings) -> Unit,
     onReset: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    lastKeyCode: Int? = null,
+    onChooseCameraApp: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val backupScope = rememberCoroutineScope()
@@ -455,6 +457,14 @@ fun SettingsScreen(
             Row {
                 TextButton(onClick = { exportBackup.launch("openlauncher-settings.json") }) { Text("Export backup") }
                 TextButton(onClick = { importBackup.launch(arrayOf("application/json", "text/plain")) }) { Text("Restore backup") }
+                TextButton(onClick = {
+                    val send = Intent(Intent.ACTION_SEND).setType("text/plain")
+                        .putExtra(Intent.EXTRA_SUBJECT, "Open Launcher settings backup")
+                        .putExtra(Intent.EXTRA_TEXT, SettingsBackup.encode(latestSettings))
+                    backupStatus = if (runCatching { context.startActivity(Intent.createChooser(send, "Share backup").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess)
+                        "Choose where to send the backup. It includes your destination addresses."
+                    else "No app is available to share the backup."
+                }) { Text("Share backup") }
             }
             if (backupStatus.isNotBlank()) Text(backupStatus, style = MaterialTheme.typography.bodyMedium)
         }
@@ -502,7 +512,7 @@ fun SettingsScreen(
         if (category == "All" || category == "Dashboard") SettingsSection("Widget Layout Profiles") {
             SettingsRow(label = "Automatic Day/Night Layout", sublabel = "Uses saved Day and Night layouts with the current display mode", icon = Icons.Default.Brightness6) {
                 Switch(checked = settings.autoDayNightProfiles,
-                    onCheckedChange = { enabled -> onUpdate { copy(autoDayNightProfiles = enabled) } },
+                    onCheckedChange = { enabled -> onUpdate { copy(autoDayNightProfiles = enabled, autoDrivingProfiles = if (enabled) false else autoDrivingProfiles) } },
                     enabled = settings.layoutProfiles.any { it.name == "Day" } && settings.layoutProfiles.any { it.name == "Night" })
             }
             Text("Save both Day and Night layouts to enable automatic switching.", style = MaterialTheme.typography.bodyMedium)
@@ -573,6 +583,9 @@ fun SettingsScreen(
                 onClick  = { onUpdate { copy(shortcuts = shortcuts + ShortcutConfig()) } }
             )
         }
+
+        // ── Optional automation ──────────────────────────────────────────────
+        if (category == "All" || category == "Dashboard") AutomationSettings(settings, accent, lastKeyCode, onChooseCameraApp, onUpdate)
 
         // ── Appearance ───────────────────────────────────────────────────────
         if (category == "All" || category == "Display") SettingsSection("Appearance") {

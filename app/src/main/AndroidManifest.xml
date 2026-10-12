@@ -20,6 +20,22 @@
     <!-- Required for LocationManager.sendExtraCommand (A-GPS reset) — normal protection, auto-granted -->
     <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS" />
 
+    <!-- Optional features. Each runtime permission is requested only when its feature is used. -->
+    <!-- Background trip recording: an ongoing notification while a trip records. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- OBD2 widget: a paired Bluetooth adapter chosen by the owner. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Agenda and Phone widgets: read only. -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+
+    <!-- These permissions imply hardware that some head units lack; none of it is required. -->
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+
     <!-- Media sessions use the user-granted NotificationListenerService component,
          rather than the system-only MEDIA_CONTENT_CONTROL permission.
          The compass uses the accelerometer and magnetometer, which need no permission,
@@ -64,6 +80,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".service.TripRecordingService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <!-- Notification listener service for MediaSession / Now Playing -->
         <service

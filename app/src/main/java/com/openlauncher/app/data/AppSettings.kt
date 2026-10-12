@@ -26,6 +26,41 @@ enum class DefaultShortcutIcon {
     GLOBE, CHROME, SPOTIFY, GOOGLE_MAPS, APP_ICON, YOUTUBE, YOUTUBE_MUSIC, WAZE
 }
 
+/** Actions a broadcast event trigger or a steering-wheel key can run. */
+enum class LauncherCommand(val label: String) {
+    OPEN_CAMERA("Open camera app"),
+    GO_HOME("Go to dashboard"),
+    MEDIA_PLAY_PAUSE("Play / pause"),
+    MEDIA_NEXT("Next track"),
+    MEDIA_PREVIOUS("Previous track");
+
+    companion object {
+        fun from(name: String): LauncherCommand? = entries.firstOrNull { it.name == name }
+    }
+}
+
+/** Run [command] when the system delivers a broadcast with this exact [action]. */
+data class EventTrigger(
+    val action: String = "",
+    val command: String = LauncherCommand.OPEN_CAMERA.name
+)
+
+/** Run [command] when the hardware key [keyCode] reaches the launcher. */
+data class KeyBinding(
+    val keyCode: Int = 0,
+    val command: String = LauncherCommand.MEDIA_NEXT.name
+)
+
+const val MAX_EVENT_TRIGGERS = 8
+const val MAX_KEY_BINDINGS = 16
+private val EVENT_ACTION_PATTERN = Regex("[A-Za-z][A-Za-z0-9_]*([.][A-Za-z0-9_\$]+)+")
+
+/** A broadcast action looks like a dotted Java-style name; reject anything else before it reaches the system. */
+fun isValidEventAction(action: String): Boolean = action.length <= 200 && EVENT_ACTION_PATTERN.matches(action)
+
+fun isValidBluetoothAddress(address: String): Boolean =
+    address.isEmpty() || Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}").matches(address)
+
 data class SoundPadConfig(
     val label: String,
     val audioUri: String = "",
@@ -140,7 +175,20 @@ data class AppSettings(
     val vitalsAsBars: Boolean = false,
     val speedometerDigitalOnly: Boolean = false,
     val gradientDirection: GradientDirection = GradientDirection.DIAGONAL,
-    val useCustomBackgroundColor: Boolean = false
+    val useCustomBackgroundColor: Boolean = false,
+    // Optional automation. Everything below is off or empty until the owner turns it on.
+    val autoDrivingProfiles: Boolean = false,
+    val parkedAfterMinutes: Int = 5,
+    val recordTripsInBackground: Boolean = false,
+    val showObd: Boolean = false,
+    val obdDeviceAddress: String = "",
+    val obdDeviceName: String = "",
+    val showAgenda: Boolean = false,
+    val showPhone: Boolean = false,
+    val cameraPackage: String = "",
+    val eventTriggers: List<EventTrigger> = emptyList(),
+    val steeringKeysEnabled: Boolean = false,
+    val steeringKeys: List<KeyBinding> = emptyList()
 )
 
 fun defaultShortcuts() = listOf(
@@ -177,6 +225,9 @@ fun AppSettings.activeWidgetIds(): Set<String> = buildSet {
     if (showRadar) add("RADAR")
     if (showTraffic) add("TRAFFIC")
     if (showSports) add("SPORTS")
+    if (showObd) add("OBD")
+    if (showAgenda) add("AGENDA")
+    if (showPhone) add("PHONE")
 }
 
 fun AppSettings.withWidgetVisibility(ids: Set<String>): AppSettings = copy(
@@ -187,7 +238,8 @@ fun AppSettings.withWidgetVisibility(ids: Set<String>): AppSettings = copy(
     showSoundboard = "SOUNDBOARD" in ids, showMap = "MAP" in ids,
     showConnectivity = "CONNECTIVITY" in ids,
     showDestinations = "DESTINATIONS" in ids, showRadar = "RADAR" in ids,
-    showTraffic = "TRAFFIC" in ids, showSports = "SPORTS" in ids
+    showTraffic = "TRAFFIC" in ids, showSports = "SPORTS" in ids,
+    showObd = "OBD" in ids, showAgenda = "AGENDA" in ids, showPhone = "PHONE" in ids
 )
 
 /** Exhaustive placement for a six-cell grid; never persists overlaps. */
