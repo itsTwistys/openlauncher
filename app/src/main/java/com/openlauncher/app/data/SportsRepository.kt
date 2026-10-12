@@ -56,9 +56,11 @@ class SportsRepository(context: Context) {
             }
         } else SportsFeeds.scoreboard(read(SportsFeeds.url(league, view, now, zone)), league, view, now)
         ensureActive()
-        val cache = file(league, view); val output = cache.startWrite()
-        try { output.write(gson.toJson(result).toByteArray(Charsets.UTF_8)); cache.finishWrite(output) }
-        catch (_: Exception) { cache.failWrite(output) } // A score response can still be used if storage is full.
+        try {
+            val cache = file(league, view); val output = cache.startWrite()
+            try { output.write(gson.toJson(result).toByteArray(Charsets.UTF_8)); cache.finishWrite(output) }
+            catch (e: java.io.IOException) { cache.failWrite(output); throw e }
+        } catch (_: java.io.IOException) { /* A response can still be used if storage is full. */ }
         result
     }
     private fun read(url: String): String {

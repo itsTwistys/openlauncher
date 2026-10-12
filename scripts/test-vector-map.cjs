@@ -86,6 +86,10 @@ const fs=require('fs'), path=require('path'), assert=require('node:assert/strict
   await webgl1.goto('https://appassets.androidplatform.net/assets/map/vector-map.html');
   await webgl1.waitForFunction(()=>window.mapStatus?.().renderer==='vector');
   assert.equal(await webgl1.evaluate(()=>window.mapStatus().webglVersion),1,'WebGL 1 remains a vector map');
+  await webgl1.route('https://tiles.openfreemap.org/**',r=>r.request().url().includes('/fonts/')?r.fulfill({contentType:'application/x-protobuf',body:require('zlib').gunzipSync(Buffer.from(JSON.parse(fs.readFileSync('scripts/fixtures/noto-sans-0-255.json')).gzipBase64,'base64'))}):r.fulfill({json:fixtureStyle}));
+  await webgl1.evaluate(()=>{window.setMapOptions(true,true);window.updatePosition(25.761,-80.191,15,180,8,true);});
+  await webgl1.waitForFunction(()=>window.mapStatus().totalLoaded>0&&!window.mapStatus().loading);
+  assert.ok(await webgl1.evaluate(()=>map.queryRenderedFeatures({layers:['road-label','place-label']}).length)>0,'WebGL 1 renders real road labels');
   console.log('Vector map: upright rendered labels, four real travel projections, offline/recovery, dark mode, resize and WebGL fallback passed.');
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
