@@ -7,9 +7,9 @@
 ## Download the Android preview
 
 <!-- preview-download:start -->
-**[Download Open Launcher 0.0.24-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-7af790b/openlauncher-preview.apk)**
+**[Download Open Launcher 0.0.25-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-dccf0b6/openlauncher-preview.apk)**
 
-[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-7af790b) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-7af790b/docs/PREVIEW.md)
+[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-dccf0b6) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-dccf0b6/docs/PREVIEW.md)
 <!-- preview-download:end -->
 
 This permanently signed preview installs as **Open Launcher Preview**. Version 0.0.25 adds optional automation (Driving/Parked layouts, background trip recording, camera and broadcast triggers, steering-wheel key mapping), an OBD2 Bluetooth widget, Agenda and Phone widgets, trip insights, an offline map cache with area downloads, and backup sharing. Everything new is off until you enable it, and nothing locks out features while driving. Existing layouts, shortcuts, setup and the unified theme from 0.0.23 are retained. See [the preview guide](docs/PREVIEW.md) for details and [the head-unit checklist](docs/HEAD-UNIT-CHECKLIST.md) for what to verify on a real unit.
