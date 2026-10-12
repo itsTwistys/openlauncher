@@ -95,7 +95,7 @@ fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) 
 
 @Composable
 fun SettingsRow(label: String, sublabel: String = "", icon: ImageVector,
-    content: @Composable RowScope.() -> Unit) {
+    content: (@Composable RowScope.() -> Unit)? = null) {
     BoxWithConstraints(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         val stacked = maxWidth < 780.dp || LocalConfiguration.current.fontScale > 1.2f
         val description: @Composable () -> Unit = {
@@ -110,11 +110,11 @@ fun SettingsRow(label: String, sublabel: String = "", icon: ImageVector,
         }
         if (stacked) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             description()
-            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 36.dp),
+            if (content != null) Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 36.dp),
                 verticalAlignment = Alignment.CenterVertically, content = content)
         } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Box(Modifier.weight(1f)) { description() }
-            Row(Modifier.widthIn(max = maxWidth * 0.55f).heightIn(min = 48.dp),
+            if (content != null) Row(Modifier.widthIn(max = maxWidth * 0.55f).heightIn(min = 48.dp),
                 verticalAlignment = Alignment.CenterVertically, content = content)
         }
     }

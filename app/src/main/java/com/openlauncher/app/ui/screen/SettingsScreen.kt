@@ -760,7 +760,7 @@ fun SettingsScreen(
                         label    = "Wallpaper Dim",
                         sublabel = "${"%.0f".format(settings.wallpaperDim * 100)}%",
                         icon     = Icons.Default.BrightnessLow
-                    ) {}
+                    )
                     Slider(
                         value         = settings.wallpaperDim,
                         onValueChange = { onUpdate { copy(wallpaperDim = it) } },
@@ -815,7 +815,7 @@ fun SettingsScreen(
                     label    = "Text Scale",
                     sublabel = "${"%.0f".format(settings.textScale * 100)}%",
                     icon     = Icons.Default.TextFields
-                ) {}
+                )
                 Slider(
                     value         = settings.textScale,
                     onValueChange = { onUpdate { copy(textScale = it) } },
@@ -833,7 +833,7 @@ fun SettingsScreen(
                     label    = "UI Scale",
                     sublabel = "${"%.0f".format(settings.uiScale * 100)}%  — scales all elements",
                     icon     = Icons.Default.ZoomIn
-                ) {}
+                )
                 Slider(
                     value         = settings.uiScale,
                     onValueChange = { onUpdate { copy(uiScale = it) } },
@@ -855,7 +855,7 @@ fun SettingsScreen(
             // 1. Reset A-GPS Button
             SettingsButton(
                 label    = "Reset A-GPS Assistance Data",
-                sublabel = calibrationStatus ?: "Forces cold start to download fresh satellite orbits entirely offline",
+                sublabel = calibrationStatus ?: "Requests a fresh satellite lock; support depends on the GPS driver",
                 icon     = Icons.Default.MyLocation,
                 accent   = accent,
                 onClick  = {
@@ -919,7 +919,7 @@ fun SettingsScreen(
                     label    = "Compass Heading Offset",
                     sublabel = "Manual Alignment: ${if (settings.compassOffset >= 0) "+" else ""}${settings.compassOffset.toInt()}°  — aligns compass with vehicle front",
                     icon     = Icons.Default.Explore
-                ) {}
+                )
                 Slider(
                     value         = settings.compassOffset,
                     onValueChange = { onUpdate { copy(compassOffset = it) } },
