@@ -1,5 +1,7 @@
 package com.openlauncher.app.ui.widget
 
+import com.openlauncher.app.ui.components.SettingsFilledButton as Button
+import com.openlauncher.app.ui.components.SettingsOutlinedButton as OutlinedButton
 import android.content.Intent
 import android.media.MediaPlayer
 import androidx.activity.compose.rememberLauncherForActivityResult

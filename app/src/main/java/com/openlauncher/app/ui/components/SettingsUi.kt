@@ -14,11 +14,26 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+
+@Composable
+fun SettingsFilledButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true,
+    shape: Shape = RoundedCornerShape(4.dp), colors: ButtonColors = ButtonDefaults.buttonColors(),
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding, content: @Composable RowScope.() -> Unit) {
+    Button(onClick, modifier.heightIn(min = 48.dp), enabled, shape = shape, colors = colors,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), contentPadding = contentPadding, content = content)
+}
+
+@Composable
+fun SettingsOutlinedButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit) {
+    OutlinedButton(onClick, modifier.heightIn(min = 48.dp), enabled, shape = RoundedCornerShape(4.dp), content = content)
+}
 
 /** The dashboard's flat, bordered surface, shared by every configuration window. */
 @Composable

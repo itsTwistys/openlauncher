@@ -1,5 +1,6 @@
 package com.openlauncher.app.ui.screen
 
+import com.openlauncher.app.ui.components.SettingsFilledButton as Button
 import com.openlauncher.app.ui.components.SettingsDialog
 import android.content.Intent
 import android.net.Uri
@@ -336,8 +337,8 @@ fun SettingsScreen(
                                 )
                             },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = accent,
-                                selectedLabelColor     = MaterialTheme.colorScheme.onPrimary
+                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                selectedLabelColor     = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         )
                     }
@@ -416,8 +417,8 @@ fun SettingsScreen(
                         onClick  = { onUpdate { copy(unitSystem = UnitSystem.METRIC) } },
                         label    = { Text("Metric", style = MaterialTheme.typography.bodyMedium) },
                         colors   = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = accent,
-                            selectedLabelColor     = MaterialTheme.colorScheme.onPrimary
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor     = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     )
                     Spacer(Modifier.width(6.dp))
@@ -426,8 +427,8 @@ fun SettingsScreen(
                         onClick  = { onUpdate { copy(unitSystem = UnitSystem.IMPERIAL) } },
                         label    = { Text("Imperial", style = MaterialTheme.typography.bodyMedium) },
                         colors   = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = accent,
-                            selectedLabelColor     = MaterialTheme.colorScheme.onPrimary
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor     = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     )
                 }
@@ -601,8 +602,8 @@ fun SettingsScreen(
                                 )
                             },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = accent,
-                                selectedLabelColor     = MaterialTheme.colorScheme.onPrimary
+                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                selectedLabelColor     = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         )
                     }
@@ -735,8 +736,8 @@ fun SettingsScreen(
                                     )
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = accent,
-                                    selectedLabelColor     = MaterialTheme.colorScheme.onPrimary
+                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    selectedLabelColor     = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
                             )
                         }
@@ -790,8 +791,8 @@ fun SettingsScreen(
                             onClick  = { onUpdate { copy(appFont = font) } },
                             label    = { Text(fontDisplayName(font), style = MaterialTheme.typography.bodyMedium, letterSpacing = 0.5.sp) },
                             colors   = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = accent,
-                                selectedLabelColor     = MaterialTheme.colorScheme.onPrimary
+                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                selectedLabelColor     = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         )
                     }

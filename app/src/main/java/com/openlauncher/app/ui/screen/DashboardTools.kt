@@ -1,5 +1,7 @@
 package com.openlauncher.app.ui.screen
 
+import com.openlauncher.app.ui.components.SettingsFilledButton as Button
+import com.openlauncher.app.ui.components.SettingsOutlinedButton as OutlinedButton
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager

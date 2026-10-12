@@ -1,5 +1,7 @@
 package com.openlauncher.app.ui.screen
 
+import com.openlauncher.app.ui.components.SettingsFilledButton as Button
+import com.openlauncher.app.ui.components.SettingsOutlinedButton as OutlinedButton
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

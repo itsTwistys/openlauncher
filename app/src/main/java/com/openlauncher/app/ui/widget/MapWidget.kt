@@ -423,7 +423,7 @@ internal fun MapOptionsDialog(autoZoom: Boolean, headingUp: Boolean, softwareRen
             Text("This controls the raster fallback. Vector maps use GPU rendering. Reload retries vector initialization.", style = MaterialTheme.typography.bodyMedium)
             Text(gpsStatus, style = MaterialTheme.typography.bodyMedium)
             Text(mapStatus, style = MaterialTheme.typography.bodyMedium)
-            OutlinedButton(onClick = onReload, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+            com.openlauncher.app.ui.components.SettingsOutlinedButton(onClick = onReload, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 Text("Reload map", style = MaterialTheme.typography.bodyMedium)
             }
         }

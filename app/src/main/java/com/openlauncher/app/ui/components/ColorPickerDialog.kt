@@ -1,5 +1,6 @@
 package com.openlauncher.app.ui.components
 
+import com.openlauncher.app.ui.components.SettingsFilledButton as Button
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -161,7 +162,7 @@ fun ColorPickerDialog(
                 onClick = { onColorSelected(selectedColor); onDismiss() },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = selectedColor,
-                    contentColor   = if (selectedColor.luminance() > 0.5f) Color.Black else Color.White
+                    contentColor   = if (selectedColor.luminance() > 0.179f) Color.Black else Color.White
                 )
             ) {
                 Text("Apply")
