@@ -63,6 +63,7 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
     var resumed by remember { mutableStateOf(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
     var view by remember { mutableStateOf<WebView?>(null) }
     var tileState by remember { mutableStateOf("Loading map engine…") }
+    var rawTileState by remember { mutableStateOf("Loading map engine…") }
     var now by remember { mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
     var optionsOpen by remember { mutableStateOf(false) }
     var previousRendering by remember { mutableStateOf(softwareRendering) }
@@ -151,7 +152,13 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                         val value = org.json.JSONTokener(result).nextValue() as? String
                         if (value != null) {
                             val status = org.json.JSONObject(value)
-                            tileState = status.getString("message")
+                            val renderer = status.optString("renderer")
+                            val reason = status.optString("fallbackReason").takeIf { it in setOf("unsupported", "context-lost", "init-failed", "missing-asset") } ?: "unknown"
+                            val rendererName = if (renderer == "vector") "Vector map · WebGL ${status.optInt("webglVersion")}" else "Compatibility map ($reason)"
+                            rawTileState = status.getString("message")
+                            tileState = "$rendererName · $rawTileState"
+                            DashboardDiagnostics.renderer(if (renderer == "vector") MapRenderer.VECTOR else MapRenderer.RASTER,
+                                MapFallback.entries.find { it.code == reason } ?: MapFallback.UNKNOWN, status.optInt("webglVersion"))
                             DashboardDiagnostics.tiles(status.getBoolean("started"), status.getBoolean("loading"),
                                 status.getInt("totalLoaded"), status.getInt("totalErrors"), status.getInt("totalTimeouts"))
                         }
@@ -161,9 +168,10 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
             }
         }
     }
-    LaunchedEffect(failure, tileState) {
-        DashboardDiagnostics.mapStatus(failure ?: tileState)
+    LaunchedEffect(failure, rawTileState) {
+        DashboardDiagnostics.mapStatus(failure ?: rawTileState)
     }
+
     val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(context,
         android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
         androidx.core.content.ContextCompat.checkSelfPermission(context,
@@ -226,7 +234,7 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                             assets.shouldInterceptRequest(request.url)
                         override fun onPageFinished(web: WebView, url: String) {
                             if (view !== web || url == "about:blank" || url != web.url) return
-                            if (url.endsWith("/map.html")) web.setLayerType(
+                            if (android.net.Uri.parse(url).path?.endsWith("/map.html") == true) web.setLayerType(
                                 if (softwareRendering) android.view.View.LAYER_TYPE_SOFTWARE else android.view.View.LAYER_TYPE_NONE, null)
                             evaluate(web, "typeof window.updatePosition === 'function' && typeof window.mapStatus === 'function'") { result ->
                                 if (view === web) {
@@ -248,7 +256,9 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                         }
                         override fun shouldOverrideUrlLoading(web: WebView, request: WebResourceRequest): Boolean {
                             if (!request.isForMainFrame) return false
-                            if (request.url.toString() == "https://appassets.androidplatform.net/assets/map/map.html") return false
+                            if (request.url.scheme == "https" && request.url.host == "appassets.androidplatform.net" &&
+                                request.url.path == "/assets/map/map.html" && request.url.getQueryParameter("fallback") in
+                                    setOf(null, "unsupported", "context-lost", "init-failed", "missing-asset")) return false
                             if (request.hasGesture() && request.url.scheme == "https")
                                 runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, request.url)) }
                             return true
@@ -409,7 +419,7 @@ internal fun MapOptionsDialog(autoZoom: Boolean, headingUp: Boolean, softwareRen
             MapOptionSwitch("Heading up", headingUp) { onMapOptions(autoZoom, it) }
             HorizontalDivider()
             MapOptionSwitch("Compatibility rendering", softwareRendering, onSoftwareRendering)
-            Text("If tiles load but the map looks blank, try changing this. The map reloads automatically.", fontSize = 14.sp)
+            Text("This controls the raster fallback. Vector maps use GPU rendering. Reload retries vector initialization.", fontSize = 14.sp)
             Text(gpsStatus, fontSize = 16.sp)
             Text(mapStatus, fontSize = 14.sp)
             OutlinedButton(onClick = onReload, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {

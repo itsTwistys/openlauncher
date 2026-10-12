@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 
 enum class MapEngine { NOT_OPENED, INITIALIZING, READY, SCRIPT_FAILED, TIMED_OUT, CREATE_FAILED, EVALUATION_FAILED, RENDERER_GONE }
+enum class MapRenderer { UNKNOWN, VECTOR, RASTER }
+enum class MapFallback(val code: String) { UNKNOWN("unknown"), UNSUPPORTED("unsupported"), CONTEXT_LOST("context-lost"), INITIALIZATION("init-failed"), MISSING_ASSET("missing-asset") }
 enum class MapResource { PAGE, LOCAL_ASSET, TILE, OTHER }
 enum class MapFailure { INITIALIZATION, TIMEOUT, EVALUATION, CONSOLE, HTTP, NETWORK, SSL, RENDERER }
 
@@ -15,6 +17,7 @@ data class MapHealth(
     val failures: Map<MapFailure, Int> = emptyMap(),
     val lastByKind: Map<MapFailure, MapFailureEvidence> = emptyMap(), val lastFailure: MapFailureEvidence? = null,
     val consoleWarnings: Int = 0,
+    val webglVersion: Int = 0, val renderer: MapRenderer = MapRenderer.UNKNOWN, val fallback: MapFallback = MapFallback.UNKNOWN,
     // Cumulative page counters survive tile retries. A new WebView starts a new page.
     val tileLoads: Int = 0, val tileErrors: Int = 0, val tileTimeouts: Int = 0,
     val tilesStarted: Boolean = false, val tilesLoading: Boolean = false
@@ -25,6 +28,7 @@ open class MapDiagnostics(private val clock: () -> Long = System::currentTimeMil
     private val _map = MutableStateFlow(MapHealth())
     val map: StateFlow<MapHealth> = _map
     fun mapStatus(status: String) { _map.update { it.copy(status = status.takeIf { it in SAFE_MAP_STATUSES } ?: "Map status unavailable", updatedAtMs = clock()) } }
+    fun renderer(value: MapRenderer, reason: MapFallback, version: Int = 0) { _map.update { it.copy(renderer = value, fallback = reason, webglVersion = version.takeIf { it in 1..2 } ?: 0) } }
     fun beginPage() { _map.update { it.copy(engine = MapEngine.INITIALIZING, attempts = it.attempts + 1,
         tileLoads = 0, tileErrors = 0, tileTimeouts = 0, tilesStarted = false, tilesLoading = false) } }
     fun engine(state: MapEngine) {
@@ -55,6 +59,7 @@ object DashboardDiagnostics : MapDiagnostics()
 /** One source for the existing UI and text export; only enums, counts, codes and timestamps. */
 fun MapHealth.evidenceLines(): List<Pair<String, String>> = listOf(
     "Map engine" to "$engine · $attempts initialization attempts (app session)",
+    "Map renderer" to "$renderer · WebGL=$webglVersion · fallback=$fallback",
     "Map console warnings" to consoleWarnings.toString(),
     "Map tiles (current page)" to "started=$tilesStarted, loading=$tilesLoading, loaded=$tileLoads, errors=$tileErrors, timeouts=$tileTimeouts",
     "Map last failure" to (lastFailure?.let { "${it.kind} · epochMs=${it.atMs}" } ?: "None")
@@ -67,6 +72,7 @@ fun MapHealth.evidenceLines(): List<Pair<String, String>> = listOf(
 // Only locally defined UI messages may enter the export, never arbitrary WebView text.
 private val SAFE_MAP_STATUSES = setOf(
     "Loading map engine…", "Offline · map will retry when connected", "Waiting for GPS · map is ready",
+    "Move to establish heading · north up", "Compatibility map · north up for readable labels", "Map tiles unavailable · check internet",
     "Loading map tiles…", "Some map tiles unavailable · check internet", "Waiting for map tiles…",
     "GPS stale · showing last location", "Heading unavailable · north up", "Manual zoom · Recenter resumes auto zoom", "Map ready",
     "Map engine unavailable. Check Android System WebView or tap Reload.",

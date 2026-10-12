@@ -72,6 +72,10 @@ class SettingsRepository(private val context: Context) {
         val SHOW_DESTINATIONS   = booleanPreferencesKey("show_destinations")
         val SHOW_RADAR          = booleanPreferencesKey("show_radar")
         val SHOW_TRAFFIC        = booleanPreferencesKey("show_traffic")
+        val SHOW_SPORTS = booleanPreferencesKey("show_sports")
+        val SPORTS_LEAGUE = stringPreferencesKey("sports_league")
+        val SPORTS_VIEW = stringPreferencesKey("sports_view")
+        val SPORTS_LEAGUES = stringSetPreferencesKey("sports_leagues")
         val HOME_DESTINATION    = stringPreferencesKey("home_destination")
         val WORK_DESTINATION    = stringPreferencesKey("work_destination")
         val LAYOUT_PROFILES_JSON = stringPreferencesKey("layout_profiles_json")
@@ -170,6 +174,10 @@ class SettingsRepository(private val context: Context) {
                 showDestinations = prefs[Keys.SHOW_DESTINATIONS] ?: defaults.showDestinations,
                 showRadar = prefs[Keys.SHOW_RADAR] ?: defaults.showRadar,
                 showTraffic = prefs[Keys.SHOW_TRAFFIC] ?: defaults.showTraffic,
+                showSports = prefs[Keys.SHOW_SPORTS] ?: defaults.showSports,
+                sportsLeague = prefs[Keys.SPORTS_LEAGUE]?.takeIf { it in defaults.sportsLeagues } ?: defaults.sportsLeague,
+                sportsView = prefs[Keys.SPORTS_VIEW]?.takeIf { it in setOf("LIVE", "RESULTS", "UPCOMING") } ?: defaults.sportsView,
+                sportsLeagues = defaults.sportsLeagues.filter { it in (prefs[Keys.SPORTS_LEAGUES] ?: defaults.sportsLeagues.toSet()) }.ifEmpty { defaults.sportsLeagues },
                 homeDestination = prefs[Keys.HOME_DESTINATION] ?: defaults.homeDestination,
                 workDestination = prefs[Keys.WORK_DESTINATION] ?: defaults.workDestination,
                 activeLayoutProfile = prefs[Keys.ACTIVE_PROFILE] ?: "",
@@ -259,6 +267,10 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.SHOW_DESTINATIONS]  = s.showDestinations
             prefs[Keys.SHOW_RADAR]         = s.showRadar
             prefs[Keys.SHOW_TRAFFIC]       = s.showTraffic
+            prefs[Keys.SHOW_SPORTS] = s.showSports
+            prefs[Keys.SPORTS_LEAGUE] = s.sportsLeague
+            prefs[Keys.SPORTS_VIEW] = s.sportsView
+            prefs[Keys.SPORTS_LEAGUES] = s.sportsLeagues.toSet()
             prefs[Keys.HOME_DESTINATION]   = s.homeDestination
             prefs[Keys.WORK_DESTINATION]   = s.workDestination
             prefs[Keys.LAYOUT_PROFILES_JSON] = gson.toJson(s.layoutProfiles)

@@ -78,6 +78,7 @@ internal val ALL_WIDGET_TYPES = listOf(
     WidgetTypeInfo("DESTINATIONS", "DESTINATIONS", Icons.Default.Home,      "Home and work shortcuts"),
     WidgetTypeInfo("RADAR",        "RADAR",        Icons.Default.Grain,      "Open live weather radar"),
     WidgetTypeInfo("TRAFFIC",      "TRAFFIC",      Icons.Default.Traffic,    "Open live traffic and ETA"),
+    WidgetTypeInfo("SPORTS", "SPORTS", Icons.Default.SportsScore, "Live scores, results and upcoming events"),
     WidgetTypeInfo("SOUNDBOARD",  "SOUNDBOARD",  Icons.Default.Piano,         "Custom sound pads")
 )
 
@@ -516,6 +517,7 @@ fun HomeScreen(
                         )
                         "RADAR" -> RadarWidget(enabled = !editMode, modifier = Modifier.fillMaxSize())
                         "TRAFFIC" -> TrafficWidget(location = location, enabled = !editMode, modifier = Modifier.fillMaxSize())
+                        "SPORTS" -> SportsWidget(settings, weather, networkAvailable, editMode, onSettings, Modifier.fillMaxSize())
                         "SOUNDBOARD" -> SoundboardWidget(
                             pads      = settings.soundboardPads,
                             accent    = accent,
