@@ -237,7 +237,7 @@ private fun LocationMap(location: LocationData?, isEditing: Boolean, onlineEnabl
                         failure = "Map page failed to load. Retrying…"
                     }) {
                         override fun shouldInterceptRequest(web: WebView, request: WebResourceRequest): android.webkit.WebResourceResponse? =
-                            assets.shouldInterceptRequest(request.url)
+                            assets.shouldInterceptRequest(request.url) ?: interceptMapRequest(context, request)
                         override fun onPageFinished(web: WebView, url: String) {
                             if (view !== web || url == "about:blank" || url != web.url) return
                             if (android.net.Uri.parse(url).path?.endsWith("/map.html") == true) web.setLayerType(
@@ -305,6 +305,13 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
               mapTheme: String = "AUTO", isDayMode: Boolean = false, mapFont: String = "SYSTEM", onMapTheme: (String) -> Unit = {},
               expanded: Boolean = false, onExpand: (() -> Unit)? = null) {
     val context = LocalContext.current
+    // Saved map data lets the map draw without internet, so a cache hit counts as being able to reach the map.
+    val hasSavedMap by produceState(false, context) {
+        while (true) {
+            value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.openlauncher.app.data.MapTileCache.hasData(context) }
+            kotlinx.coroutines.delay(30_000)
+        }
+    }
     val directions by com.openlauncher.app.service.MediaListenerService.navigation.collectAsState()
     val connected by com.openlauncher.app.service.MediaListenerService.isConnected.collectAsState()
     val navigation = directions.firstOrNull { navigationPackage.isBlank() || it.packageName == navigationPackage }
@@ -349,7 +356,7 @@ fun MapWidget(location: LocationData?, isEditing: Boolean, onlineEnabled: Boolea
         }
         LocationMap(location, isEditing, onlineEnabled, mapTheme == "DARK" || (mapTheme == "AUTO" && !isDayMode), mapTheme, onMapTheme, mapFont, autoZoom, headingUp, onMapOptions,
             softwareRendering, onSoftwareRendering, if (connected) "Open navigation" else "Enable directions", onOpenNavigation = ::openNavigation,
-            networkAvailable = networkAvailable, modifier = Modifier.fillMaxWidth().weight(1f))
+            networkAvailable = networkAvailable || hasSavedMap, modifier = Modifier.fillMaxWidth().weight(1f))
     }
     }
 }

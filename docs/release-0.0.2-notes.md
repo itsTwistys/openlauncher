@@ -1,3 +1,5 @@
+> Historical notes for v0.0.2, kept for reference. See [PREVIEW.md](PREVIEW.md) for the current release.
+
 # Release v0.0.2: The Layout & Theme Engine Update
 
 This update brings a massive overhaul to the core architecture. We've moved past the initial concept stage—v0.0.2 is almost completely overhauled and fully functional as a daily driver. 

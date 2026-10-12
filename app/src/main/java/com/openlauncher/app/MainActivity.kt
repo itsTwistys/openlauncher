@@ -4,7 +4,11 @@ import com.openlauncher.app.data.withDefaultDashboard
 
 import android.Manifest
 import com.openlauncher.app.data.withWidgetVisibility
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.SystemClock
+import android.view.KeyEvent
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -33,6 +37,10 @@ import com.openlauncher.app.data.DayNightMode
 import com.openlauncher.app.data.SidebarPosition
 import com.openlauncher.app.data.GradientDirection
 import com.openlauncher.app.model.NavDestination
+import com.openlauncher.app.service.TripRecordingService
+import com.openlauncher.app.util.DrivingState
+import com.openlauncher.app.util.DrivingStateTracker
+import com.openlauncher.app.util.layoutProfileFor
 import com.openlauncher.app.ui.components.Sidebar
 import com.openlauncher.app.ui.screen.*
 import com.openlauncher.app.ui.theme.OpenLauncherTheme
@@ -58,6 +66,12 @@ class MainActivity : ComponentActivity() {
             hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        // Optional steering-wheel mapping; keys are consumed only when the owner bound them.
+        if (event.repeatCount == 0 && vm.handleKeyEvent(keyCode)) return true
+        return super.onKeyDown(keyCode, event)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -95,6 +109,34 @@ class MainActivity : ComponentActivity() {
             val isDayMode = if (settings.dayNightMode == DayNightMode.SYSTEM) !systemIsDark else isDayModeVM
             androidx.compose.runtime.LaunchedEffect(settings.autoDayNightProfiles, isDayMode, settings.layoutProfiles) {
                 if (settings.autoDayNightProfiles) vm.applyLayoutProfile(if (isDayMode) "Day" else "Night")
+            }
+            val lastKeyCode     by vm.lastKeyCode.collectAsStateWithLifecycle()
+            // Optional: keep a running trip counting while another app is on screen.
+            val backgroundTrips = settings.recordTripsInBackground && trips.current.running
+            androidx.compose.runtime.LaunchedEffect(backgroundTrips) {
+                val located = ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                val active = backgroundTrips && located
+                vm.setTripBackground(active)
+                if (active) TripRecordingService.start(applicationContext) else TripRecordingService.stop(applicationContext)
+            }
+            // Optional: switch to the saved Driving or Parked layout. Only changes layouts; nothing is ever locked.
+            androidx.compose.runtime.LaunchedEffect(settingsLoaded, settings.autoDrivingProfiles, settings.parkedAfterMinutes) {
+                if (!settingsLoaded || !settings.autoDrivingProfiles) return@LaunchedEffect
+                val tracker = DrivingStateTracker(parkedHoldMs = settings.parkedAfterMinutes * 60_000L)
+                var applied = DrivingState.UNKNOWN
+                while (true) {
+                    val fix = vm.location.value
+                    val now = SystemClock.elapsedRealtime()
+                    if (fix != null && now - fix.elapsedRealtimeMs < 10_000) {
+                        val state = tracker.update(fix.speedMps * 3.6f, now)
+                        if (state != applied && state != DrivingState.UNKNOWN) {
+                            applied = state
+                            layoutProfileFor(state)?.let { vm.applyLayoutProfile(it) }
+                        }
+                    }
+                    delay(1_000)
+                }
             }
             val pickerSlot      by vm.shortcutPickerSlot.collectAsStateWithLifecycle()
             val appPickerTarget by vm.appPickerTarget.collectAsStateWithLifecycle()
@@ -231,7 +273,7 @@ class MainActivity : ComponentActivity() {
                                         networkAvailable = networkAvailable,
                                         settings            = settings,
                                         trips = trips, tripError = tripError, onToggleTrip = vm::toggleTrip, onResetTrip = vm::resetTrip,
-                                        onFinishTrip = vm::finishTrip, onClearTrips = vm::clearTripHistory,
+                                        onFinishTrip = vm::finishTrip, onClearTrips = vm::clearTripHistory, onDeleteTrip = vm::deleteTrip,
                                         weatherError = weatherError,
                                         onRefreshWeather = { location?.let { vm.fetchWeather(it.latitude, it.longitude, settings.unitSystem == UnitSystem.METRIC) } },
                                         onSettings = vm::updateSettings,
@@ -298,6 +340,7 @@ class MainActivity : ComponentActivity() {
                                             com.openlauncher.app.viewmodel.LauncherViewModel.AppPickerTarget.ANDROID_AUTO -> "CHOOSE ANDROID AUTO APP"
                                             com.openlauncher.app.viewmodel.LauncherViewModel.AppPickerTarget.PIP          -> "CHOOSE PIP APP"
                                             com.openlauncher.app.viewmodel.LauncherViewModel.AppPickerTarget.RADIO        -> "CHOOSE RADIO APP"
+                                            com.openlauncher.app.viewmodel.LauncherViewModel.AppPickerTarget.CAMERA       -> "CHOOSE CAMERA APP"
                                             else -> "CHOOSE CARPLAY APP"
                                         },
                                         accent              = accent,
@@ -310,7 +353,9 @@ class MainActivity : ComponentActivity() {
                                         settings = settings,
                                         accent   = accent,
                                         onUpdate = { block -> vm.updateSettings(block) },
-                                        onReset  = { vm.resetSettings() }
+                                        onReset  = { vm.resetSettings() },
+                                        lastKeyCode = lastKeyCode,
+                                        onChooseCameraApp = { vm.startCameraPicker() }
                                     )
                                 }
                             }
@@ -375,7 +420,7 @@ class MainActivity : ComponentActivity() {
         vm.musicStopped()
         vm.setTripForeground(false)
         super.onStop()
-        vm.stopLocationUpdates()
+        if (!vm.keepsLocationInBackground()) vm.stopLocationUpdates()
     }
 
     override fun onStart() {

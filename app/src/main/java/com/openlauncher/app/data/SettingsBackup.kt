@@ -8,7 +8,8 @@ import com.google.gson.JsonParser
 object SettingsBackup {
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val ids = setOf("CLOCK", "WEATHER", "NOW_PLAYING", "TELEMETRY", "ALTIMETER", "SPEEDOMETER",
-        "VITALS", "TRIP_TRACKER", "SOUNDBOARD", "MAP", "CONNECTIVITY", "DESTINATIONS", "RADAR", "TRAFFIC", "SPORTS")
+        "VITALS", "TRIP_TRACKER", "SOUNDBOARD", "MAP", "CONNECTIVITY", "DESTINATIONS", "RADAR", "TRAFFIC", "SPORTS",
+        "OBD", "AGENDA", "PHONE")
 
     fun encode(settings: AppSettings): String = gson.toJson(JsonObject().apply {
         addProperty("format", "openlauncher-settings")
@@ -72,6 +73,14 @@ object SettingsBackup {
             require(p.enabledIds.all { it in ids && p.layout.any { w -> w.id == it } })
             require(validWidgetLayout(p.layout.filter { it.enabled && it.id in p.enabledIds }))
         }
+        require(s.parkedAfterMinutes in 1..60) { "Invalid parked delay" }
+        require(isValidBluetoothAddress(s.obdDeviceAddress) && s.obdDeviceName.length <= 100) { "Invalid OBD adapter" }
+        require(s.cameraPackage.length <= 255 && (s.cameraPackage.isBlank() ||
+            s.cameraPackage.matches(Regex("[A-Za-z][A-Za-z0-9_]*([.][A-Za-z0-9_]+)+")))) { "Invalid camera app" }
+        require(s.eventTriggers.size <= MAX_EVENT_TRIGGERS && s.eventTriggers.all {
+            isValidEventAction(it.action) && LauncherCommand.from(it.command) != null }) { "Invalid event trigger" }
+        require(s.steeringKeys.size <= MAX_KEY_BINDINGS && s.steeringKeys.all {
+            it.keyCode > 0 && LauncherCommand.from(it.command) != null }) { "Invalid steering key" }
         require(s.shortcuts.size <= 128 && s.soundboardPads.size <= 6)
         require(s.shortcuts.all { it.defaultIcon in DefaultShortcutIcon.entries })
         // Device file grants cannot move between head units. Online location sharing is opt-in again.

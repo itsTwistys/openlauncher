@@ -90,6 +90,18 @@ class SettingsRepository(private val context: Context) {
         val SPEEDOMETER_DIGITAL_ONLY = booleanPreferencesKey("speedometer_digital_only")
         val GRADIENT_DIRECTION    = stringPreferencesKey("gradient_direction")
         val USE_CUSTOM_BG_COLOR   = booleanPreferencesKey("use_custom_bg_color")
+        val AUTO_DRIVING_PROFILES = booleanPreferencesKey("auto_driving_profiles")
+        val PARKED_AFTER_MINUTES  = intPreferencesKey("parked_after_minutes")
+        val TRIPS_IN_BACKGROUND   = booleanPreferencesKey("trips_in_background")
+        val SHOW_OBD              = booleanPreferencesKey("show_obd")
+        val OBD_ADDRESS           = stringPreferencesKey("obd_address")
+        val OBD_NAME              = stringPreferencesKey("obd_name")
+        val SHOW_AGENDA           = booleanPreferencesKey("show_agenda")
+        val SHOW_PHONE            = booleanPreferencesKey("show_phone")
+        val CAMERA_PACKAGE        = stringPreferencesKey("camera_package")
+        val EVENT_TRIGGERS_JSON   = stringPreferencesKey("event_triggers_json")
+        val STEERING_KEYS_ENABLED = booleanPreferencesKey("steering_keys_enabled")
+        val STEERING_KEYS_JSON    = stringPreferencesKey("steering_keys_json")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data
@@ -201,7 +213,23 @@ class SettingsRepository(private val context: Context) {
                 vitalsAsBars     = prefs[Keys.VITALS_AS_BARS] ?: defaults.vitalsAsBars,
                 speedometerDigitalOnly = prefs[Keys.SPEEDOMETER_DIGITAL_ONLY] ?: defaults.speedometerDigitalOnly,
                 gradientDirection = prefs[Keys.GRADIENT_DIRECTION]?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() } ?: defaults.gradientDirection,
-                useCustomBackgroundColor = prefs[Keys.USE_CUSTOM_BG_COLOR] ?: defaults.useCustomBackgroundColor
+                useCustomBackgroundColor = prefs[Keys.USE_CUSTOM_BG_COLOR] ?: defaults.useCustomBackgroundColor,
+                autoDrivingProfiles = prefs[Keys.AUTO_DRIVING_PROFILES] ?: defaults.autoDrivingProfiles,
+                parkedAfterMinutes = (prefs[Keys.PARKED_AFTER_MINUTES] ?: defaults.parkedAfterMinutes).coerceIn(1, 60),
+                recordTripsInBackground = prefs[Keys.TRIPS_IN_BACKGROUND] ?: defaults.recordTripsInBackground,
+                showObd = prefs[Keys.SHOW_OBD] ?: defaults.showObd,
+                obdDeviceAddress = prefs[Keys.OBD_ADDRESS]?.takeIf { isValidBluetoothAddress(it) } ?: defaults.obdDeviceAddress,
+                obdDeviceName = prefs[Keys.OBD_NAME] ?: defaults.obdDeviceName,
+                showAgenda = prefs[Keys.SHOW_AGENDA] ?: defaults.showAgenda,
+                showPhone = prefs[Keys.SHOW_PHONE] ?: defaults.showPhone,
+                cameraPackage = prefs[Keys.CAMERA_PACKAGE] ?: defaults.cameraPackage,
+                eventTriggers = prefs[Keys.EVENT_TRIGGERS_JSON]?.let {
+                    runCatching { gson.fromJson<List<EventTrigger>>(it, object : TypeToken<List<EventTrigger>>() {}.type) }.getOrNull()
+                }.orEmpty().filter { isValidEventAction(it.action) }.take(MAX_EVENT_TRIGGERS),
+                steeringKeysEnabled = prefs[Keys.STEERING_KEYS_ENABLED] ?: defaults.steeringKeysEnabled,
+                steeringKeys = prefs[Keys.STEERING_KEYS_JSON]?.let {
+                    runCatching { gson.fromJson<List<KeyBinding>>(it, object : TypeToken<List<KeyBinding>>() {}.type) }.getOrNull()
+                }.orEmpty().filter { it.keyCode > 0 }.take(MAX_KEY_BINDINGS)
             ).withoutRetiredWidgets().withMergedClockWeather()
     }
 
@@ -289,6 +317,18 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.SPEEDOMETER_DIGITAL_ONLY] = s.speedometerDigitalOnly
             prefs[Keys.GRADIENT_DIRECTION] = s.gradientDirection.name
             prefs[Keys.USE_CUSTOM_BG_COLOR] = s.useCustomBackgroundColor
+            prefs[Keys.AUTO_DRIVING_PROFILES] = s.autoDrivingProfiles
+            prefs[Keys.PARKED_AFTER_MINUTES] = s.parkedAfterMinutes
+            prefs[Keys.TRIPS_IN_BACKGROUND] = s.recordTripsInBackground
+            prefs[Keys.SHOW_OBD] = s.showObd
+            prefs[Keys.OBD_ADDRESS] = s.obdDeviceAddress
+            prefs[Keys.OBD_NAME] = s.obdDeviceName
+            prefs[Keys.SHOW_AGENDA] = s.showAgenda
+            prefs[Keys.SHOW_PHONE] = s.showPhone
+            prefs[Keys.CAMERA_PACKAGE] = s.cameraPackage
+            prefs[Keys.EVENT_TRIGGERS_JSON] = gson.toJson(s.eventTriggers)
+            prefs[Keys.STEERING_KEYS_ENABLED] = s.steeringKeysEnabled
+            prefs[Keys.STEERING_KEYS_JSON] = gson.toJson(s.steeringKeys)
     }
 
     suspend fun resetToDefaults() {

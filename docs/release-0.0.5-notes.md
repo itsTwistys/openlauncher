@@ -1,3 +1,5 @@
+> Historical notes for v0.0.5, kept for reference. See [PREVIEW.md](PREVIEW.md) for the current release.
+
 # Release v0.0.5: The Stability & Real Radio Update
 
 > ⚠️ **UNTESTED RELEASE** — This version contains a large stability overhaul and a full radio rewrite that has **not yet been verified on physical head units**. Install it if you want the latest fixes and are willing to report issues — otherwise stay on v0.0.4 until a tested follow-up lands. Bug reports on the [Issues tab](../../issues) are hugely appreciated.
