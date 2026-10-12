@@ -12,7 +12,6 @@
     } catch (_) { fallback("init-failed"); return; }
     window.map = map;
     map.touchZoomRotate.disableRotation();
-    map.addControl(new maplibregl.NavigationControl({showCompass: false}), 'top-left');
     map.addControl(new maplibregl.AttributionControl({compact: false,
         customAttribution: '<a href="https://openfreemap.org">OpenFreeMap</a> · © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}));
     map.getCanvas().addEventListener('webglcontextlost', () => fallback('context-lost')); 
@@ -22,7 +21,7 @@
     let started = false, loading = false, loaded = 0, failed = 0, totalLoaded = 0, totalErrors = 0, totalTimeouts = 0;
     let styleReady = false, styleGeneration = 0, controller = null, retryTimer = null, watchdog = null, retries = 0;
     let motionFrame = null;
-    const status = document.getElementById('status'), followButton = document.getElementById('follow');
+    const status = document.getElementById('status');
     function message() {
         if (!online) return 'Offline · map will retry when connected';
         if (!last) return 'Waiting for GPS · map is ready';
@@ -38,10 +37,7 @@
         const text = message(); status.textContent = text;
         status.style.display = text === 'Map ready' || text.startsWith('Manual zoom') ? 'none' : 'block';
     }
-    function setFollow(value) {
-        follow = value; followButton.textContent = value ? 'Follow on' : 'Follow off';
-        followButton.classList.toggle('active', value); followButton.setAttribute('aria-pressed', value);
-    }
+    function setFollow(value) { follow = !!value; }
     function motion(force = false, animate = false) {
         if (motionFrame !== null) cancelAnimationFrame(motionFrame);
         motionFrame = null;
@@ -145,8 +141,16 @@
     function stopMotion() { if (motionFrame !== null) cancelAnimationFrame(motionFrame); motionFrame = null; if (marker && last) marker.setLngLat(last); }
     map.on('dragstart', () => { stopMotion(); setFollow(false); });
     map.on('zoomstart', event => { if (!programmatic && event.originalEvent) { stopMotion(); autoZoomPaused = true; } });
-    followButton.onclick = () => { setFollow(!follow); if (follow) { autoZoomPaused = false; motion(true); } renderStatus(); };
-    document.getElementById('center').onclick = () => { setFollow(true); autoZoomPaused = false; motion(true); renderStatus(); };
+    window.setMapFollow = value => { setFollow(value); if (follow) { autoZoomPaused = false; motion(true); } renderStatus(); };
+    window.recenterMap = () => { setFollow(true); autoZoomPaused = false; motion(true); renderStatus(); };
+    window.zoomMap = delta => {
+        if (delta !== 1 && delta !== -1) return;
+        stopMotion(); autoZoomPaused = true;
+        programmatic = true;
+        try { map.jumpTo({zoom: Math.max(0, Math.min(19, map.getZoom() + delta))}); }
+        finally { programmatic = false; }
+        renderStatus();
+    };
     window.updatePosition = (lat, lon, speed = 0, bearing = null, accuracy = 0, fresh = true) => {
         if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
         const first = !last; last = [lon, lat]; gpsFresh = fresh;
@@ -186,7 +190,7 @@
     window.resizeMap = () => { map.resize(); if (follow && last) motion(); };
     window.resumeMap = () => { window.resizeMap(); if (online && last && (!started || failed)) { retries = 0; loadStyle(); } renderStatus(); };
     window.mapStatus = () => ({message: message(), gpsFresh, started, loading, failed, loaded, totalLoaded, totalErrors, totalTimeouts,
-        autoZoomPaused, headingUp, bearing: (map.getBearing() + 360) % 360, zoom: map.getZoom(), renderer: 'vector', webglVersion, animating: motionFrame !== null});
+        follow, autoZoomPaused, headingUp, bearing: (map.getBearing() + 360) % 360, zoom: map.getZoom(), renderer: 'vector', webglVersion, animating: motionFrame !== null});
     window.addEventListener('resize', window.resizeMap);
     if (window.ResizeObserver) new ResizeObserver(window.resizeMap).observe(document.body);
     document.addEventListener('visibilitychange', () => {

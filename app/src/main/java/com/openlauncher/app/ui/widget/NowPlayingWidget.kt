@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.model.NowPlayingState
 import com.openlauncher.app.service.MediaListenerService
@@ -61,6 +62,9 @@ fun NowPlayingWidget(
     modifier: Modifier = Modifier,
     isEditing: Boolean = false,
     preferredPackage: String = "",
+    autoLaunchMedia: Boolean = true,
+    lastMediaPackage: String = "",
+    onAutoLaunchMedia: (Boolean) -> Unit = {},
     mediaApps: List<com.openlauncher.app.model.AppInfo> = emptyList(),
     onSelectMedia: (String) -> Unit = {},
     onOpenSelectedMedia: () -> Unit = {},
@@ -112,8 +116,8 @@ fun NowPlayingWidget(
                     modifier = Modifier.fillMaxSize()
                 )
             }
-        } else if (!isConnected || (preferredPackage.isNotBlank() && state == null)) {
-            val installed = mediaApps.any { it.packageName == preferredPackage }
+        } else if (!isConnected || (com.openlauncher.app.util.musicStartupPackage(preferredPackage, lastMediaPackage).isNotBlank() && state == null)) {
+            val installed = mediaApps.any { it.packageName == com.openlauncher.app.util.musicStartupPackage(preferredPackage, lastMediaPackage) }
             Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(when {
@@ -157,7 +161,7 @@ fun NowPlayingWidget(
         // Source preference is stored in DataStore and remains selected when its app disconnects.
         var pickerOpen by remember { mutableStateOf(false) }
         val sourceLabel = when (preferredPackage) {
-            "" -> mediaApps.firstOrNull { it.packageName == state?.controller?.packageName }?.appName ?: "Now Playing"
+            "" -> mediaApps.firstOrNull { it.packageName == (state?.controller?.packageName ?: lastMediaPackage) }?.appName ?: "Now Playing"
             "@radio" -> "FM/AM Radio"
             else -> mediaApps.firstOrNull { it.packageName == preferredPackage }?.appName ?: preferredPackage
         }
@@ -173,6 +177,12 @@ fun NowPlayingWidget(
             SettingsDialog(onDismissRequest = { pickerOpen = false }, title = { Text("Choose media app") },
                 text = {
                     Column {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Start last music app", Modifier.weight(1f))
+                            Switch(autoLaunchMedia, onAutoLaunchMedia, modifier = Modifier.semantics { contentDescription = "Start last music app" })
+                        }
+                        Text("Connects at startup or after a longer absence. Audio is not started automatically. Apps that require their own screen open once.", style = MaterialTheme.typography.bodySmall)
+                        if (lastMediaPackage.isNotBlank()) Text("Last used: " + (mediaApps.firstOrNull { it.packageName == lastMediaPackage }?.appName ?: lastMediaPackage), style = MaterialTheme.typography.bodySmall)
                         Text("The app must expose Android media controls while playing.", fontSize = 14.sp)
                         OutlinedTextField(value = query, onValueChange = { query = it }, label = { Text("Find installed app") }, singleLine = true)
                         androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 360.dp)) {

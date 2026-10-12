@@ -88,6 +88,8 @@ data class AppSettings(
     val showClock: Boolean = true,
     val showTelemetry: Boolean = false,
     val showNowPlaying: Boolean = true,
+    val lastMediaPackage: String = "",
+    val autoLaunchMedia: Boolean = true,
     val preferredMediaPackage: String = "", // Empty = automatic; @radio = hardware radio
     val launcherBrightness: Float = -1f,
     val weatherBackground: Boolean = false,

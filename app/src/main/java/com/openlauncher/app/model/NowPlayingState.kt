@@ -18,4 +18,4 @@ data class NowPlayingState(
     val userRating: android.media.Rating? = null
 )
 
-data class MediaAction(val id: String, val label: String, val icon: Int)
+data class MediaAction(val id: String, val label: String, val icon: Int, val active: Boolean? = null)

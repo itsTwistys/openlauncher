@@ -25,7 +25,22 @@ class SportsFeedsTest {
         assertNull(SportsFeeds.timestamp("2026-02-31T03:00:00Z"))
     }
     @Test fun allFiveLeaguePathsAndLocalDateBoundariesAreExplicit() {
-        SportsLeague.entries.forEach { assertTrue(SportsFeeds.url(it, SportsView.LIVE, now, TimeZone.getTimeZone("America/New_York")).contains("${it.path}/scoreboard?dates=20261010-20261011")) }
+        SportsLeague.entries.forEach { assertTrue(SportsFeeds.urls(it, SportsView.LIVE, now, TimeZone.getTimeZone("America/New_York")).first().contains("${it.path}/scoreboard?dates=20261010&")) }
+    }
+    @Test fun noLiveGamesShowsActualResultsAndUpcomingWithoutInventingLiveScores() {
+        val json = """{"events":[${game("final", "post")},${game("next", "pre", "2026-10-13T00:00Z") }]}"""
+        val overview = SportsFeeds.scoreboard(json, SportsLeague.NFL, SportsView.LIVE, now)
+        assertEquals(listOf("final", "next"), overview.events.map { it.id })
+        assertTrue(overview.events.none { it.state == "in" })
+        assertEquals("0", overview.events.first().competitors.first().score)
+        assertTrue(overview.events.last().competitors.all { it.score == null })
+        assertEquals(7, SportsFeeds.urls(SportsLeague.NFL, SportsView.RESULTS, now, TimeZone.getTimeZone("UTC")).size)
+        assertEquals(14, SportsFeeds.urls(SportsLeague.NFL, SportsView.UPCOMING, now, TimeZone.getTimeZone("UTC")).size)
+        SportsLeague.entries.forEach { league -> SportsView.entries.forEach { view ->
+            SportsFeeds.urls(league, view, now, TimeZone.getTimeZone("UTC")).forEach { url ->
+                assertTrue(url.substringAfter("dates=").substringBefore('&').matches(Regex("[0-9]{8}")))
+            }
+        } }
     }
     @Test fun raceResultsUsePublishedPositionsAndUpcomingNeverInfersLiveFromTime() {
         val json = """{"MRData":{"RaceTable":{"Races":[{"season":"2026","round":"18","raceName":"Test Grand Prix","date":"2026-10-11","time":"12:00:00Z","Results":[{"position":"2","Driver":{"givenName":"Second","familyName":"Driver","code":"TWO"}},{"position":"1","Driver":{"givenName":"First","familyName":"Driver","code":"ONE"}}]}]}}}"""

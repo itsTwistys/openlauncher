@@ -6,6 +6,10 @@ import android.media.Rating
 import android.media.session.PlaybackState
 import android.os.SystemClock
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.semantics.*
+import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -109,13 +113,14 @@ internal fun MediaArtworkPlayer(state: NowPlayingState, accent: Color, editing: 
                 if (!compact) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     state.customActions.take(8).forEach { action ->
-                        IconButton(enabled = !editing, modifier = Modifier.size(48.dp),
+                        IconButton(enabled = !editing && state.controller != null, modifier = Modifier.mediaActionState(action.active, text),
                             onClick = { if (!sendExposedMediaAction(state.controller, action.id)) failed() }) {
-                            MediaActionIcon(action, state.controller?.packageName, text)
+                            MediaActionIcon(action, state.controller?.packageName, if (action.active == false) text.copy(alpha = 0.55f) else text)
                         }
                     }
                     if (supportsAction(state.actions, PlaybackState.ACTION_SET_RATING)) {
-                        IconButton(enabled = !editing, modifier = Modifier.size(48.dp), onClick = {
+                        val activeRating = ratingActive(state.userRating, state.ratingStyle)
+                        IconButton(enabled = !editing && state.controller != null, modifier = Modifier.mediaActionState(activeRating, text), onClick = {
                             val rating = when (state.ratingStyle) {
                                 Rating.RATING_HEART -> Rating.newHeartRating(state.userRating?.hasHeart() != true)
                                 Rating.RATING_THUMB_UP_DOWN -> Rating.newThumbRating(state.userRating?.isThumbUp != true)
@@ -126,10 +131,10 @@ internal fun MediaArtworkPlayer(state: NowPlayingState, accent: Color, editing: 
                             val saved = state.userRating?.hasHeart() == true
                             Icon(when (state.ratingStyle) {
                                 Rating.RATING_HEART -> if (saved) Icons.Default.Favorite else Icons.Default.FavoriteBorder
-                                Rating.RATING_THUMB_UP_DOWN -> Icons.Default.ThumbUp
-                                else -> Icons.Default.Star
+                                Rating.RATING_THUMB_UP_DOWN -> if (activeRating == true) Icons.Default.ThumbUp else Icons.Outlined.ThumbUp
+                                else -> if (activeRating == true) Icons.Default.Star else Icons.Default.StarBorder
                             }, if (state.ratingStyle == Rating.RATING_HEART) { if (saved) "Remove like" else "Like track" } else "Rate track",
-                                Modifier.size(24.dp), tint = text)
+                                Modifier.size(24.dp), tint = if (activeRating == false) text.copy(alpha = 0.55f) else text)
                         }
                     }
                     IconButton(onClick = onOpen, enabled = !editing, modifier = Modifier.size(48.dp)) {
@@ -150,3 +155,8 @@ internal fun MediaArtworkPlayer(state: NowPlayingState, accent: Color, editing: 
     }, confirmButton = { TextButton(onClick = { showRating = false }) { Text("Close") } })
 }
 private fun mediaTime(ms: Long) = "%d:%02d".format(ms / 60000, ms / 1000 % 60)
+
+private fun Modifier.mediaActionState(active: Boolean?, color: Color): Modifier = size(48.dp)
+    .clip(RoundedCornerShape(4.dp)).background(if (active == true) color.copy(alpha = 0.16f) else Color.Transparent)
+    .border(1.dp, if (active == true) color.copy(alpha = 0.5f) else Color.Transparent, RoundedCornerShape(4.dp))
+    .semantics { if (active != null) { selected = active; stateDescription = if (active) "On" else "Off" } else stateDescription = "State not reported" }

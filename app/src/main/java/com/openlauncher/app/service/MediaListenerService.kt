@@ -153,10 +153,12 @@ class MediaListenerService : NotificationListenerService() {
         val playback = controller.playbackState
         val isPlaying = playback?.state == PlaybackState.STATE_PLAYING
         val actions = playback?.actions ?: 0L
-        val customActions = playback?.customActions.orEmpty().map {
-            com.openlauncher.app.model.MediaAction(it.action, it.name.toString(), it.icon)
-        }
         val rating = meta?.getRating(MediaMetadata.METADATA_KEY_USER_RATING)
+        val customActions = playback?.customActions.orEmpty().map {
+            val iconName = runCatching { packageManager.getResourcesForApplication(controller.packageName).getResourceEntryName(it.icon) }.getOrDefault("")
+            com.openlauncher.app.model.MediaAction(it.action, it.name.toString(), it.icon,
+                com.openlauncher.app.util.mediaActionActive(it.name.toString(), iconName, it.extras, rating))
+        }
         val ratingStyle = controller.ratingType
 
         val signature = listOf(title, artist, artUri, isPlaying, art != null, actions, customActions, ratingStyle, rating?.toString(),

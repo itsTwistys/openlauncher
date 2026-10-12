@@ -65,6 +65,11 @@ const fs=require('fs'), path=require('path'), assert=require('node:assert/strict
   await page.waitForFunction(()=>map.getCanvas().clientWidth===400);
   const location=await page.evaluate(()=>map.project([-80.191,25.761]));
   assert.ok(Math.abs(location.x-200)<2&&Math.abs(location.y-130)<2,'Resume/resize keeps location centered');
+  const menuZoom=await page.evaluate(()=>map.getZoom());
+  await page.evaluate(()=>window.zoomMap(1));
+  assert.equal(await page.evaluate(()=>map.getZoom()),menuZoom+1);
+  await page.evaluate(()=>window.recenterMap());
+  await page.waitForFunction(()=>!window.mapStatus().animating);
   const requestsBeforeDriving=styles;
   for(let i=1;i<=10;i++) {
    await page.evaluate(i=>window.updatePosition(25.761,-80.191+i*0.0001,12,90,8,true),i);
@@ -76,7 +81,8 @@ const fs=require('fs'), path=require('path'), assert=require('node:assert/strict
   assert.equal(styles,requestsBeforeDriving,'Driving never refetches the style');
   await page.evaluate(()=>window.updatePosition(25.761,-80.1898,12,90,8,true));
   await page.mouse.move(280,120);await page.mouse.down();await page.mouse.move(340,155,{steps:5});await page.mouse.up();
-  assert.equal(await page.locator('#follow').innerText(),'Follow off');
+  assert.equal(await page.evaluate(()=>window.mapStatus().follow),false);
+  assert.equal(await page.locator('#follow, #center, .maplibregl-ctrl-zoom-in').count(),0);
   const freeCenter=await page.evaluate(()=>map.getCenter().toArray());
   await page.evaluate(()=>window.updatePosition(25.761,-80.1897,12,90,8,true));
   await page.waitForFunction(()=>!window.mapStatus().animating);

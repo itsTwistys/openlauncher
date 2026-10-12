@@ -30,6 +30,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Probe public sports feed contracts
+        run: python3 scripts/probe-sports.py
       - name: Check map recovery and resizing with simulated tiles
         run: |
           ./gradlew :app:prepareVectorAssets --no-daemon
@@ -120,6 +122,7 @@ jobs:
             app/build/reports/tests/testDebugUnitTest
             app/build/reports/lint-results-debug.*
             app/build/outputs/ui-checks
+            app/build/outputs/sports-probe
   publish:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.build.outputs.preview_signing_available == 'true'
     needs: build

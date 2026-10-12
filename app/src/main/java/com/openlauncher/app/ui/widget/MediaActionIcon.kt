@@ -2,6 +2,10 @@ package com.openlauncher.app.ui.widget
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material.icons.outlined.ThumbDown
+import com.openlauncher.app.util.mediaToggle
+import com.openlauncher.app.util.MediaToggle
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -27,7 +31,14 @@ internal fun MediaActionIcon(action: MediaAction, packageName: String?, tint: Co
                     .getDrawable(action.icon, null)?.toBitmap(pixels, pixels)?.asImageBitmap()
         }.getOrNull()
     }
-    if (bitmap != null) Icon(BitmapPainter(bitmap), action.label, Modifier.size(24.dp), tint = tint)
+    val stateIcon = action.active?.let { active -> when (mediaToggle(action.label)) {
+        MediaToggle.LIKE -> if (active) Icons.Default.Favorite else Icons.Default.FavoriteBorder
+        MediaToggle.DISLIKE -> if (active) Icons.Default.ThumbDown else Icons.Outlined.ThumbDown
+        MediaToggle.SAVE -> if (active) Icons.Default.Bookmark else Icons.Default.BookmarkBorder
+        else -> null
+    } }
+    if (stateIcon != null) Icon(stateIcon, action.label, Modifier.size(24.dp), tint = tint)
+    else if (bitmap != null) Icon(BitmapPainter(bitmap), action.label, Modifier.size(24.dp), tint = tint)
     else Icon(when {
         action.label.contains("dislike", true) -> Icons.Default.ThumbDown
         action.label.contains("like", true) || action.label.contains("favorite", true) ->

@@ -5,6 +5,11 @@ import android.util.AtomicFile
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -24,12 +29,13 @@ data class SportsCompetitor(val name: String, val abbreviation: String, val scor
 data class SportsEvent(val id: String, val title: String, val startMs: Long, val state: String,
                        val detail: String, val competitors: List<SportsCompetitor> = emptyList(), val timeKnown: Boolean = true)
 data class SportsSnapshot(val league: SportsLeague, val view: SportsView, val events: List<SportsEvent>,
-                          val updatedAtMs: Long, val source: String)
+                          val updatedAtMs: Long, val source: String, val partial: Boolean = false)
 
 /** Public score feeds have no delivery SLA. Retain dated results and never invent a score or live state. */
-class SportsRepository(context: Context) {
+class SportsRepository(context: Context, private val readOverride: ((String) -> String)? = null) {
     private val directory = File(context.filesDir, "sports-cache").apply { mkdirs() }
     private val gson = Gson()
+    private val days = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, String>>()
     private fun file(league: SportsLeague, view: SportsView) = AtomicFile(File(directory, "${league.name}-${view.name}.json"))
 
     suspend fun cached(league: SportsLeague, view: SportsView, now: Long): SportsSnapshot? = withContext(Dispatchers.IO) {
@@ -54,7 +60,36 @@ class SportsRepository(context: Context) {
                 val current = SportsFeeds.f1Schedule(read("https://api.jolpi.ca/ergast/f1/$year/races.json?limit=100"), now, zone)
                 if (current.events.isNotEmpty()) current else SportsFeeds.f1Schedule(read("https://api.jolpi.ca/ergast/f1/${year + 1}/races.json?limit=100"), now, zone)
             }
-        } else SportsFeeds.scoreboard(read(SportsFeeds.url(league, view, now, zone)), league, view, now)
+        } else {
+            val permits = Semaphore(3)
+            val responses = coroutineScope {
+                SportsFeeds.urls(league, view, now, zone).map { url -> async {
+                    permits.withPermit {
+                        ensureActive()
+                        try {
+                            val cached = days[url]?.takeIf { now - it.first in 0..25_000 }
+                            val response = cached ?: (now to read(url)).also {
+                                if (days.size >= 24) days.entries.minByOrNull { entry -> entry.value.first }?.let { entry -> days.remove(entry.key) }
+                                days[url] = it
+                            }
+                            SportsFeeds.scoreboard(response.second, league, view, now)
+                            Result.success(response)
+                        } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                        catch (e: Exception) { Result.failure<Pair<Long, String>>(e) }
+                    }
+                } }.awaitAll()
+            }
+            val successful = responses.mapNotNull { it.getOrNull() }
+            if (successful.isEmpty()) throw requireNotNull(responses.first().exceptionOrNull())
+            val events = com.google.gson.JsonArray()
+            successful.forEach { (_, json) ->
+                val root = JsonParser.parseString(json).asJsonObject
+                require(root.has("events") && root["events"].isJsonArray) { "Invalid score response" }
+                root["events"].asJsonArray.forEach { events.add(it) }
+            }
+            SportsFeeds.scoreboard(JsonObject().apply { add("events", events) }.toString(), league, view,
+                successful.minOf { it.first }).copy(partial = successful.size != responses.size)
+        }
         ensureActive()
         try {
             val cache = file(league, view); val output = cache.startWrite()
@@ -64,13 +99,29 @@ class SportsRepository(context: Context) {
         result
     }
     private fun read(url: String): String {
-        val connection = URL(url).openConnection() as HttpURLConnection
-        connection.connectTimeout = 10_000; connection.readTimeout = 10_000; connection.instanceFollowRedirects = false
-        connection.setRequestProperty("User-Agent", "OpenLauncher/${com.openlauncher.app.BuildConfig.VERSION_NAME} (+https://github.com/itsTwistys/openlauncher)")
-        return try {
-            require(connection.responseCode == 200) { "Scores unavailable" }
-            connection.inputStream.use { String(it.readBytesBounded(5_000_000), Charsets.UTF_8) }
-        } finally { connection.disconnect() }
+        readOverride?.let { return it(url) }
+        var target = URL(url)
+        repeat(3) {
+            val connection = target.openConnection() as HttpURLConnection
+            connection.connectTimeout = 8_000; connection.readTimeout = 8_000; connection.instanceFollowRedirects = false
+            connection.setRequestProperty("User-Agent", "OpenLauncher/${com.openlauncher.app.BuildConfig.VERSION_NAME} (+https://github.com/itsTwistys/openlauncher)")
+            connection.setRequestProperty("Accept", "application/json")
+            try {
+                val code = connection.responseCode
+                if (code in setOf(301, 302, 303, 307, 308)) {
+                    val next = URL(target, connection.getHeaderField("Location") ?: error("Invalid score redirect"))
+                    require(next.protocol == "https" && next.host in setOf("site.api.espn.com", "api.jolpi.ca")) { "Unsupported score redirect" }
+                    target = next
+                } else {
+                    if (code != 200) throw SportsHttpException(code)
+                    return connection.inputStream.use { input ->
+                        val decoded = if (connection.contentEncoding.equals("gzip", true)) java.util.zip.GZIPInputStream(input) else input
+                        String(decoded.readBytesBounded(5_000_000), Charsets.UTF_8)
+                    }
+                }
+            } finally { connection.disconnect() }
+        }
+        error("Too many score redirects")
     }
 }
 
@@ -78,6 +129,14 @@ private fun java.io.InputStream.readBytesBounded(limit: Int): ByteArray {
     val output = java.io.ByteArrayOutputStream(); val buffer = ByteArray(8192)
     while (true) { val count = read(buffer); if (count < 0) break; require(output.size() + count <= limit); output.write(buffer, 0, count) }
     return output.toByteArray()
+}
+
+internal class SportsHttpException(val code: Int) : java.io.IOException("Scores service returned HTTP $code")
+internal fun sportsErrorLabel(error: Exception): String = when (error) {
+    is SportsHttpException -> "Scores service HTTP ${error.code} · tap Retry"
+    is java.net.SocketTimeoutException -> "Scores request timed out · tap Retry"
+    is java.io.IOException -> "Could not connect to scores · tap Retry"
+    else -> "Score response unavailable · tap Retry"
 }
 
 internal object SportsFeeds {
@@ -95,12 +154,14 @@ internal object SportsFeeds {
         }
         return runCatching { SimpleDateFormat(pattern, Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC"); isLenient = false }.parse(clean)?.time }.getOrNull()
     }
-    fun url(league: SportsLeague, view: SportsView, now: Long, zone: TimeZone): String {
-        val day = Calendar.getInstance(zone).apply { timeInMillis = now }
-        val start = day.clone() as Calendar; val end = day.clone() as Calendar
-        when (view) { SportsView.LIVE -> start.add(Calendar.DATE, -1); SportsView.RESULTS -> start.add(Calendar.DATE, -7); SportsView.UPCOMING -> end.add(Calendar.DATE, 14) }
+    fun urls(league: SportsLeague, view: SportsView, now: Long, zone: TimeZone): List<String> {
+        // ESPN team scoreboards reject YYYYMMDD-YYYYMMDD ranges with HTTP 400.
+        val offsets = when (view) { SportsView.LIVE -> -1..1; SportsView.RESULTS -> -6..0; SportsView.UPCOMING -> 0..13 }
         val format = SimpleDateFormat("yyyyMMdd", Locale.US).apply { timeZone = zone }
-        return "https://site.api.espn.com/apis/site/v2/sports/${league.path}/scoreboard?dates=${format.format(start.time)}-${format.format(end.time)}&limit=200"
+        return offsets.map { offset ->
+            val day = Calendar.getInstance(zone).apply { timeInMillis = now; add(Calendar.DATE, offset) }
+            "https://site.api.espn.com/apis/site/v2/sports/${league.path}/scoreboard?dates=${format.format(day.time)}&limit=200"
+        }
     }
     fun scoreboard(json: String, league: SportsLeague, view: SportsView, now: Long): SportsSnapshot {
         val root = JsonParser.parseString(json).asJsonObject
@@ -122,8 +183,15 @@ internal object SportsFeeds {
             }
         }
         require(parsed.isNotEmpty() || root.rows("events").isEmpty()) { "Unrecognized score data" }
-        val events = parsed.filter { when (view) { SportsView.LIVE -> it.state == "in"; SportsView.RESULTS -> it.state == "post"; SportsView.UPCOMING -> it.state == "pre" && it.startMs >= now } }
-            .distinctBy { it.id }.let { rows -> if (view == SportsView.RESULTS) rows.sortedByDescending { it.startMs } else rows.sortedBy { it.startMs } }.take(200)
+        val unique = parsed.distinctBy { it.id }
+        val events = when (view) {
+            SportsView.LIVE -> unique.filter { it.state == "in" }.sortedBy { it.startMs }.ifEmpty {
+                unique.filter { it.state == "post" }.sortedByDescending { it.startMs }.take(4) +
+                    unique.filter { it.state == "pre" && it.startMs >= now }.sortedBy { it.startMs }.take(4)
+            }
+            SportsView.RESULTS -> unique.filter { it.state == "post" }.sortedByDescending { it.startMs }
+            SportsView.UPCOMING -> unique.filter { it.state == "pre" && it.startMs >= now }.sortedBy { it.startMs }
+        }.take(200)
         return SportsSnapshot(league, view, events, now, "ESPN")
     }
     fun f1Results(json: String, now: Long): SportsSnapshot {

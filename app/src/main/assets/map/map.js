@@ -1,5 +1,5 @@
 'use strict';
-const map = L.map('map', { fadeAnimation: false, zoomAnimation: false, attributionControl: true, rotate: true, rotateControl: false, dragRotate: false, touchRotate: false, shiftKeyRotate: false }).setView([0, 0], 2);
+const map = L.map('map', { fadeAnimation: false, zoomAnimation: false, attributionControl: true, zoomControl: false, rotate: true, rotateControl: false, dragRotate: false, touchRotate: false, shiftKeyRotate: false }).setView([0, 0], 2);
 const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19, keepBuffer: 4, updateWhenIdle: false, updateWhenZooming: false, updateInterval: 250,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -43,7 +43,6 @@ window.setMapTheme = dark => document.documentElement.classList.toggle('dark-map
 window.clearMotion = () => { gpsFresh = false; heading = null; lastHeadingAt = 0; speedKmh = 0; if (marker) marker.getElement()?.classList.add('stale'); updateMotionView(); renderStatus(); };
 let loading = false, failed = 0, loaded = 0, retries = 0, retryTimer = null, watchdog = null;
 let totalLoaded = 0, totalErrors = 0, totalTimeouts = 0;
-const followButton = document.getElementById('follow');
 const statusBox = document.getElementById('status');
 function message() {
     if (!online) return 'Offline · map will retry when connected';
@@ -71,14 +70,15 @@ function reloadTiles() {
     tiles.redraw();
     renderStatus();
 }
-function setFollow(value) {
-    follow = value;
-    followButton.textContent = value ? 'Follow on' : 'Follow off';
-    followButton.classList.toggle('active', value);
-    followButton.setAttribute('aria-pressed', value);
-}
-followButton.onclick = () => { setFollow(!follow); if (follow && last) { autoZoomPaused = false; map.panTo(last); updateMotionView(true); } };
-document.getElementById('center').onclick = () => { setFollow(true); autoZoomPaused = false; if (last) map.panTo(last); updateMotionView(true); renderStatus(); };
+function setFollow(value) { follow = !!value; }
+window.setMapFollow = value => { setFollow(value); if (follow && last) { autoZoomPaused = false; map.panTo(last); updateMotionView(true); } renderStatus(); };
+window.recenterMap = () => { setFollow(true); autoZoomPaused = false; if (last) map.panTo(last); updateMotionView(true); renderStatus(); };
+window.zoomMap = delta => {
+    if (delta !== 1 && delta !== -1) return;
+    autoZoomPaused = true;
+    withProgrammaticZoom(() => map.setZoom(Math.max(0, Math.min(19, map.getZoom() + delta)), {animate: false}));
+    renderStatus();
+};
 map.on('dragstart', () => setFollow(false));
 map.on('zoomstart', () => { if (!programmaticZoom) autoZoomPaused = true; });
 tiles.on('loading', () => {
@@ -161,7 +161,7 @@ window.resumeMap = () => {
     if (online && started && (loading || failed || !loaded)) reloadTiles();
     renderStatus();
 };
-window.mapStatus = () => ({ renderer: "raster", fallbackReason: new URLSearchParams(location.search).get("fallback") || "unknown", message: message(), gpsFresh, started, loading, failed, loaded, totalLoaded, totalErrors, totalTimeouts, autoZoomPaused, headingUp, bearing: map.getBearing(), zoom: map.getZoom() });
+window.mapStatus = () => ({ renderer: "raster", fallbackReason: new URLSearchParams(location.search).get("fallback") || "unknown", message: message(), gpsFresh, started, loading, failed, loaded, totalLoaded, totalErrors, totalTimeouts, follow, autoZoomPaused, headingUp, bearing: map.getBearing(), zoom: map.getZoom() });
 if (window.ResizeObserver) new ResizeObserver(() => window.resizeMap()).observe(document.body);
 window.addEventListener('resize', () => window.resizeMap());
 document.addEventListener('visibilitychange', () => {
