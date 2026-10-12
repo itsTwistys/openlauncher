@@ -427,6 +427,9 @@ fun HomeScreen(
                         "NOW_PLAYING" -> NowPlayingWidget(
                             state               = nowPlaying,
                             preferredPackage = settings.preferredMediaPackage,
+                            autoLaunchMedia = settings.autoLaunchMedia,
+                            lastMediaPackage = settings.lastMediaPackage,
+                            onAutoLaunchMedia = { enabled -> onSettings { copy(autoLaunchMedia = enabled) } },
                             mediaApps = mediaApps,
                             onSelectMedia = onSelectMedia,
                             onOpenSelectedMedia = onOpenSelectedMedia,

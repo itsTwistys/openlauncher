@@ -36,6 +36,8 @@ class SettingsRepository(private val context: Context) {
         val SHOW_WEATHER       = booleanPreferencesKey("show_weather")
         val SHOW_CLOCK         = booleanPreferencesKey("show_clock")
         val SHOW_TELEMETRY     = booleanPreferencesKey("show_telemetry")
+        val LAST_MEDIA = stringPreferencesKey("last_media_package")
+        val AUTO_LAUNCH_MEDIA = booleanPreferencesKey("auto_launch_media")
         val PREFERRED_MEDIA = stringPreferencesKey("preferred_media_package")
         val LAUNCHER_BRIGHTNESS = floatPreferencesKey("launcher_brightness")
         val WEATHER_BACKGROUND = booleanPreferencesKey("weather_background")
@@ -124,6 +126,8 @@ class SettingsRepository(private val context: Context) {
                 weatherBackground = prefs[Keys.WEATHER_BACKGROUND] ?: false,
                 layoutHistory = runCatching { gson.fromJson<List<LayoutProfile>>(prefs[Keys.LAYOUT_HISTORY] ?: "[]",
                     object : TypeToken<List<LayoutProfile>>() {}.type) }.getOrNull().orEmpty().filter { validWidgetLayout(it.layout) }.take(8),
+                lastMediaPackage = prefs[Keys.LAST_MEDIA] ?: "",
+                autoLaunchMedia = prefs[Keys.AUTO_LAUNCH_MEDIA] ?: true,
                 preferredMediaPackage = prefs[Keys.PREFERRED_MEDIA] ?: "",
                 mapAutoZoom = prefs[Keys.MAP_AUTO_ZOOM] ?: true,
                 mapHeadingUp = prefs[Keys.MAP_HEADING_UP] ?: false,
@@ -217,6 +221,8 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.LAUNCHER_BRIGHTNESS] = s.launcherBrightness
             prefs[Keys.WEATHER_BACKGROUND] = s.weatherBackground
             prefs[Keys.LAYOUT_HISTORY] = gson.toJson(s.layoutHistory)
+            prefs[Keys.LAST_MEDIA] = s.lastMediaPackage
+            prefs[Keys.AUTO_LAUNCH_MEDIA] = s.autoLaunchMedia
             prefs[Keys.PREFERRED_MEDIA] = s.preferredMediaPackage
             prefs[Keys.MAP_AUTO_ZOOM] = s.mapAutoZoom
             prefs[Keys.MAP_HEADING_UP] = s.mapHeadingUp

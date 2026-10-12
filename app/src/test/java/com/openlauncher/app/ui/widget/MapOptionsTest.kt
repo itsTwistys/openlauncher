@@ -50,5 +50,19 @@ class MapOptionsTest {
             file.parentFile.mkdirs()
             file.outputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it) }
         }
+    }    @Test fun menuContainsFollowZoomAndRecenterActions() {
+        var following by mutableStateOf(false)
+        val zoom = mutableListOf<Int>()
+        var centered = false
+        compose.setContent { OpenLauncherTheme {
+            MapOptionsDialog(true, false, false, "GPS ready", "Map ready", { _, _ -> }, {}, {}, {},
+                following = following, onFollow = { following = it }, onZoom = { zoom += it }, onRecenter = { centered = true })
+        } }
+        compose.onNodeWithContentDescription("Follow location").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Zoom in").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Zoom out").performScrollTo().performClick()
+        compose.onNodeWithText("Recenter").performScrollTo().performClick()
+        compose.runOnIdle { assertTrue(following); assertEquals(listOf(1, -1), zoom); assertTrue(centered) }
     }
+
 }

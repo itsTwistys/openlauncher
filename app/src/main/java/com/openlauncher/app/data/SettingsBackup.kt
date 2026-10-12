@@ -51,6 +51,8 @@ object SettingsBackup {
         require(s.recentDestinations.size <= 5 && s.recentDestinations.all { it.length <= 500 })
         require(s.preferredMediaPackage.length <= 255 && (s.preferredMediaPackage in setOf("", "@radio") ||
             s.preferredMediaPackage.matches(Regex("[A-Za-z][A-Za-z0-9_]*([.][A-Za-z0-9_]+)+")))) { "Invalid media app" }
+        require(s.lastMediaPackage.length <= 255 && (s.lastMediaPackage.isBlank() ||
+            s.lastMediaPackage.matches(Regex("[A-Za-z][A-Za-z0-9_]*([.][A-Za-z0-9_]+)+")))) { "Invalid last media app" }
         require(s.navigationPackage in setOf("", "com.google.android.apps.maps", "com.waze"))
         require(s.widgetLayout.size <= ids.size && s.widgetLayout.all { it.id in ids && validWidgetLayout(listOf(it)) })
         require(s.widgetLayout.map { it.id }.distinct().size == s.widgetLayout.size)

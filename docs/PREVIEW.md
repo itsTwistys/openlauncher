@@ -1,6 +1,16 @@
 # Open Launcher preview: installation and testing
 
-## Current release: 0.0.23 unified settings
+## Current release: 0.0.24 scores, map menu and music startup
+
+ESPN team-scoreboard date ranges were returning HTTP 400. The card now requests individual dates with bounded concurrency, merges/deduplicates events and retains successfully delivered scores when some days fail. A visible Retry action and safe HTTP/timeout messages distinguish delivery errors from an empty schedule. The Live view shows recent results and next events when no game is live, with no invented live status. CI probes real public feed responses and exercises their parser in addition to deterministic outage tests.
+
+Map Follow, Recenter and zoom controls are available in Map options, rather than floating over the map. Map attribution remains visible. Native menu actions share the same APIs exercised by the browser checks.
+
+Media buttons show selected/unselected state from ratings, declared action-state extras, state-specific icon names or explicit inverse-action labels. Unreported states remain neutral and the launcher does not flip a button optimistically after a tap. The app icon is retained for unrecognized actions.
+
+Now Playing records the last app that actually plays media. Startup respects a specific selected app, skips hardware radio and any already-playing session, and reconnects after a cold start or at least one minute with the screen off. Native media browsing/prepare is tried first, with no automatic audio playback. Apps that cannot provide a background session open their own screen once; return Home to see their exposed media controls. The option is enabled for this requested update and can be disabled in the player selector or Settings → Connected → Now Playing. Missing apps do not trigger a replacement player. Notification Access is still needed; no new system permission is requested.
+
+### Retained unified settings from 0.0.23
 
 Settings now uses All, Dashboard, Display, Connected and System categories. Settings sections, dashboard tools/editor, widget options, color and confirmation dialogs, shortcut/icon customization and sound assignment share the dashboard's flat bordered surfaces and selected theme/font. Smaller screens stack descriptions and wrap option chips. Dialog bodies scroll while Apply/Cancel/Close remain reachable. Settings opens this fork's preview release list and shows the installed build version.
 
@@ -15,7 +25,7 @@ Install over a permanent-key preview to retain existing setup. This release does
 
 The default map uses bundled MapLibre GL JS with OpenFreeMap vector styles and OpenStreetMap data. Roads rotate with travel heading while road labels flip upright and place labels stay aligned with the screen. Light/dark styling, the existing position dot, Follow/Recenter, speed zoom, GPS states, offline/retry/resume behavior and notification-based turn strip remain. Vector rendering requires WebGL and uses Android GPU rendering. If WebGL is unavailable or its context is lost, the map falls back to the bundled raster engine in north-up mode so baked-in labels remain readable. The saved Compatibility rendering switch applies to that raster fallback. No provider key or registration is needed. Viewed map requests go to OpenFreeMap; raster fallback uses OpenStreetMap. This does not add routing or embed Google Maps/Waze. Physical QUZHIDA rendering remains to be checked.
 
-The original private signing key could not be recovered. At the owner's request a new permanent key was generated and privately backed up. The application ID remains `com.openlauncher.app.preview`; versionCode is 24. It retains 0.0.20 GPS movement-based heading when course is missing, direction retention in slow traffic, and protection against simultaneous rotated follow/pan animations. It retains the controls flyout and app symbols. Existing layouts and settings are retained. The release APK is not debuggable.
+The original private signing key could not be recovered. At the owner's request a new permanent key was generated and privately backed up. The application ID remains `com.openlauncher.app.preview`; versionCode is 25. It retains 0.0.20 GPS movement-based heading when course is missing, direction retention in slow traffic, and protection against simultaneous rotated follow/pan animations. It retains the controls flyout and app symbols. Existing layouts and settings are retained. The release APK is not debuggable.
 
 **Old-key installations cannot be upgraded in place. Follow [SIGNING-MIGRATION.md](SIGNING-MIGRATION.md) to export supported settings and trip history before the one-time reinstall.** Subsequent releases use this same permanent key.
 
@@ -86,7 +96,7 @@ CI runs Android lint, unit/Compose tests, APK assembly and map browser checks wi
 
 Physical QUZHIDA rendering and ignition behavior still require a head-unit check. While parked, verify cold start, switching from navigation back to Home, map expansion/collapse, hotspot reconnection and ignition sleep/wake. For a blank map, export diagnostics before and after changing Compatibility rendering, using the existing evidence procedure below. Browser tiles are simulated; passing CI does not prove live tile delivery or physical head-unit pixels.
 
-Check the [current preview status on the main README](https://github.com/itsTwistys/openlauncher#download-the-android-preview). The previous 0.0.15 release download is unavailable. Version 0.0.23 uses the same permanent key introduced in 0.0.18; it updates 0.0.18 in place. Older-key installations require the migration process above. When a verified release is available, the README will link to its APK. Choose `openlauncher-preview.apk`, not a source archive. `SHA256SUMS.txt` accompanies each APK. The GitHub Actions build and unit tests must succeed before a preview is published.
+Check the [current preview status on the main README](https://github.com/itsTwistys/openlauncher#download-the-android-preview). The previous 0.0.15 release download is unavailable. Version 0.0.24 uses the same permanent key introduced in 0.0.18; it updates 0.0.18 in place. Older-key installations require the migration process above. When a verified release is available, the README will link to its APK. Choose `openlauncher-preview.apk`, not a source archive. `SHA256SUMS.txt` accompanies each APK. The GitHub Actions build and unit tests must succeed before a preview is published.
 
 The release APK installs as **Open Launcher Preview** (`com.openlauncher.app.preview`) and is not debuggable. It uses the privately backed-up permanent key. Old-key previews require a verified settings export before the one-time reinstall; later permanent-key updates preserve app data in place. Settings and external-file grants do not automatically move between the original app and Preview.
 

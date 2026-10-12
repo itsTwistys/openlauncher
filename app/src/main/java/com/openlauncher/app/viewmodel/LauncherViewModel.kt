@@ -409,6 +409,46 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         intent?.let { app.startActivity(it) }
     }
 
+    private val musicGate = com.openlauncher.app.util.MediaStartupGate()
+    private val musicStarter = com.openlauncher.app.util.RememberedMediaStarter(application)
+    private val musicScreenOff = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == Intent.ACTION_SCREEN_OFF) musicGate.screenOff(android.os.SystemClock.elapsedRealtime())
+        }
+    }
+    fun musicStopped() {
+        val power = getApplication<Application>().getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        musicGate.stopped(android.os.SystemClock.elapsedRealtime(), !power.isInteractive)
+    }
+    suspend fun startRememberedMusic(openApp: (String) -> Unit) {
+        val s = settings.value
+        if (!s.onboardingCompleted || !s.showNowPlaying || !s.autoLaunchMedia ||
+            nav.value != NavDestination.HOME) return
+        val target = com.openlauncher.app.util.musicStartupPackage(s.preferredMediaPackage, s.lastMediaPackage)
+        if (target.isBlank()) return
+        if (!MediaListenerService.isConnected.value && kotlinx.coroutines.withTimeoutOrNull(8_000) {
+                MediaListenerService.isConnected.first { it }
+            } != true) return
+        if (!musicGate.take(android.os.SystemClock.elapsedRealtime())) return
+        val current = MediaListenerService.sessions.value
+        if (current.any { it.isPlaying } || current.any { it.controller?.packageName == target && it.title.isNotBlank() && it.title != "Unknown" }) return
+        if (musicStarter.connect(target)) refreshMedia()
+        else if (nav.value == NavDestination.HOME && MediaListenerService.sessions.value.none { it.isPlaying }) openApp(target)
+    }
+
+    init {
+        androidx.core.content.ContextCompat.registerReceiver(application, musicScreenOff,
+            android.content.IntentFilter(Intent.ACTION_SCREEN_OFF), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
+        viewModelScope.launch {
+            combine(MediaListenerService.sessions, settings, settingsLoaded) { sessions, s, loaded ->
+                if (!loaded) null else com.openlauncher.app.util.selectMediaSession(sessions,
+                    s.preferredMediaPackage.takeUnless { it == "@radio" }.orEmpty(),
+                    { it.controller?.packageName.orEmpty() }, { it.isPlaying })
+                    ?.takeIf { it.isPlaying }?.controller?.packageName?.takeIf { it != application.packageName && it != s.lastMediaPackage }
+            }.collect { packageName -> if (!packageName.isNullOrBlank()) updateSettings { copy(lastMediaPackage = packageName) } }
+        }
+    }
+
     // ── Now Playing ───────────────────────────────────────────────────────────
     val nowPlaying: StateFlow<NowPlayingState?> = combine(MediaListenerService.sessions, settings) { sessions, s ->
         com.openlauncher.app.util.selectMediaSession(sessions, s.preferredMediaPackage.takeUnless { it == "@radio" }.orEmpty(),
@@ -750,6 +790,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     override fun onCleared() {
+        musicStarter.close()
+        runCatching { getApplication<Application>().unregisterReceiver(musicScreenOff) }
         runCatching { connectivity.unregisterNetworkCallback(networkCallback) }
         super.onCleared()
         locationMgr.stop()

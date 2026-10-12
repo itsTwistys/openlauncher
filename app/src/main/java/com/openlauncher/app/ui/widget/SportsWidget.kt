@@ -56,7 +56,7 @@ fun SportsWidget(settings: AppSettings, weather: WeatherState?, networkAvailable
         }
         owner.lifecycle.addObserver(observer); onDispose { owner.lifecycle.removeObserver(observer) }
     }
-    LaunchedEffect(league, selection, networkAvailable, resumed, isEditing, refresh, zone.id) {
+    LaunchedEffect(league, selection, networkAvailable, resumed, isEditing, refresh, zone.id, zone.rawOffset) {
         if (!resumed || isEditing) return@LaunchedEffect
         if (snapshot == null) snapshot = repository.cached(league, selection, System.currentTimeMillis())
         if (!networkAvailable) return@LaunchedEffect
@@ -64,7 +64,7 @@ fun SportsWidget(settings: AppSettings, weather: WeatherState?, networkAvailable
             loading = true
             try { snapshot = repository.fetch(league, selection, System.currentTimeMillis(), zone); error = null }
             catch (e: CancellationException) { throw e }
-            catch (_: Exception) { error = "Scores unavailable · retrying" }
+            catch (e: Exception) { error = sportsErrorLabel(e) }
             finally { loading = false }
             delay(if (selection == SportsView.LIVE) 30_000 else 300_000)
         }
@@ -101,6 +101,7 @@ fun SportsWidget(settings: AppSettings, weather: WeatherState?, networkAvailable
         !networkAvailable -> if (snapshot != null) "Offline · saved $ageText" else "Offline · connect to load scores"
         error != null -> error!!
         snapshot == null && loading -> "Loading scores…"
+        snapshot?.partial == true -> "Some days unavailable · retrying · saved $ageText"
         age != null -> "${if (current) "Updated" else "Saved"} $ageText"
         else -> "Waiting for scores"
     }
@@ -120,7 +121,11 @@ fun SportsWidget(settings: AppSettings, weather: WeatherState?, networkAvailable
             SportsView.entries.forEach { item -> FilterChip(selected = selection == item, enabled = !isEditing, onClick = { onSettings { copy(sportsView = item.name) } }, label = { Text(item.label) }) }
         }
         Text(status, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 4.dp), maxLines = 2)
+        if ((error != null || snapshot?.partial == true) && !isEditing) TextButton(onClick = { refresh++ }, enabled = networkAvailable && !loading) { Text("Retry") }
         val events = snapshot?.events.orEmpty()
+        if (selection == SportsView.LIVE && events.isNotEmpty() && events.none { it.state == "in" })
+            Text("No events live · recent results / next events", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (events.isEmpty()) Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             Text(if (isEditing) "NFL · NBA · NHL · MLB · F1" else if (snapshot == null) "Scores will appear here" else when (selection) {
                 SportsView.LIVE -> "No events live now"; SportsView.RESULTS -> "No published results in this period"; SportsView.UPCOMING -> "No upcoming events in this period"

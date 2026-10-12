@@ -5,6 +5,11 @@ import com.openlauncher.app.data.withDefaultDashboard
 import android.Manifest
 import com.openlauncher.app.data.withWidgetVisibility
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.delay
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,6 +40,7 @@ import com.openlauncher.app.viewmodel.LauncherViewModel
 
 class MainActivity : ComponentActivity() {
 
+    private var musicStartupJob: Job? = null
     private val vm: LauncherViewModel by viewModels()
 
     private val locationPermissions = registerForActivityResult(
@@ -233,7 +239,7 @@ class MainActivity : ComponentActivity() {
                                         nowPlaying          = nowPlaying,
                                         mediaApps = apps,
                                         onSelectMedia = { pkg -> vm.updateSettings { copy(preferredMediaPackage = pkg) } },
-                                        onOpenSelectedMedia = { vm.launchApp(settings.preferredMediaPackage) },
+                                        onOpenSelectedMedia = { vm.launchApp(com.openlauncher.app.util.musicStartupPackage(settings.preferredMediaPackage, settings.lastMediaPackage)) },
                                         onMapOptions = { autoZoom, headingUp -> vm.updateSettings { copy(mapAutoZoom = autoZoom, mapHeadingUp = headingUp) } },
                                         location            = location,
                                         bearing             = bearing,
@@ -260,7 +266,7 @@ class MainActivity : ComponentActivity() {
                                         onClearPip          = { vm.clearPipApp() },
                                         onLaunchPip         = { vm.launchApp(settings.pipAppPackage) },
                                         onTapNowPlaying     = {
-                                            val pkg = nowPlaying?.controller?.packageName
+                                            val pkg = nowPlaying?.controller?.packageName ?: com.openlauncher.app.util.musicStartupPackage(settings.preferredMediaPackage, settings.lastMediaPackage)
                                             if (!pkg.isNullOrEmpty()) vm.launchApp(pkg)
                                         },
                                         onUpdateWidget      = { id, sx, sy -> vm.updateWidgetConfig(id, sx, sy) },
@@ -354,9 +360,19 @@ class MainActivity : ComponentActivity() {
         vm.startLocationUpdates()
         vm.refreshConnectivity()
         vm.refreshMedia()
+        musicStartupJob?.cancel()
+        musicStartupJob = lifecycleScope.launch {
+            vm.settingsLoaded.first { it }
+            delay(1_500)
+            vm.startRememberedMusic { packageName ->
+                runCatching { packageManager.getLaunchIntentForPackage(packageName)?.let { startActivity(it) } }
+            }
+        }
     }
 
     override fun onStop() {
+        musicStartupJob?.cancel()
+        vm.musicStopped()
         vm.setTripForeground(false)
         super.onStop()
         vm.stopLocationUpdates()
