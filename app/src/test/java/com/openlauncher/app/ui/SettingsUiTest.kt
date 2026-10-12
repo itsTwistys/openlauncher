@@ -47,7 +47,7 @@ class SettingsUiTest {
         }
         compose.onNodeWithText("Connected").assertIsDisplayed().performClick()
         compose.onNodeWithText("Show Embedded Map").assertIsDisplayed()
-        compose.onNodeWithText("Appearance").assertDoesNotExist()
+        compose.onNodeWithText("APPEARANCE").assertDoesNotExist()
     }
 
     @Test fun lightColorPickerScrollsAndKeepsActionsVisible() {

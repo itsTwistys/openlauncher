@@ -939,7 +939,7 @@ fun SettingsScreen(
                 icon     = Icons.Default.SystemUpdate,
                 accent   = accent,
                 onClick  = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/itsTwistys/openlauncher/releases/latest"))
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/itsTwistys/openlauncher/releases"))
                     context.startActivity(intent)
                 }
             )
