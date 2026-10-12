@@ -69,7 +69,7 @@ fun SportsWidget(settings: AppSettings, weather: WeatherState?, networkAvailable
         }
     }
     LaunchedEffect(resumed) { if (resumed) while (true) { now = System.currentTimeMillis(); delay(15_000) } }
-    if (options) AlertDialog(onDismissRequest = { options = false }, title = { Text("Favorite leagues") }, text = {
+    if (options && !isEditing) AlertDialog(onDismissRequest = { options = false }, title = { Text("Favorite leagues") }, text = {
         Column(Modifier.heightIn(max = 250.dp).verticalScroll(rememberScrollState())) {
             Text("Choose the leagues shown in the selector.", fontSize = 14.sp)
             SportsLeague.entries.forEach { item ->
@@ -99,17 +99,17 @@ fun SportsWidget(settings: AppSettings, weather: WeatherState?, networkAvailable
     Column(modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) {
-                TextButton(onClick = { menu = true }, modifier = Modifier.heightIn(min = 48.dp)) {
+                TextButton(onClick = { menu = true }, enabled = !isEditing, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text(league.label, fontSize = 18.sp, fontWeight = FontWeight.SemiBold); Icon(Icons.Default.ExpandMore, "Select league")
                 }
                 DropdownMenu(menu, { menu = false }) { favorites.forEach { item ->
                     DropdownMenuItem(text = { Text(item.label) }, onClick = { menu = false; onSettings { copy(sportsLeague = item.name) } })
                 } }
             }
-            IconButton(onClick = { options = true }) { Icon(Icons.Default.Tune, "Sports options") }
+            IconButton(onClick = { options = true }, enabled = !isEditing) { Icon(Icons.Default.Tune, "Sports options") }
         }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            SportsView.entries.forEach { item -> FilterChip(selected = selection == item, onClick = { onSettings { copy(sportsView = item.name) } }, label = { Text(item.label) }) }
+            SportsView.entries.forEach { item -> FilterChip(selected = selection == item, enabled = !isEditing, onClick = { onSettings { copy(sportsView = item.name) } }, label = { Text(item.label) }) }
         }
         Text(status, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 4.dp), maxLines = 2)
         val events = snapshot?.events.orEmpty()

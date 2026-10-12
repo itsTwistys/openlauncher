@@ -21,6 +21,14 @@ import java.io.File
 @Config(sdk = [34], qualifiers = "w600dp-h360dp-land-mdpi")
 class SportsWidgetTest {
     @get:Rule val rule = createComposeRule()
+    @Test fun editingCannotChangeSportsPreferences() {
+        rule.setContent { OpenLauncherTheme {
+            SportsWidget(AppSettings(), null, false, true, { error("Editing changed a preference") }, Modifier.size(280.dp, 300.dp))
+        } }
+        rule.onNodeWithText("NFL").assertIsNotEnabled()
+        rule.onNodeWithText("Live").assertIsNotEnabled()
+        rule.onNodeWithContentDescription("Sports options").assertIsNotEnabled()
+    }
     @Test fun savedLiveScoresAreExplicitlyOfflineAndNeverClaimCurrentLive() {
         val cache = File(RuntimeEnvironment.getApplication().filesDir, "sports-cache").apply { mkdirs() }
         File(cache, "NFL-LIVE.json").writeText(Gson().toJson(SportsSnapshot(SportsLeague.NFL, SportsView.LIVE,
