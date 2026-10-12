@@ -181,7 +181,7 @@ fun NowPlayingWidget(
                             Text("Start last music app", Modifier.weight(1f))
                             Switch(autoLaunchMedia, onAutoLaunchMedia, modifier = Modifier.semantics { contentDescription = "Start last music app" })
                         }
-                        Text("Connects at startup or after a longer absence. Audio is not started automatically. Apps that require their own screen open once.", style = MaterialTheme.typography.bodySmall)
+                        Text("Connects at startup or after sleep. Audio is not started automatically. Apps that require their own screen open once.", style = MaterialTheme.typography.bodySmall)
                         if (lastMediaPackage.isNotBlank()) Text("Last used: " + (mediaApps.firstOrNull { it.packageName == lastMediaPackage }?.appName ?: lastMediaPackage), style = MaterialTheme.typography.bodySmall)
                         Text("The app must expose Android media controls while playing.", fontSize = 14.sp)
                         OutlinedTextField(value = query, onValueChange = { query = it }, label = { Text("Find installed app") }, singleLine = true)

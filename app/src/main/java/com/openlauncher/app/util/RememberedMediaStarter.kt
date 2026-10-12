@@ -17,7 +17,8 @@ import kotlin.coroutines.resume
 internal class MediaStartupGate {
     private var attempted = false
     private var stoppedAt: Long? = null
-    fun stopped(now: Long) { stoppedAt = now }
+    fun stopped(now: Long, sleeping: Boolean = false) { if (sleeping) stoppedAt = now }
+    fun screenOff(now: Long) { stoppedAt = now }
     fun take(now: Long): Boolean {
         val eligible = !attempted || stoppedAt?.let { now - it >= 60_000 } == true
         stoppedAt = null

@@ -411,7 +411,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private val musicGate = com.openlauncher.app.util.MediaStartupGate()
     private val musicStarter = com.openlauncher.app.util.RememberedMediaStarter(application)
-    fun musicStopped() { musicGate.stopped(android.os.SystemClock.elapsedRealtime()) }
+    private val musicScreenOff = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == Intent.ACTION_SCREEN_OFF) musicGate.screenOff(android.os.SystemClock.elapsedRealtime())
+        }
+    }
+    fun musicStopped() {
+        val power = getApplication<Application>().getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        musicGate.stopped(android.os.SystemClock.elapsedRealtime(), !power.isInteractive)
+    }
     suspend fun startRememberedMusic(openApp: (String) -> Unit) {
         val s = settings.value
         if (!s.onboardingCompleted || !s.showNowPlaying || !s.autoLaunchMedia ||
@@ -423,12 +431,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             } != true) return
         if (!musicGate.take(android.os.SystemClock.elapsedRealtime())) return
         val current = MediaListenerService.sessions.value
-        if (current.any { it.isPlaying } || current.any { it.controller?.packageName == target && it.title != "Unknown" }) return
+        if (current.any { it.isPlaying } || current.any { it.controller?.packageName == target && it.title.isNotBlank() && it.title != "Unknown" }) return
         if (musicStarter.connect(target)) refreshMedia()
         else if (nav.value == NavDestination.HOME && MediaListenerService.sessions.value.none { it.isPlaying }) openApp(target)
     }
 
     init {
+        androidx.core.content.ContextCompat.registerReceiver(application, musicScreenOff,
+            android.content.IntentFilter(Intent.ACTION_SCREEN_OFF), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
         viewModelScope.launch {
             combine(MediaListenerService.sessions, settings, settingsLoaded) { sessions, s, loaded ->
                 if (!loaded) null else com.openlauncher.app.util.selectMediaSession(sessions,
@@ -781,6 +791,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     override fun onCleared() {
         musicStarter.close()
+        runCatching { getApplication<Application>().unregisterReceiver(musicScreenOff) }
         runCatching { connectivity.unregisterNetworkCallback(networkCallback) }
         super.onCleared()
         locationMgr.stop()

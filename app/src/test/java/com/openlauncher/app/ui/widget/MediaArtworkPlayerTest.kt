@@ -39,7 +39,9 @@ class MediaArtworkPlayerTest {
         compose.onNodeWithContentDescription("Open player").assertIsDisplayed()
         compose.onNodeWithContentDescription("Save track").assertIsDisplayed()
         compose.onNodeWithText("Save track").assertDoesNotExist()
-    }    @Test fun richControlSelectionFollowsPlayerUpdatesRatherThanLocalPresses() {
+    }
+
+    @Test fun richControlSelectionFollowsPlayerUpdatesRatherThanLocalPresses() {
         var reported by mutableStateOf(state.copy(customActions = listOf(com.openlauncher.app.model.MediaAction("SAVE", "Save track", 0, false))))
         compose.setContent { OpenLauncherTheme { Box(Modifier.size(320.dp, 480.dp)) {
             MediaArtworkPlayer(reported, Color.White, false, true, {}, {}, {}, {})
