@@ -35,7 +35,7 @@ internal fun mediaActionActive(label: String, iconName: String = "", extras: Bun
     if (Regex("(^|_)(active|checked|selected|filled|on)($|_)").containsMatchIn(icon)) return true
     val name = label.lowercase(Locale.ROOT)
     if (listOf("unlike", "remove like", "remove favorite", "remove from", "unsave", "disable", "turn off").any { it in name }) return true
-    if (listOf("like", "save", "add to", "enable", "turn on").any { it in name } && kind != MediaToggle.DISLIKE) return false
+    if (listOf("add to", "enable", "turn on").any { it in name } && kind != MediaToggle.DISLIKE) return false
     return null
 }
 
