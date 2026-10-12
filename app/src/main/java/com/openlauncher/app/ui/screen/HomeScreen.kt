@@ -1,5 +1,6 @@
 package com.openlauncher.app.ui.screen
 
+import com.openlauncher.app.ui.components.SettingsDialog
 import android.content.res.Configuration
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -206,7 +207,7 @@ fun HomeScreen(
         }
         if (dashboardAction != null) onDashboardActionHandled()
     }
-    if (profileMenu) AlertDialog(onDismissRequest = { profileMenu = false },
+    if (profileMenu) SettingsDialog(onDismissRequest = { profileMenu = false },
         title = { Text("Dashboard layouts") }, text = {
             Column(Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
                 settings.layoutProfiles.forEach { profile ->
@@ -649,28 +650,15 @@ private fun WidgetContextMenu(
     onSetSpeedometerDigitalOnly: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val menuBg    = if (isDayMode) Color(0xFFFFFFFF) else Color(0xFF111111)
-    val menuBorder = if (isDayMode) Color(0xFFDDE1E5) else Color(0xFF1E1E1E)
-    val menuDivider = if (isDayMode) Color(0xFFF1F3F5) else Color(0xFF1A1A1A)
-    Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(menuBg)
-                .border(1.dp, menuBorder, RoundedCornerShape(4.dp))
-                .padding(vertical = 4.dp)
-                .width(280.dp)
-                .heightIn(max = 320.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            val inactiveMenuTint = if (isDayMode) Color(0xFF666666) else Color(0xFFAAAAAA)
+    com.openlauncher.app.ui.components.SettingsPanel("Widget options", onDismiss) {
+            val inactiveMenuTint = MaterialTheme.colorScheme.onSurfaceVariant
             ContextRow("ARRANGE", Icons.Default.Dashboard, accent, onArrange, isDayMode = isDayMode)
-            HorizontalDivider(color = menuDivider)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             ContextRow("RESIZE", Icons.Default.OpenWith, accent, onResize, isDayMode = isDayMode)
-            HorizontalDivider(color = menuDivider)
-            ContextRow("REMOVE WIDGET", Icons.Default.Delete, Color(0xFF884444), onRemove, isDayMode = isDayMode)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            ContextRow("REMOVE WIDGET", Icons.Default.Delete, MaterialTheme.colorScheme.error, onRemove, isDayMode = isDayMode)
             if (widgetId == "CLOCK") {
-                HorizontalDivider(color = menuDivider)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 ContextRow(
                     label   = "DIGITAL",
                     icon    = Icons.Default.Schedule,
@@ -678,7 +666,7 @@ private fun WidgetContextMenu(
                     onClick = { onSetClockStyle(ClockStyle.DIGITAL); onDismiss() },
                     isDayMode = isDayMode
                 )
-                HorizontalDivider(color = menuDivider)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 ContextRow(
                     label   = "ANALOG",
                     icon    = Icons.Default.Watch,
@@ -688,7 +676,7 @@ private fun WidgetContextMenu(
                 )
             }
             if (widgetId == "VITALS") {
-                HorizontalDivider(color = menuDivider)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 ContextRow(
                     label   = "DIAL GAUGES",
                     icon    = Icons.Default.Adjust,
@@ -696,7 +684,7 @@ private fun WidgetContextMenu(
                     onClick = { onSetVitalsAsBars(false); onDismiss() },
                     isDayMode = isDayMode
                 )
-                HorizontalDivider(color = menuDivider)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 ContextRow(
                     label   = "BARS VIEW",
                     icon    = Icons.Default.FormatAlignLeft,
@@ -706,7 +694,7 @@ private fun WidgetContextMenu(
                 )
             }
             if (widgetId == "SPEEDOMETER") {
-                HorizontalDivider(color = menuDivider)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 ContextRow(
                     label   = "DIAL TRACK",
                     icon    = Icons.Default.Speed,
@@ -714,7 +702,7 @@ private fun WidgetContextMenu(
                     onClick = { onSetSpeedometerDigitalOnly(false); onDismiss() },
                     isDayMode = isDayMode
                 )
-                HorizontalDivider(color = menuDivider)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 ContextRow(
                     label   = "DIGITAL ONLY",
                     icon    = Icons.Default.Dialpad,
@@ -724,21 +712,20 @@ private fun WidgetContextMenu(
                 )
             }
             if (widgetId == "NOW_PLAYING") {
-                HorizontalDivider(color = menuDivider)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 ContextRow("ASSIGN CARPLAY APP",      Icons.Default.PhoneAndroid,  accent, onAssignCarPlay, isDayMode = isDayMode)
                 if (carPlayPackage.isNotEmpty()) {
-                    HorizontalDivider(color = menuDivider)
-                    ContextRow("CLEAR CARPLAY APP", Icons.Default.PhoneAndroid, Color(0xFF884444), onClearCarPlay, isDayMode = isDayMode)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                    ContextRow("CLEAR CARPLAY APP", Icons.Default.PhoneAndroid, MaterialTheme.colorScheme.error, onClearCarPlay, isDayMode = isDayMode)
                 }
-                HorizontalDivider(color = menuDivider)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 ContextRow("ASSIGN ANDROID AUTO APP", Icons.Default.DirectionsCar, accent, onAssignAndroidAuto, isDayMode = isDayMode)
                 if (androidAutoPackage.isNotEmpty()) {
-                    HorizontalDivider(color = menuDivider)
-                    ContextRow("CLEAR ANDROID AUTO APP", Icons.Default.DirectionsCar, Color(0xFF884444), onClearAndroidAuto, isDayMode = isDayMode)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                    ContextRow("CLEAR ANDROID AUTO APP", Icons.Default.DirectionsCar, MaterialTheme.colorScheme.error, onClearAndroidAuto, isDayMode = isDayMode)
                 }
             }
 
-        }
     }
 }
 
@@ -750,29 +737,7 @@ private fun ContextRow(
     onClick: () -> Unit,
     isDayMode: Boolean = false
 ) {
-    val finalTint = if (isDayMode) {
-        if (tint == Color(0xFF884444)) {
-            tint
-        } else if (tint == Color(0xFF666666)) {
-            Color(0xFF666666)
-        } else {
-            Color(0xFF111111)
-        }
-    } else {
-        if (tint == Color(0xFF884444)) Color(0xFFEF9A9A) else tint
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Icon(icon, null, tint = finalTint, modifier = Modifier.size(16.dp))
-        Text(label, color = finalTint, fontSize = 14.sp)
-    }
+    com.openlauncher.app.ui.components.SettingsAction(label, icon = icon, tint = tint, onClick = onClick)
 }
 
 @Composable
@@ -791,22 +756,22 @@ private fun WidgetResizeDialog(
     val maxSpanX = GRID_COLS
     val maxSpanY = GRID_ROWS
 
-    val dialogBg     = if (isDayMode) Color(0xFFFFFFFF) else MaterialTheme.colorScheme.background
-    val dialogText   = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
-    val cancelColor  = if (isDayMode) Color(0xFF6C757D) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-    AlertDialog(
+    val dialogBg     = MaterialTheme.colorScheme.surface
+    val dialogText   = MaterialTheme.colorScheme.onSurface
+    val cancelColor  = MaterialTheme.colorScheme.onSurfaceVariant
+    SettingsDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
                 text          = config.id.replace('_', ' '),
                 color         = dialogText,
-                fontSize      = 11.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 letterSpacing = 2.sp
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                Text("QUICK SIZES", color = dialogText, fontSize = 9.sp, letterSpacing = 1.sp)
+                Text("QUICK SIZES", color = dialogText, style = MaterialTheme.typography.bodyMedium, letterSpacing = 1.sp)
                 (1..maxSpanY).forEach { height ->
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         (1..maxSpanX).forEach { width ->
@@ -814,14 +779,14 @@ private fun WidgetResizeDialog(
                                 enabled = settings.resizePreview(config.id, width, height) != null,
                                 selected = spanX == width && spanY == height,
                                 onClick = { spanX = width; spanY = height },
-                                label = { Text("${width}×${height}", fontSize = 10.sp) }
+                                label = { Text("${width}×${height}", style = MaterialTheme.typography.bodyMedium) }
                             )
                         }
                     }
                 }
                 Text(if (preview == null) "This size does not fit. Remove or shrink another widget."
                     else "Preview: the highlighted cells show this widget. Disabled sizes need more room.",
-                    color = dialogText.copy(alpha = 0.7f), fontSize = 11.sp)
+                    color = dialogText.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
                 val target = preview?.firstOrNull { it.id == config.id }
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     repeat(GRID_ROWS) { row ->
@@ -841,12 +806,12 @@ private fun WidgetResizeDialog(
         },
         confirmButton = {
             TextButton(enabled = preview != null, onClick = { onConfirm(spanX, spanY) }) {
-                Text("APPLY", color = accent, fontSize = 16.sp)
+                Text("APPLY", color = accent, style = MaterialTheme.typography.bodyMedium)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("CANCEL", color = cancelColor, fontSize = 16.sp)
+                Text("CANCEL", color = cancelColor, style = MaterialTheme.typography.bodyMedium)
             }
         },
         containerColor    = dialogBg,

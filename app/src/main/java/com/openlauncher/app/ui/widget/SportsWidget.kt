@@ -1,5 +1,6 @@
 package com.openlauncher.app.ui.widget
 
+import com.openlauncher.app.ui.components.SettingsDialog
 import androidx.compose.foundation.border
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
@@ -69,9 +70,9 @@ fun SportsWidget(settings: AppSettings, weather: WeatherState?, networkAvailable
         }
     }
     LaunchedEffect(resumed) { if (resumed) while (true) { now = System.currentTimeMillis(); delay(15_000) } }
-    if (options && !isEditing) AlertDialog(onDismissRequest = { options = false }, title = { Text("Favorite leagues") }, text = {
-        Column(Modifier.heightIn(max = 250.dp).verticalScroll(rememberScrollState())) {
-            Text("Choose the leagues shown in the selector.", fontSize = 14.sp)
+    if (options && !isEditing) SettingsDialog(onDismissRequest = { options = false }, title = { Text("Favorite leagues") }, text = {
+        Column(Modifier.fillMaxWidth()) {
+            Text("Choose the leagues shown in the selector.", style = MaterialTheme.typography.bodyMedium)
             SportsLeague.entries.forEach { item ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(item in favorites, { checked ->
@@ -80,7 +81,7 @@ fun SportsWidget(settings: AppSettings, weather: WeatherState?, networkAvailable
                     }); Text(item.label)
                 }
             }
-            Text("Live scores refresh while this dashboard is visible. F1 shows published session status, schedules and the latest classified race result.", fontSize = 12.sp)
+            Text("Live scores refresh while this dashboard is visible. F1 shows published session status, schedules and the latest classified race result.", style = MaterialTheme.typography.bodyMedium)
         }
     }, confirmButton = { TextButton(onClick = { options = false }) { Text("Done") } },
         dismissButton = { TextButton(onClick = {

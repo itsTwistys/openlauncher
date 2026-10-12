@@ -26,20 +26,7 @@ import java.util.Date
 
 @Composable
 internal fun DashboardPanel(title: String, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxWidth(0.96f).fillMaxHeight(0.94f), shape = RoundedCornerShape(4.dp),
-            color = MaterialTheme.colorScheme.background, contentColor = MaterialTheme.colorScheme.onBackground,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
-            Column(Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(title.uppercase(), modifier = Modifier.weight(1f), fontSize = 18.sp)
-                    TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) { Text("Close") }
-                }
-                HorizontalDivider()
-                content()
-            }
-        }
-    }
+    com.openlauncher.app.ui.components.SettingsPanel(title, onDismiss, expanded = true, scrollable = false, content = content)
 }
 
 /** Draw each spanning widget once, in the same proportions as the dashboard. */
@@ -54,7 +41,7 @@ internal fun LayoutPreview(layout: List<WidgetConfig>, ids: Set<String>, selecte
                 .background(accent.copy(alpha = if (selected == w.id) 0.22f else 0.06f))
                 .border(1.dp, if (selected == w.id) accent else MaterialTheme.colorScheme.outline)
                 .clickable { onSelect(w.id) }.padding(6.dp), contentAlignment = Alignment.Center) {
-                Text(ALL_WIDGET_TYPES.firstOrNull { it.id == w.id }?.label ?: w.id, fontSize = 12.sp,
+                Text(ALL_WIDGET_TYPES.firstOrNull { it.id == w.id }?.label ?: w.id, style = MaterialTheme.typography.bodyMedium,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             }
         }
@@ -74,7 +61,7 @@ internal fun DashboardEditor(settings: AppSettings, onApply: (LayoutProfile) -> 
     val config = active.firstOrNull { it.id == selected }
     DashboardPanel("Edit Dashboard", onDismiss) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Preview changes before applying", Modifier.weight(1f), fontSize = 13.sp)
+            Text("Preview changes before applying", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
             TextButton(onClick = onDismiss) { Text("Cancel") }
             Button(onClick = { onApply(LayoutProfile("", active, ids.toList())); onDismiss() },
                 enabled = validWidgetLayout(active)) { Text("Apply") }
@@ -84,9 +71,9 @@ internal fun DashboardEditor(settings: AppSettings, onApply: (LayoutProfile) -> 
             val preview: @Composable () -> Unit = {
                 Column(Modifier.fillMaxWidth()) {
                     LayoutPreview(active, ids, selected, { selected = it })
-                    Text(notice, fontSize = 12.sp, modifier = Modifier.padding(vertical = 6.dp))
+                    Text(notice, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 6.dp))
                     if (config != null) {
-                        Text(ALL_WIDGET_TYPES.first { it.id == config.id }.label, fontSize = 15.sp)
+                        Text(ALL_WIDGET_TYPES.first { it.id == config.id }.label, style = MaterialTheme.typography.bodyMedium)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             for (h in 1..GRID_ROWS) for (w in 1..GRID_COLS) {
                                 FilterChip(selected = config.spanX == w && config.spanY == h,
@@ -108,7 +95,7 @@ internal fun DashboardEditor(settings: AppSettings, onApply: (LayoutProfile) -> 
                         }
                     }
                     if (confirmDefaults) {
-                        Text("Replace the draft with the default dashboard?", fontSize = 13.sp)
+                        Text("Replace the draft with the default dashboard?", style = MaterialTheme.typography.bodyMedium)
                         Row {
                             TextButton(onClick = { draft = draft.withDefaultDashboard(); confirmDefaults = false }) { Text("Restore") }
                             TextButton(onClick = { confirmDefaults = false }) { Text("Cancel") }
@@ -137,8 +124,8 @@ internal fun DashboardEditor(settings: AppSettings, onApply: (LayoutProfile) -> 
                                     }
                                 }.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Icon(info.icon, null, Modifier.size(24.dp))
-                                Text(info.label, fontSize = 13.sp)
-                                Text(if (enabled) "ADDED · TAP TO EDIT" else "ADD", fontSize = 11.sp)
+                                Text(info.label, style = MaterialTheme.typography.bodyMedium)
+                                Text(if (enabled) "ADDED · TAP TO EDIT" else "ADD", style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     } else androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {

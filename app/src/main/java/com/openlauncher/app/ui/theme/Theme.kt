@@ -1,6 +1,9 @@
 package com.openlauncher.app.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -57,6 +60,8 @@ fun OpenLauncherTheme(
     CompositionLocalProvider(LocalDayMode provides isDayMode) {
         MaterialTheme(
             colorScheme = colorScheme,
+            shapes = Shapes(extraSmall = RoundedCornerShape(4.dp), small = RoundedCornerShape(4.dp),
+                medium = RoundedCornerShape(4.dp), large = RoundedCornerShape(4.dp), extraLarge = RoundedCornerShape(4.dp)),
             typography  = launcherTypography(fontBold, textScale, appFont.toFontFamily()),
             content     = content
         )

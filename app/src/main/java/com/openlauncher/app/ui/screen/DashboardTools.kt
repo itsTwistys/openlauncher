@@ -115,7 +115,7 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                     }
                 }
                 "Nearby" -> {
-                    Text("Find a stop in Google Maps", fontSize = 20.sp)
+                    Text("Find a stop in Google Maps", style = MaterialTheme.typography.bodyMedium)
                     Text("Search opens in the Maps app or browser. Choose a result there to navigate.")
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         listOf("Gas stations", "Parking", "Coffee", "Restaurants", "EV charging", "Rest areas").forEach { category ->
@@ -126,14 +126,14 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                 "Trips" -> {
                     tripError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     val t = trips.current
-                    Text(if (t.running) "Recording trip" else if (t.startedAtMs > 0) "Trip paused" else "Ready for a trip", fontSize = 20.sp)
+                    Text(if (t.running) "Recording trip" else if (t.startedAtMs > 0) "Trip paused" else "Ready for a trip", style = MaterialTheme.typography.bodyMedium)
                     Text(tripSummary(t, metric))
-                    Text("Records while the launcher is visible. Stale GPS and sleep gaps are excluded. Restored trips start paused.", fontSize = 13.sp)
+                    Text("Records while the launcher is visible. Stale GPS and sleep gaps are excluded. Restored trips start paused.", style = MaterialTheme.typography.bodyMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = onToggleTrip) { Text(if (t.running) "Pause" else "Start / Resume") }
                         OutlinedButton(onClick = onFinishTrip, enabled = t.startedAtMs > 0) { Text("Save trip") }
                     }
-                    Text("Saved trips (${trips.history.size}/200)", fontSize = 18.sp)
+                    Text("Saved trips (${trips.history.size}/200)", style = MaterialTheme.typography.bodyMedium)
                     if (trips.history.isEmpty()) Text("Saved trips will appear here.")
                     var confirmClear by remember { mutableStateOf(false) }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -154,7 +154,7 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                 }
                 "Weather" -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Local forecast", Modifier.weight(1f), fontSize = 20.sp)
+                        Text("Local forecast", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                         OutlinedButton(onClick = onRefreshWeather, enabled = location != null && networkAvailable) { Text("Refresh") }
                     }
                     when {
@@ -171,9 +171,9 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                         Text("Rain next hour ${w.nextHourRain(System.currentTimeMillis())?.let { "$it%" } ?: "Unavailable"}")
                         Text("Wind ${w.windText(metric)} · Humidity ${w.currentForecast(System.currentTimeMillis())?.humidityPercent?.let { "$it%" } ?: "Unavailable"}")
                         Text("Sunrise ${w.sunTime(w.sunriseMs, settings.use12HourTime)} · Sunset ${w.sunTime(w.sunsetMs, settings.use12HourTime)}")
-                        Text(w.freshnessLabel(System.currentTimeMillis(), networkAvailable), fontSize = 14.sp)
-                        Text("Updated ${DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(w.updatedAtMs))}", fontSize = 13.sp)
-                        Text("Next 12 hours · temperature / rain chance", fontSize = 17.sp)
+                        Text(w.freshnessLabel(System.currentTimeMillis(), networkAvailable), style = MaterialTheme.typography.bodyMedium)
+                        Text("Updated ${DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(w.updatedAtMs))}", style = MaterialTheme.typography.bodyMedium)
+                        Text("Next 12 hours · temperature / rain chance", style = MaterialTheme.typography.bodyMedium)
                         val formatter = remember(settings.use12HourTime, w.utcOffsetSeconds) {
                             SimpleDateFormat(if (settings.use12HourTime) "h a" else "HH:mm", Locale.getDefault()).apply {
                                 timeZone = SimpleTimeZone((w.utcOffsetSeconds * 1000).toInt(), "Forecast")
@@ -193,7 +193,7 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                         Text("Subtle weather background", Modifier.weight(1f))
                         Switch(settings.weatherBackground, { onSettings { copy(weatherBackground = it) } })
                     }
-                    Text("Optional tint behind your existing dashboard. Off by default.", fontSize = 13.sp)
+                    Text("Optional tint behind your existing dashboard. Off by default.", style = MaterialTheme.typography.bodyMedium)
                     TextButton(onClick = { open("https://open-meteo.com/") }) { Text("Weather by Open-Meteo") }
                 }
                 "Diagnostics" -> {
@@ -219,13 +219,13 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                         "Map status time" to if (map.updatedAtMs > 0) DateFormat.getTimeInstance().format(Date(map.updatedAtMs)) else "Not opened",
                         "Weather" to (weatherError?.let { "Refresh failed" } ?: if (weather != null) "Available" else "Waiting")) + map.evidenceLines()
                     lines.forEach { (name, value) -> Text("$name: $value") }
-                    Text("Export contains these status details only, without coordinates, destinations or media titles.", fontSize = 13.sp)
+                    Text("Export contains these status details only, without coordinates, destinations or media titles.", style = MaterialTheme.typography.bodyMedium)
                     OutlinedButton(onClick = { pendingExport = lines.joinToString("\n") { "${it.first}: ${it.second}" }; exportText.launch("openlauncher-diagnostics.txt") }) { Text("Export diagnostics") }
                 }
                 "Updates" -> {
                     var loading by remember { mutableStateOf(false) }
                     var result by remember { mutableStateOf<ReleaseUpdate?>(null) }
-                    Text("Installed: $installed", fontSize = 20.sp)
+                    Text("Installed: $installed", style = MaterialTheme.typography.bodyMedium)
                     Text("Checks GitHub for previews that passed the build and unit-test workflow. Installation stays under your control.")
                     Button(onClick = {
                         loading = true; message = null
@@ -237,9 +237,9 @@ internal fun DashboardTools(initialPage: String, settings: AppSettings, weather:
                         }
                     }, enabled = !loading && networkAvailable) { Text(if (loading) "Checking…" else "Check for updates") }
                     if (!networkAvailable) Text("Connect to the internet to check for updates.")
-                    Text("Install updates over Open Launcher Preview to keep your dashboard and setup. Do not uninstall or clear app storage.", fontSize = 14.sp)
+                    Text("Install updates over Open Launcher Preview to keep your dashboard and setup. Do not uninstall or clear app storage.", style = MaterialTheme.typography.bodyMedium)
                     result?.let { r ->
-                        Text(r.version, fontSize = 20.sp)
+                        Text(r.version, style = MaterialTheme.typography.bodyMedium)
                         Text(r.notes.ifBlank { "No release notes provided." })
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(onClick = { open(r.pageUrl) }) { Text("Release notes and checksum") }
