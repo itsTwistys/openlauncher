@@ -1,102 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-
-    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-
-    <!-- Network for weather API -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-
-    <!-- Broadcast permission for MCU head unit event service -->
-    <uses-permission android:name="com.szchoiceway.permission.broadcast" />
-
-    <!-- GPS for telemetry and weather location -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!-- Required for LocationManager.sendExtraCommand (A-GPS reset) — normal protection, auto-granted -->
-    <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS" />
-
-    <!-- Optional features. Each runtime permission is requested only when its feature is used. -->
-    <!-- Background trip recording: an ongoing notification while a trip records. -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- OBD2 widget: a paired Bluetooth adapter chosen by the owner. -->
-    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <!-- Agenda and Phone widgets: read only. -->
-    <uses-permission android:name="android.permission.READ_CALENDAR" />
-    <uses-permission android:name="android.permission.READ_CALL_LOG" />
-
-    <!-- These permissions imply hardware that some head units lack; none of it is required. -->
-    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
-    <uses-feature android:name="android.hardware.telephony" android:required="false" />
-
-    <!-- Media sessions use the user-granted NotificationListenerService component,
-         rather than the system-only MEDIA_CONTENT_CONTROL permission.
-         The compass uses the accelerometer and magnetometer, which need no permission,
-         and wallpaper/backup files are chosen through the system document picker. -->
-
-    <!-- The local app picker includes head-unit companion/system packages without
-         launcher activities. Launchable-only queries would hide these existing choices. -->
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
-        tools:ignore="QueryAllPackagesPermission" />
-
-    <!-- Required on API 30+ so PackageManager returns ALL launcher apps -->
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent>
-    </queries>
-
     <application
-        android:label="${appLabel}"
+        android:label="NOVA Cinema"
         android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:theme="@android:style/Theme.Material.NoActionBar"
+        android:allowBackup="false"
         android:supportsRtl="true"
-        android:hardwareAccelerated="true"
-        android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
-        android:exported="true">
-
-        <!-- Single launcher activity -->
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask"
-            android:screenOrientation="landscape"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:windowSoftInputMode="adjustNothing">
-
-            <!-- HOME launcher intent filters -->
+            android:screenOrientation="unspecified"
+            android:configChanges="keyboardHidden|orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.HOME" />
-                <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <service
-            android:name=".service.TripRecordingService"
-            android:exported="false"
-            android:foregroundServiceType="location" />
-
-        <!-- Notification listener service for MediaSession / Now Playing -->
-        <service
-            android:name=".service.MediaListenerService"
-            android:exported="true"
-            android:label="Open Launcher Media"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService" />
-            </intent-filter>
-        </service>
-
     </application>
-
 </manifest>

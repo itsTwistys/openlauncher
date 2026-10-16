@@ -12,6 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-
-rootProject.name = "OpenLauncher"
+rootProject.name = "NovaCinema"
 include(":app")
