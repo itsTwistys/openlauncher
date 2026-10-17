@@ -58,7 +58,7 @@ fun DiscoverScreen(state: CinemaState, model: CinemaModel) {
                 listOf("movie" to "Movies", "series" to "TV shows").forEach { (type, label) ->
                     val chosen = type == selectedType
                     Box(Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
-                        .background(if (chosen) Amber else Color.Transparent)
+                        .background(if (chosen) WarmWhite else Color.Transparent)
                         .clickable { selectedType = type }
                         .padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
                         Text(label, fontWeight = FontWeight.Bold, fontSize = 13.sp,
@@ -237,7 +237,7 @@ fun AddonsScreen(state: CinemaState, model: CinemaModel) {
                 Icon(Icons.Rounded.Shield, contentDescription = null,
                     tint = SoftWhite.copy(alpha = .75f), modifier = Modifier.size(18.dp))
                 Spacer(Modifier.height(8.dp))
-                Text("Only install add-ons from sources you trust. Add-ons are independent services and may have their own terms. NOVA does not supply video content.",
+                Text("Only install add-ons from sources you trust. Add-ons are independent services and may have their own terms. UNI does not supply video content.",
                     color = SoftWhite.copy(alpha = .73f), fontSize = 12.sp, lineHeight = 19.sp)
             }
         }
@@ -304,7 +304,9 @@ fun DetailScreen(state: CinemaState, model: CinemaModel) {
     val seasons = movie.episodes.filter { it.season > 0 }.map { it.season }.distinct()
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 48.dp)) {
         item {
-            Box(Modifier.fillMaxWidth().height(390.dp)) {
+            Spacer(Modifier.statusBarsPadding())
+            Box(Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 9.dp)
+                .height(416.dp).clip(RoundedCornerShape(31.dp))) {
                 AsyncImage(model = movie.backdrop.ifBlank { movie.poster },
                     contentDescription = null, contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize())
@@ -314,11 +316,11 @@ fun DetailScreen(state: CinemaState, model: CinemaModel) {
                 Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(
                     listOf(Ink.copy(alpha = .4f), Color.Transparent))))
                 Row(Modifier.align(Alignment.TopStart).fillMaxWidth()
-                    .statusBarsPadding().padding(horizontal = 19.dp, vertical = 11.dp),
+                    .padding(horizontal = 15.dp, vertical = 15.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     CircleIcon(Icons.Rounded.ArrowBack, "Go back", model::closeDetails)
                     Spacer(Modifier.weight(1f))
-                    Tag("NOVA  /  ${movie.type.uppercase()}", Amber, Ink.copy(alpha = .70f))
+                    Tag("UNI  /  ${movie.type.uppercase()}", WarmWhite, Ink.copy(alpha = .70f))
                 }
                 Column(Modifier.align(Alignment.BottomStart).padding(horizontal = 25.dp, vertical = 13.dp)) {
                     Text("NOW SHOWING", fontSize = 10.sp, letterSpacing = 2.6.sp,
@@ -358,7 +360,7 @@ fun DetailScreen(state: CinemaState, model: CinemaModel) {
                         } else model.loadStreams(null)
                     }, modifier = Modifier.weight(1f).height(53.dp),
                         shape = RoundedCornerShape(17.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = Ink)) {
+                        colors = ButtonDefaults.buttonColors(containerColor = WarmWhite, contentColor = Ink)) {
                         Icon(Icons.Rounded.PlayArrow, null)
                         Spacer(Modifier.width(7.dp))
                         Text(if (movie.type == "series") "Find episodes" else "Find streams",
@@ -402,7 +404,7 @@ fun DetailScreen(state: CinemaState, model: CinemaModel) {
                         items(seasons) { season ->
                             val active = season == state.season
                             Box(Modifier.clip(RoundedCornerShape(13.dp))
-                                .background(if (active) Amber else Layer)
+                                .background(if (active) WarmWhite else Layer)
                                 .clickable { model.selectSeason(season) }
                                 .padding(horizontal = 17.dp, vertical = 11.dp)) {
                                 Text("Season $season", fontSize = 12.sp, fontWeight = FontWeight.Bold,

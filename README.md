@@ -1,21 +1,24 @@
-# NOVA Cinema for Android
+# Uni for Android
 
-NOVA Cinema is an independent, native Android movie and series browser powered by Stremio-compatible add-ons.
+Uni is an independent native Android movie and TV browsing app that uses Stremio-compatible add-ons. Version 0.2 adopts a warm-dark iOS-inspired layout with a cinematic featured card, translucent floating navigation, poster shelves, and local playback progress.
 
-Features: cinematic Jetpack Compose browsing, movie and TV catalogs, title search, detailed metadata, season and episode selection, local watchlist, configurable add-on manifests, multi-add-on stream discovery, and Media3 video playback for HTTP/HTTPS streams.
+## Features
 
-## Get the APK
+- Cinematic title carousel and metadata from Cinemeta and configured catalog add-ons
+- Real Continue Watching cards with thumbnails and saved progress for supported direct streams
+- Discover, title search, series season selection, and source choices
+- Local library and editable Stremio add-ons through their manifest links
+- Media3 player for directly playable HTTPS/HTTP video, including HLS and DASH
+- External player handoff for unsupported source types
 
-Go to GitHub Actions for this branch, select **NOVA Cinema APK**, open a successful run, and download **NOVA-Cinema-Android-APK**. Extract `app-debug.apk` and install it on Android 8 or newer.
+## Install
 
-## Build from source
+Open the **Uni Android APK** workflow in GitHub Actions for the `feature/uni-cinema` branch. Download the **Uni-Android-APK** artifact from a successful run, extract the APK, and install it on Android 8 or later.
 
-Use Android Studio or JDK 17, Android SDK 36, and Gradle 8.13.
+The app keeps the existing package ID `dev.nova.cinema` so that an install over the older NOVA prototype preserves its local settings and watchlist. The launch name and all visible branding are **Uni**.
 
-```sh
-gradle :app:assembleDebug
-```
+## Build
 
-The app's package is `dev.nova.cinema`. Its built-in Cinemeta catalog gives you movie and TV metadata. To find playable streams, install a compatible add-on you trust using its Stremio manifest link. Stream availability and external-player support depend on the installed add-ons. No content is bundled.
+Use JDK 17, Android SDK 36 and Gradle 8.13, then run `gradle :app:assembleDebug`.
 
-NOVA is not affiliated with or endorsed by Stremio. You are responsible for using sources and media you are authorized to access.
+The built-in Cinemeta metadata catalog does not provide playable content by itself. Add-ons are independent and Uni does not supply video streams or a debrid connection. Continue Watching works for streams played in the built-in player; external apps manage their own playback history. Use sources you are authorized to access.

@@ -53,7 +53,50 @@ data class Addon(
             (prefixes.isEmpty() || prefixes.any { id.startsWith(it) })
 }
 data class MediaRow(val title: String, val movies: List<Movie>)
-data class Playing(val movie: Movie, val episode: Episode?, val stream: Stream)
+data class Playing(val movie: Movie, val episode: Episode?, val stream: Stream, val resumeMs: Long = 0L)
+data class ContinueItem(
+    val movie: Movie, val episode: Episode?, val stream: Stream,
+    val positionMs: Long, val durationMs: Long, val updatedAt: Long,
+) {
+    val fraction: Float get() = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else .05f
+    val remaining: String get() {
+        if (durationMs <= 0) return "Resume"
+        val minutes = ((durationMs - positionMs).coerceAtLeast(0L) / 60000L)
+        return if (minutes >= 60L) "${minutes / 60}h ${minutes % 60}m left" else "${minutes}m left"
+    }
+}
+private fun Episode.toProgressJson(): JSONObject = JSONObject().apply {
+    put("id", id); put("title", title); put("season", season); put("number", number)
+    put("thumbnail", thumbnail); put("overview", overview)
+}
+private fun JSONObject.toProgressEpisode() = Episode(str("id"), str("title"),
+    optInt("season"), optInt("number"), str("thumbnail"), str("overview"))
+private fun Stream.toProgressJson(): JSONObject = JSONObject().apply {
+    put("label", label); put("description", description); put("url", url)
+    put("external", external); put("infoHash", infoHash); put("ytId", ytId)
+    put("addonName", addonName)
+    put("headers", JSONObject(headers))
+    put("subtitles", JSONArray().apply { subtitles.forEach { sub ->
+        put(JSONObject().put("url", sub.url).put("language", sub.language).put("mimeType", sub.mimeType))
+    }})
+}
+private fun JSONObject.toProgressStream(): Stream {
+    val values = optJSONObject("headers")
+    val headers = if (values == null) emptyMap() else values.keys().asSequence().associateWith { values.optString(it) }
+    val subs = optJSONArray("subtitles")
+    val tracks = if (subs == null) emptyList() else (0 until subs.length()).mapNotNull { i ->
+        val v = subs.optJSONObject(i) ?: return@mapNotNull null
+        SubtitleTrack(v.str("url"), v.str("language"), v.str("mimeType"))
+    }
+    return Stream(str("label"), str("description"), str("url"), str("external"),
+        str("infoHash"), str("ytId"), str("addonName"), headers, tracks)
+}
+private fun ContinueItem.toProgressJson(): JSONObject = JSONObject().apply {
+    put("movie", movie.toJson()); episode?.let { put("episode", it.toProgressJson()) }
+    put("stream", stream.toProgressJson()); put("position", positionMs)
+    put("duration", durationMs); put("updated", updatedAt)
+}
+
 
 private fun JSONObject.str(key: String): String = optString(key, "").takeUnless { it == "null" }.orEmpty()
 private fun JSONArray?.strings(): List<String> = if (this == null) emptyList() else
@@ -98,7 +141,7 @@ class StremioClient(context: Context) {
         connection.connectTimeout = 8000
         connection.readTimeout = 11000
         connection.setRequestProperty("Accept", "application/json")
-        connection.setRequestProperty("User-Agent", "NovaCinema/1.0 (Stremio addon client)")
+        connection.setRequestProperty("User-Agent", "Uni/0.2 (Stremio addon client)")
         connection.instanceFollowRedirects = true
         try {
             if (connection.responseCode !in 200..299) error("HTTP ${connection.responseCode}")
@@ -300,6 +343,42 @@ class StremioClient(context: Context) {
         }.awaitAll().flatten().distinctBy { "${it.url}|${it.infoHash}|${it.external}|${it.ytId}" }
     }
 
+    fun continueWatching(): List<ContinueItem> = runCatching {
+        val items = JSONArray(prefs.getString("continue_watching", "[]"))
+        (0 until items.length()).mapNotNull { i ->
+            val item = items.optJSONObject(i) ?: return@mapNotNull null
+            val movie = item.optJSONObject("movie")?.toMovie(CINEMETA) ?: return@mapNotNull null
+            val stream = item.optJSONObject("stream")?.toProgressStream() ?: return@mapNotNull null
+            if (!stream.direct || movie.id.isBlank()) return@mapNotNull null
+            ContinueItem(movie, item.optJSONObject("episode")?.toProgressEpisode(), stream,
+                item.optLong("position"), item.optLong("duration"), item.optLong("updated"))
+        }.sortedByDescending { it.updatedAt }.take(16)
+    }.getOrDefault(emptyList())
+
+    fun recordPlayback(playing: Playing, positionMs: Long, durationMs: Long): List<ContinueItem> {
+        if (positionMs < 8000L) return continueWatching()
+        val entries = continueWatching().filterNot {
+            it.movie.id == playing.movie.id && it.episode?.id == playing.episode?.id
+        }.toMutableList()
+        val finished = durationMs > 0L && positionMs.toFloat() / durationMs >= .95f
+        if (!finished) entries.add(0, ContinueItem(playing.movie, playing.episode, playing.stream,
+            positionMs, durationMs, System.currentTimeMillis()))
+        prefs.edit().putString("continue_watching", JSONArray().apply {
+            entries.sortedByDescending { it.updatedAt }.take(16).forEach { put(it.toProgressJson()) }
+        }.toString()).apply()
+        return entries.sortedByDescending { it.updatedAt }.take(16)
+    }
+
+    fun removeProgress(item: ContinueItem): List<ContinueItem> {
+        val entries = continueWatching().filterNot {
+            it.movie.id == item.movie.id && it.episode?.id == item.episode?.id
+        }
+        prefs.edit().putString("continue_watching", JSONArray().apply {
+            entries.forEach { put(it.toProgressJson()) }
+        }.toString()).apply()
+        return entries
+    }
+
     fun saved(): List<Movie> = runCatching {
         val arr = JSONArray(prefs.getString("saved", "[]"))
         (0 until arr.length()).mapNotNull { arr.optJSONObject(it)?.toMovie(CINEMETA) }
@@ -318,6 +397,7 @@ class StremioClient(context: Context) {
 data class CinemaState(
     val tab: String = "Home", val rows: List<MediaRow> = emptyList(), val loading: Boolean = true,
     val addons: List<Addon> = emptyList(), val saved: List<Movie> = emptyList(),
+    val continueItems: List<ContinueItem> = emptyList(),
     val details: Movie? = null, val detailLoading: Boolean = false,
     val season: Int = 1, val episode: Episode? = null,
     val streams: List<Stream> = emptyList(), val streamsLoading: Boolean = false,
@@ -328,7 +408,7 @@ data class CinemaState(
 
 class CinemaModel(application: Application) : AndroidViewModel(application) {
     private val client = StremioClient(application)
-    var state by mutableStateOf(CinemaState(saved = client.saved()))
+    var state by mutableStateOf(CinemaState(saved = client.saved(), continueItems = client.continueWatching()))
         private set
 
     init {
@@ -377,6 +457,16 @@ class CinemaModel(application: Application) : AndroidViewModel(application) {
         state = state.copy(player = Playing(movie, state.episode, stream))
     }
     fun closePlayer() { state = state.copy(player = null) }
+    fun resume(item: ContinueItem) {
+        state = state.copy(player = Playing(item.movie, item.episode, item.stream, item.positionMs),
+            details = null, streams = emptyList(), tab = "Home")
+    }
+    fun recordPlayback(playing: Playing, positionMs: Long, durationMs: Long) {
+        state = state.copy(continueItems = client.recordPlayback(playing, positionMs, durationMs))
+    }
+    fun dismissContinue(item: ContinueItem) {
+        state = state.copy(continueItems = client.removeProgress(item))
+    }
     fun toggleSaved(item: Movie) { state = state.copy(saved = client.toggleSaved(item)) }
     fun updateQuery(value: String) {
         state = state.copy(query = value)

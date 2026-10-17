@@ -24,22 +24,22 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-val Ink = Color(0xFF080A10)
-val Layer = Color(0xFF151924)
-val WarmWhite = Color(0xFFF6F4F1)
-val SoftWhite = Color(0xFFBCC0CE)
-val Amber = Color(0xFFF9B875)
-val Violet = Color(0xFFB69AFC)
-val Hairline = Color(0xFF333541)
+val Ink = Color(0xFF141014)
+val Layer = Color(0xFF241D24)
+val WarmWhite = Color(0xFFF8F5F2)
+val SoftWhite = Color(0xFFD1C7CB)
+val Amber = Color(0xFFFFC86F)
+val Violet = Color(0xFFB5A1FF)
+val Hairline = Color(0xFF564B52)
 
 private val colors = darkColorScheme(
-    primary = Amber, secondary = Violet, background = Ink,
+    primary = WarmWhite, secondary = Violet, background = Ink,
     surface = Layer, onPrimary = Ink, onBackground = WarmWhite,
     onSurface = WarmWhite, outline = Hairline
 )
 
 @Composable
-fun NovaTheme(content: @Composable () -> Unit) {
+fun UniTheme(content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = colors, typography = Typography(
         displayLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontSize = 43.sp,
             lineHeight = 47.sp, fontWeight = FontWeight.Black, letterSpacing = (-1.7).sp),
@@ -58,12 +58,12 @@ fun NovaTheme(content: @Composable () -> Unit) {
 fun PremiumBackground(modifier: Modifier = Modifier) {
     Box(modifier.background(Ink)) {
         Box(Modifier.fillMaxSize().background(Brush.radialGradient(
-            colors = listOf(Violet.copy(alpha = .12f), Color.Transparent),
+            colors = listOf(Color(0xFF8A514A).copy(alpha = .24f), Color.Transparent),
             radius = 1050f
         )))
         Box(Modifier.fillMaxWidth().height(550.dp).align(Alignment.TopEnd)
             .background(Brush.verticalGradient(
-                listOf(Amber.copy(alpha = .055f), Color.Transparent))))
+                listOf(Violet.copy(alpha = .075f), Color.Transparent))))
     }
 }
 

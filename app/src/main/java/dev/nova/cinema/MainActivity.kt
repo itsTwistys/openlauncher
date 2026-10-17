@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            NovaTheme {
+            UniTheme {
                 val model: CinemaModel = viewModel()
                 CinemaApp(model)
             }
@@ -81,7 +81,7 @@ fun CinemaApp(model: CinemaModel) {
     Box(Modifier.fillMaxSize().background(Ink)) {
         PremiumBackground(Modifier.fillMaxSize())
         if (state.player != null) {
-            PlayerScreen(state.player, model::closePlayer)
+            PlayerScreen(state.player, model::closePlayer, model::recordPlayback)
         } else {
             AnimatedContent(targetState = state.details != null,
                 transitionSpec = {
@@ -116,64 +116,53 @@ fun CinemaApp(model: CinemaModel) {
 
 @Composable
 private fun BrandHeader(onAddons: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 25.dp, vertical = 12.dp),
+    Row(Modifier.fillMaxWidth().padding(horizontal = 23.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(38.dp).clip(RoundedCornerShape(13.dp))
-            .background(Brush.linearGradient(listOf(Amber, Violet))),
-            contentAlignment = Alignment.Center) {
-            Text("N", fontWeight = FontWeight.Black, fontSize = 25.sp, color = Ink)
-        }
-        Spacer(Modifier.width(10.dp))
         Column {
-            Text("NOVA", fontSize = 19.sp, fontWeight = FontWeight.Black,
-                color = WarmWhite, letterSpacing = 3.8.sp, lineHeight = 20.sp)
-            Text("YOUR CINEMA, REIMAGINED", color = SoftWhite.copy(alpha = .55f),
-                fontSize = 8.sp, letterSpacing = 1.3.sp)
+            Text("uni", fontSize = 35.sp, fontWeight = FontWeight.Black,
+                color = WarmWhite, lineHeight = 36.sp, letterSpacing = (-2.8).sp)
+            Text("A WORLD OF STORIES", fontSize = 8.sp, letterSpacing = 2.3.sp,
+                color = SoftWhite.copy(alpha = .77f), fontWeight = FontWeight.Medium)
         }
         Spacer(Modifier.weight(1f))
-        Box(Modifier.size(43.dp).clip(CircleShape)
-            .background(Color.White.copy(alpha = .075f))
-            .border(1.dp, Color.White.copy(alpha = .08f), CircleShape)
+        Box(Modifier.size(42.dp).clip(CircleShape)
+            .background(Color.White.copy(alpha = .095f))
+            .border(1.dp, Color.White.copy(alpha = .16f), CircleShape)
             .clickable(onClick = onAddons), contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.Tune, contentDescription = "Manage add-ons", tint = WarmWhite,
-                modifier = Modifier.size(21.dp))
+            Icon(Icons.Rounded.Settings, contentDescription = "Manage add-ons",
+                tint = WarmWhite, modifier = Modifier.size(21.dp))
         }
     }
 }
 
 @Composable
 private fun FloatingNavigation(selected: String, onTab: (String) -> Unit, modifier: Modifier = Modifier) {
-    val items = listOf(
+    val tabs = listOf(
         Triple("Home", Icons.Rounded.Home, "Home"),
         Triple("Discover", Icons.Rounded.Explore, "Explore"),
-        Triple("Search", Icons.Rounded.Search, "Search"),
-        Triple("Saved", Icons.Rounded.Bookmark, "Saved"),
+        Triple("Saved", Icons.Rounded.VideoLibrary, "Library"),
         Triple("Add-ons", Icons.Rounded.Extension, "Add-ons"),
+        Triple("Search", Icons.Rounded.Search, "Search"),
     )
-    Row(modifier.fillMaxWidth().shadow(30.dp, RoundedCornerShape(28.dp))
-        .clip(RoundedCornerShape(28.dp))
-        .background(Color(0xF21B1D29))
-        .border(1.dp, Color.White.copy(alpha = .13f), RoundedCornerShape(28.dp))
-        .padding(horizontal = 7.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
-        items.forEach { (id, icon, text) ->
-            val selectedHere = selected == id
-            Row(Modifier.weight(if (selectedHere) 1.5f else 1f)
-                .clip(RoundedCornerShape(22.dp))
-                .background(if (selectedHere) Amber.copy(alpha = .13f) else Color.Transparent)
-                .clickable { onTab(id) }
-                .padding(vertical = 12.dp, horizontal = 3.dp),
-                horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, contentDescription = text,
-                    tint = if (selectedHere) Amber else SoftWhite.copy(alpha = .7f),
-                    modifier = Modifier.size(21.dp))
-                AnimatedVisibility(visible = selectedHere) {
-                    Row {
-                        Spacer(Modifier.width(6.dp))
-                        Text(text, fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                            color = Amber, maxLines = 1)
-                    }
-                }
+    Row(modifier.fillMaxWidth().shadow(24.dp, RoundedCornerShape(32.dp))
+        .clip(RoundedCornerShape(32.dp))
+        .background(Brush.linearGradient(listOf(Color(0xD84D3A3C), Color(0xDC252430), Color(0xD84C3E40))))
+        .border(1.dp, Color.White.copy(alpha = .23f), RoundedCornerShape(32.dp))
+        .padding(horizontal = 8.dp, vertical = 7.dp),
+        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        tabs.forEach { (key, icon, label) ->
+            val active = selected == key
+            Column(Modifier.weight(1f).clip(RoundedCornerShape(25.dp))
+                .background(if (active) Color.White.copy(alpha = .16f) else Color.Transparent)
+                .clickable { onTab(key) }
+                .padding(vertical = 8.dp, horizontal = 2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(icon, contentDescription = label, tint = if (active) WarmWhite else SoftWhite,
+                    modifier = Modifier.size(24.dp))
+                Spacer(Modifier.height(3.dp))
+                Text(label, color = if (active) WarmWhite else SoftWhite,
+                    fontSize = 10.sp, fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
+                    maxLines = 1)
             }
         }
     }
@@ -181,59 +170,50 @@ private fun FloatingNavigation(selected: String, onTab: (String) -> Unit, modifi
 
 @Composable
 fun HomeScreen(state: CinemaState, model: CinemaModel) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 125.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 126.dp)) {
         item {
             Spacer(Modifier.statusBarsPadding())
             BrandHeader { model.selectTab("Add-ons") }
-            Spacer(Modifier.height(10.dp))
-            Column(Modifier.padding(horizontal = 25.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    PulseDot()
-                    Spacer(Modifier.width(9.dp))
-                    Text("THE SCREEN IS YOURS", color = Amber, fontSize = 10.sp,
-                        letterSpacing = 2.5.sp, fontWeight = FontWeight.Bold)
-                }
-                Spacer(Modifier.height(9.dp))
-                Text("An entire world\nof stories.", style = MaterialTheme.typography.displayLarge,
-                    color = WarmWhite, lineHeight = 47.sp)
-                Spacer(Modifier.height(8.dp))
-                Text("Discover something extraordinary tonight.", color = SoftWhite,
-                    fontSize = 13.sp)
-            }
-            Spacer(Modifier.height(23.dp))
+            Spacer(Modifier.height(4.dp))
         }
         item {
-            val featured = state.rows.firstOrNull()?.movies.orEmpty()
-                .filter { it.backdrop.isNotBlank() || it.poster.isNotBlank() }.take(5)
-            if (featured.isNotEmpty()) FeaturedCarousel(featured, model::open)
-            else Skeleton(Modifier.fillMaxWidth().padding(horizontal = 18.dp).height(420.dp))
-            Spacer(Modifier.height(24.dp))
-        }
-        item {
-            BrowsePills(onTap = model::selectTab)
+            val featured = state.rows.flatMap { it.movies }.distinctBy { it.id }
+                .filter { it.backdrop.isNotBlank() || it.poster.isNotBlank() }.take(7)
+            if (featured.isNotEmpty())
+                FeaturedCarousel(featured, model::open, model::toggleSaved, state.saved)
+            else Skeleton(Modifier.fillMaxWidth().padding(horizontal = 17.dp).height(455.dp))
             Spacer(Modifier.height(26.dp))
+        }
+        if (state.continueItems.isNotEmpty()) {
+            item {
+                ContinueWatchingStrip(state.continueItems, model::resume, model::dismissContinue)
+                Spacer(Modifier.height(29.dp))
+            }
         }
         if (state.loading) {
             items(2) {
                 Column {
-                    Skeleton(Modifier.padding(start = 24.dp).width(180.dp).height(22.dp))
+                    Skeleton(Modifier.padding(start = 24.dp).width(180.dp).height(23.dp))
                     Spacer(Modifier.height(18.dp))
                     LazyRow(contentPadding = PaddingValues(horizontal = 24.dp)) {
-                        items(4) { Skeleton(Modifier.width(140.dp).height(205.dp)) ; Spacer(Modifier.width(12.dp)) }
+                        items(4) {
+                            Skeleton(Modifier.width(140.dp).height(205.dp))
+                            Spacer(Modifier.width(12.dp))
+                        }
                     }
                     Spacer(Modifier.height(30.dp))
                 }
             }
         } else if (state.rows.isEmpty()) {
             item {
-                EmptyState("The curtains are opening",
-                    "Catalogs are unavailable right now. Check your connection or add-ons.",
+                EmptyState("Your cinema awaits",
+                    "Catalogs are unavailable. Check your connection or add-ons.",
                     Icons.Rounded.WifiOff, "Try again", model::refresh)
             }
         } else {
             items(state.rows) { row ->
                 MovieStrip(row.title, row.movies, model::open)
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(30.dp))
             }
         }
         item { EndCaption() }
@@ -241,66 +221,139 @@ fun HomeScreen(state: CinemaState, model: CinemaModel) {
 }
 
 @Composable
-private fun FeaturedCarousel(movies: List<Movie>, onOpen: (Movie) -> Unit) {
+private fun ContinueWatchingStrip(
+    entries: List<ContinueItem>,
+    onResume: (ContinueItem) -> Unit,
+    onRemove: (ContinueItem) -> Unit
+) {
+    Column {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Text("Continue Watching", style = MaterialTheme.typography.headlineMedium,
+                color = WarmWhite, modifier = Modifier.weight(1f))
+            Icon(Icons.Rounded.ChevronRight, null, tint = SoftWhite)
+        }
+        Spacer(Modifier.height(14.dp))
+        LazyRow(contentPadding = PaddingValues(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+            items(entries, key = { it.movie.type + it.movie.id + (it.episode?.id ?: "") }) { entry ->
+                Column(Modifier.width(216.dp)) {
+                    Box(Modifier.fillMaxWidth().height(128.dp)
+                        .clip(RoundedCornerShape(17.dp))
+                        .background(Layer).clickable { onResume(entry) }) {
+                        AsyncImage(model = entry.movie.backdrop.ifBlank { entry.movie.poster },
+                            contentDescription = entry.movie.title, contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize())
+                        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(
+                            listOf(Color.Transparent, Ink.copy(alpha = .7f)))))
+                        Box(Modifier.align(Alignment.BottomEnd).padding(end = 10.dp, bottom = 18.dp)) {
+                            Tag(entry.remaining, WarmWhite, Ink.copy(alpha = .83f))
+                        }
+                        Box(Modifier.fillMaxWidth().height(4.dp).align(Alignment.BottomCenter)
+                            .background(Color.White.copy(alpha = .34f))) {
+                            Box(Modifier.fillMaxWidth(entry.fraction).fillMaxHeight()
+                                .background(WarmWhite))
+                        }
+                    }
+                    Spacer(Modifier.height(9.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(entry.movie.title, color = WarmWhite, fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium, maxLines = 1,
+                            overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        Box(Modifier.size(28.dp).clip(CircleShape).clickable { onRemove(entry) },
+                            contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.Close, contentDescription = "Remove from Continue Watching",
+                                tint = SoftWhite, modifier = Modifier.size(15.dp))
+                        }
+                    }
+                    Text(listOfNotNull(entry.movie.year.takeIf { it.isNotBlank() },
+                        entry.episode?.let { "S${it.season} · E${it.number}" })
+                        .joinToString(" · "), color = SoftWhite.copy(alpha = .75f), fontSize = 11.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeaturedCarousel(
+    movies: List<Movie>, onOpen: (Movie) -> Unit,
+    onSave: (Movie) -> Unit, saved: List<Movie>
+) {
     val pager = rememberPagerState(pageCount = { movies.size })
     LaunchedEffect(pager.currentPage, movies.size) {
-        delay(7500)
+        delay(8000)
         if (movies.size > 1) pager.animateScrollToPage((pager.currentPage + 1) % movies.size)
     }
     Column {
-        HorizontalPager(state = pager, contentPadding = PaddingValues(horizontal = 18.dp),
-            pageSpacing = 12.dp, modifier = Modifier.height(416.dp)) { page ->
+        HorizontalPager(state = pager, contentPadding = PaddingValues(horizontal = 16.dp),
+            pageSpacing = 12.dp, modifier = Modifier.height(468.dp)) { page ->
             val movie = movies[page]
-            Box(Modifier.fillMaxSize().clip(RoundedCornerShape(30.dp))
+            val isSaved = saved.any { it.id == movie.id && it.type == movie.type }
+            Box(Modifier.fillMaxSize().clip(RoundedCornerShape(32.dp))
                 .background(Layer).clickable { onOpen(movie) }) {
                 AsyncImage(model = movie.backdrop.ifBlank { movie.poster },
                     contentDescription = null, contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize())
                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0f to Color.Black.copy(alpha = .04f),
-                        .34f to Ink.copy(alpha = .25f),
-                        .72f to Ink.copy(alpha = .79f),
-                        1f to Ink,
-                    ))))
+                    0f to Color.Black.copy(alpha = .03f),
+                    .34f to Ink.copy(alpha = .05f),
+                    .57f to Ink.copy(alpha = .42f),
+                    1f to Ink.copy(alpha = .99f))))
                 Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(
-                    listOf(Ink.copy(alpha = .46f), Color.Transparent))))
-                Column(Modifier.align(Alignment.BottomStart)
-                    .padding(start = 23.dp, end = 23.dp, bottom = 25.dp)) {
-                    Tag("FEATURED  /  ${movie.type.uppercase()}", Amber, Amber.copy(alpha = .16f))
-                    Spacer(Modifier.height(15.dp))
-                    Text(movie.title, style = MaterialTheme.typography.displayLarge,
-                        fontSize = 34.sp, lineHeight = 39.sp, color = WarmWhite, maxLines = 2,
-                        overflow = TextOverflow.Ellipsis)
+                    listOf(Ink.copy(alpha = .32f), Color.Transparent))))
+                Column(Modifier.align(Alignment.BottomStart).padding(horizontal = 21.dp, vertical = 22.dp)) {
+                    Text("F E A T U R E D", color = WarmWhite.copy(alpha = .86f),
+                        fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(10.dp))
+                    Text(movie.title, style = MaterialTheme.typography.displayLarge,
+                        fontSize = 37.sp, lineHeight = 41.sp, color = WarmWhite, maxLines = 2,
+                        overflow = TextOverflow.Ellipsis)
+                    Spacer(Modifier.height(12.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (movie.year.isNotBlank()) Text(movie.year, color = WarmWhite, fontSize = 12.sp)
                         if (movie.rating.isNotBlank()) {
-                            Spacer(Modifier.width(15.dp))
-                            Icon(Icons.Rounded.Star, null, tint = Amber, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Rounded.Star, null, tint = Amber, modifier = Modifier.size(15.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text(movie.rating, color = WarmWhite, fontSize = 12.sp)
+                            Text(movie.rating, fontSize = 12.sp, color = WarmWhite)
+                            Spacer(Modifier.width(10.dp))
+                            Text("·", fontSize = 13.sp, color = SoftWhite)
+                            Spacer(Modifier.width(10.dp))
                         }
-                        if (movie.genres.isNotEmpty()) {
-                            Spacer(Modifier.width(15.dp))
-                            Text(movie.genres.take(2).joinToString(" · "), color = SoftWhite,
-                                fontSize = 12.sp, maxLines = 1)
-                        }
+                        Text(listOf(movie.year, movie.genres.take(2).joinToString(", "),
+                            if (movie.type == "series") "Series" else "Movie")
+                            .filter { it.isNotBlank() }.joinToString("  ·  "),
+                            color = SoftWhite, fontSize = 12.sp, maxLines = 1,
+                            overflow = TextOverflow.Ellipsis)
                     }
-                    Spacer(Modifier.height(19.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.clip(RoundedCornerShape(15.dp))
-                            .background(Amber).padding(horizontal = 18.dp, vertical = 12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Rounded.PlayArrow, null, tint = Ink, modifier = Modifier.size(19.dp))
-                                Spacer(Modifier.width(5.dp))
-                                Text("Explore title", color = Ink, fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp)
-                            }
+                    if (movie.description.isNotBlank()) {
+                        Spacer(Modifier.height(9.dp))
+                        Text(movie.description, color = WarmWhite.copy(alpha = .78f),
+                            fontSize = 12.sp, lineHeight = 17.sp, maxLines = 2,
+                            overflow = TextOverflow.Ellipsis)
+                    }
+                    Spacer(Modifier.height(18.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                        Row(Modifier.clip(RoundedCornerShape(16.dp))
+                            .background(WarmWhite).clickable { onOpen(movie) }
+                            .padding(horizontal = 23.dp, vertical = 13.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.PlayArrow, null, tint = Ink,
+                                modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(7.dp))
+                            Text("Play", color = Ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
-                        Spacer(Modifier.weight(1f))
-                        Icon(Icons.Rounded.ArrowForward, "View details", tint = WarmWhite,
-                            modifier = Modifier.size(25.dp))
+                        Row(Modifier.clip(RoundedCornerShape(16.dp))
+                            .background(Color.White.copy(alpha = .13f))
+                            .border(1.dp, Color.White.copy(alpha = .15f), RoundedCornerShape(16.dp))
+                            .clickable { onSave(movie) }
+                            .padding(horizontal = 18.dp, vertical = 13.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Icon(if (isSaved) Icons.Rounded.Check else Icons.Rounded.Add, null,
+                                tint = WarmWhite, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(7.dp))
+                            Text(if (isSaved) "Saved" else "My List", color = WarmWhite,
+                                fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        }
                     }
                 }
             }
@@ -308,10 +361,10 @@ private fun FeaturedCarousel(movies: List<Movie>, onOpen: (Movie) -> Unit) {
         Spacer(Modifier.height(13.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             movies.indices.forEach { i ->
-                val width = if (pager.currentPage == i) 25.dp else 6.dp
-                Box(Modifier.padding(horizontal = 3.dp).height(5.dp).width(width)
-                    .clip(CircleShape).background(if (pager.currentPage == i) Amber
-                    else Color.White.copy(alpha = .22f)))
+                Box(Modifier.padding(horizontal = 4.dp)
+                    .width(if (pager.currentPage == i) 20.dp else 6.dp).height(6.dp)
+                    .clip(CircleShape).background(if (pager.currentPage == i) WarmWhite
+                    else Color.White.copy(alpha = .26f)))
             }
         }
     }
@@ -406,7 +459,7 @@ fun Poster(movie: Movie, onOpen: (Movie) -> Unit, width: Int = 142) {
 private fun EndCaption() {
     Column(Modifier.fillMaxWidth().padding(top = 15.dp, bottom = 25.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("N O V A", color = WarmWhite.copy(alpha = .37f),
+        Text("u n i", color = WarmWhite.copy(alpha = .37f),
             fontSize = 12.sp, letterSpacing = 5.sp, fontWeight = FontWeight.Black)
         Spacer(Modifier.height(5.dp))
         Text("EVERY STORY DESERVES A SCREEN", color = SoftWhite.copy(alpha = .32f),

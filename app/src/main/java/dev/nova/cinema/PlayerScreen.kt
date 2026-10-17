@@ -36,8 +36,13 @@ import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
 
 @Composable
-fun PlayerScreen(playing: Playing, onClose: () -> Unit) {
+fun PlayerScreen(
+    playing: Playing,
+    onClose: () -> Unit,
+    onProgress: (Playing, Long, Long) -> Unit
+) {
     val context = LocalContext.current
+    val latestProgress by rememberUpdatedState(onProgress)
     var playbackError by remember(playing.stream.url) { mutableStateOf("") }
     var showHeading by remember { mutableStateOf(true) }
     val mediaPlayer = remember(context, playing.stream.url, playing.stream.headers) {
@@ -61,6 +66,7 @@ fun PlayerScreen(playing: Playing, onClose: () -> Unit) {
                 if (path.endsWith(".mpd")) builder.setMimeType(MimeTypes.APPLICATION_MPD)
                 setMediaItem(builder.build())
                 prepare()
+                if (playing.resumeMs > 0L) seekTo(playing.resumeMs)
                 playWhenReady = true
             }
     }
@@ -73,8 +79,17 @@ fun PlayerScreen(playing: Playing, onClose: () -> Unit) {
         }
         mediaPlayer.addListener(listener)
         onDispose {
+            if (mediaPlayer.currentPosition > 8000L)
+                latestProgress(playing, mediaPlayer.currentPosition, mediaPlayer.duration)
             mediaPlayer.removeListener(listener)
             mediaPlayer.release()
+        }
+    }
+    LaunchedEffect(mediaPlayer) {
+        while (true) {
+            delay(7000)
+            if (mediaPlayer.currentPosition > 8000L)
+                latestProgress(playing, mediaPlayer.currentPosition, mediaPlayer.duration)
         }
     }
     LaunchedEffect(showHeading) {
