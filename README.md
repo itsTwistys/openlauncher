@@ -15,7 +15,7 @@ Uni is an independent native Android movie and TV browsing app that uses Stremio
 
 Open the **Uni Android APK** workflow in GitHub Actions for the `feature/uni-cinema` branch. Download the **Uni-Android-APK** artifact from a successful run, extract the APK, and install it on Android 8 or later.
 
-The app keeps the existing package ID `dev.nova.cinema` so that an install over the older NOVA prototype preserves its local settings and watchlist. The launch name and all visible branding are **Uni**.
+Uni has its own application ID `com.itstwistys.uni`, allowing it to install alongside the original NOVA prototype. Its add-on list and saved media begin fresh because they are stored separately. The launch name and visible branding are **Uni**.
 
 ## Build
 

@@ -9,7 +9,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "dev.nova.cinema"
+        applicationId = "com.itstwistys.uni"
         minSdk = 26
         targetSdk = 35
         versionCode = 2
