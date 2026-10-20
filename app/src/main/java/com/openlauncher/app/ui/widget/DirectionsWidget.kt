@@ -101,10 +101,11 @@ internal fun DirectionsCard(navigation: NavigationInfo?, connected: Boolean, pre
                 }
             } else key(active.packageName) {
                 val scroll = rememberScrollState()
-                LaunchedEffect(active.title, active.details) { scroll.scrollTo(0) }
+                val cue = turnCue(active.title, active.details)
+                // Distance ticks must not interrupt someone reading the shared following steps.
+                LaunchedEffect(cue.instruction) { scroll.scrollTo(0) }
                 Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(bottom = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(if (narrowCompact) 8.dp else 12.dp)) {
-                    val cue = turnCue(active.title, active.details)
                     val text: @Composable ColumnScope.() -> Unit = {
                         if (cue.distance.isNotBlank()) Text(cue.distance,
                             fontSize = ((if (tall) 48 else 30) * textScale).sp, fontWeight = FontWeight.Bold,

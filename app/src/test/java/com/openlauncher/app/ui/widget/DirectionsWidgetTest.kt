@@ -60,8 +60,9 @@ class DirectionsWidgetTest {
     }
 
     @Test fun compactLightCardKeepsNextTurnVisibleAtLargerTextAndStepsCanScroll() {
+        var info by mutableStateOf(maps.copy(packageName = "com.waze"))
         compose.setContent { OpenLauncherTheme(textScale = 1.4f, isDayMode = true) { Surface(Modifier.size(320.dp, 230.dp)) {
-            DirectionsCard(maps.copy(packageName = "com.waze"), true, onExpand = {}, modifier = Modifier.fillMaxSize())
+            DirectionsCard(info, true, onExpand = {}, modifier = Modifier.fillMaxSize())
         } } }
         compose.onNodeWithText("Waze").assertIsDisplayed()
         compose.onNodeWithText("300 ft").assertIsDisplayed()
@@ -69,6 +70,11 @@ class DirectionsWidgetTest {
         compose.onNodeWithContentDescription("Expand DIRECTIONS").assertIsDisplayed()
         screenshot("directions-compact-light")
         compose.onNodeWithText("Continue straight for 1 mi").performScrollTo().assertIsDisplayed()
+        compose.runOnIdle { info = info.copy(title = "250 ft") }
+        compose.onNodeWithText("Continue straight for 1 mi").assertIsDisplayed()
+        compose.runOnIdle { info = info.copy(details = "Turn left onto Oak Ave", followingSteps = emptyList()) }
+        compose.onNodeWithText("250 ft").assertIsDisplayed()
+        compose.onNodeWithText("Turn left onto Oak Ave").assertIsDisplayed()
     }
 
     @Test fun smallestCellUsesFullWidthForInstructionInsteadOfSqueezingBesideArrow() {
