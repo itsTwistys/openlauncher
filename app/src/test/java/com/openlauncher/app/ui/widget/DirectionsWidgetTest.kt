@@ -71,6 +71,36 @@ class DirectionsWidgetTest {
         compose.onNodeWithText("Continue straight for 1 mi").performScrollTo().assertIsDisplayed()
     }
 
+    @Test fun smallestCellUsesFullWidthForInstructionInsteadOfSqueezingBesideArrow() {
+        compose.setContent { OpenLauncherTheme(textScale = 1.4f) { Surface(Modifier.size(177.dp, 171.dp)) {
+            DirectionsCard(maps, true, onExpand = {}, modifier = Modifier.fillMaxSize())
+        } } }
+        compose.onNodeWithText("300 ft").assertIsDisplayed()
+        val instruction = compose.onNodeWithText("Turn right onto Main St")
+        instruction.assertIsDisplayed()
+        assertTrue(instruction.fetchSemanticsNode().boundsInRoot.width > 140f)
+        compose.onNodeWithContentDescription("Expand DIRECTIONS").assertIsDisplayed()
+        screenshot("directions-smallest-cell")
+    }
+
+    @Test fun providerSymbolsGetContrastingBackgroundsInEitherTheme() {
+        val white = Bitmap.createBitmap(24, 24, Bitmap.Config.ARGB_8888).apply {
+            val arrow = android.graphics.Path().apply {
+                moveTo(3f, 8f); lineTo(13f, 8f); lineTo(13f, 3f); lineTo(22f, 12f)
+                lineTo(13f, 21f); lineTo(13f, 16f); lineTo(3f, 16f); close()
+            }
+            Canvas(this).drawPath(arrow, android.graphics.Paint().apply { color = android.graphics.Color.WHITE })
+        }
+        val black = Bitmap.createBitmap(24, 24, Bitmap.Config.ARGB_8888).apply { eraseColor(android.graphics.Color.BLACK) }
+        assertEquals(androidx.compose.ui.graphics.Color(0xFF242830), symbolBackground(white))
+        assertEquals(androidx.compose.ui.graphics.Color(0xFFE7EBEF), symbolBackground(black))
+        compose.setContent { OpenLauncherTheme { Surface(Modifier.size(320.dp, 480.dp)) {
+            DirectionsCard(maps.copy(maneuverIcon = white), true, modifier = Modifier.fillMaxSize())
+        } } }
+        compose.onNodeWithContentDescription("Navigation symbol supplied by navigation app").assertIsDisplayed()
+        screenshot("directions-provider-symbol")
+    }
+
     @Test fun routeEndAndDisconnectionRemoveOldCuesAndExplainSetup() {
         var info by mutableStateOf<NavigationInfo?>(maps)
         var connected by mutableStateOf(true)

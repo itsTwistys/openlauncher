@@ -16,11 +16,12 @@ internal fun navigationText(notification: Notification): NavigationText {
     val tripParts = listOf(text(Notification.EXTRA_SUB_TEXT), text(Notification.EXTRA_SUMMARY_TEXT), text(Notification.EXTRA_INFO_TEXT))
         .filter { it.isNotBlank() && !it.equals(title, true) }.distinct()
     val trip = tripParts.joinToString(" · ").take(500)
-    val marker = Regex("^(?:then\\b[:,]?|next\\s*[:]|after that\\b[:,]?)\\s*", RegexOption.IGNORE_CASE)
+    val sequenceMarker = "(?:(?:then|after that)(?:[:,]\\s*|\\s+(?=(?:turn|keep|bear|continue|head|go|take|merge|exit|enter|make|arrive|in)\\b))|next\\s*:\\s*)\\s*"
+    val marker = Regex("^$sequenceMarker", RegexOption.IGNORE_CASE)
     val number = Regex("^(\\d{1,2})[.)]\\s+")
     val summary = Regex("^(?:ETA\\b|arrival(?: time)?\\s*[:]|\\d+\\s*(?:min(?:ute)?s?|h(?:ou)?rs?)\\b)", RegexOption.IGNORE_CASE)
     fun pieces(value: CharSequence?) = value?.toString().orEmpty().take(8000).lines().take(30).flatMap { line ->
-        line.split(Regex("(?:[,;]\\s*|\\s+)(?=(?:then\\b|next\\s*[:]|after that\\b))", RegexOption.IGNORE_CASE))
+        line.split(Regex("(?:[,;]\\s*|\\s+)(?=$sequenceMarker)", RegexOption.IGNORE_CASE))
     }.map(::clean).filter { it.isNotBlank() }
     val base = pieces(extras.getCharSequence(Notification.EXTRA_TEXT))
     val expanded = pieces(extras.getCharSequence(Notification.EXTRA_BIG_TEXT))

@@ -67,6 +67,7 @@ internal fun DirectionsCard(navigation: NavigationInfo?, connected: Boolean, pre
     BoxWithConstraints(modifier) {
         val textScale = MaterialTheme.typography.bodyLarge.fontSize.value / 16f
         val tall = maxHeight >= 360.dp
+        val narrowCompact = !tall && maxWidth < 260.dp
         val stacked = tall && maxWidth < 340.dp
         val arrowSize = if (tall) 128.dp else 80.dp
         Column(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
@@ -102,7 +103,7 @@ internal fun DirectionsCard(navigation: NavigationInfo?, connected: Boolean, pre
                 val scroll = rememberScrollState()
                 LaunchedEffect(active.title, active.details) { scroll.scrollTo(0) }
                 Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(bottom = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    verticalArrangement = Arrangement.spacedBy(if (narrowCompact) 8.dp else 12.dp)) {
                     val cue = turnCue(active.title, active.details)
                     val text: @Composable ColumnScope.() -> Unit = {
                         if (cue.distance.isNotBlank()) Text(cue.distance,
@@ -114,7 +115,19 @@ internal fun DirectionsCard(navigation: NavigationInfo?, connected: Boolean, pre
                         if (active.details.isNotBlank() && cue.instruction == active.title && active.details != active.title)
                             Text(active.details.split(" · ").first(), style = MaterialTheme.typography.bodyLarge)
                     }
-                    if (stacked) {
+                    if (narrowCompact) {
+                        // A 1×1 card on a small head unit cannot spare half its width for the arrow.
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DirectionSymbol(cue.maneuver, active.maneuverIcon, 40.dp)
+                            if (cue.distance.isNotBlank()) Text(cue.distance, fontSize = (20 * textScale).sp,
+                                fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f).semantics { heading() })
+                        }
+                        Text(cue.instruction, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        if (active.details.isNotBlank() && cue.instruction == active.title && active.details != active.title)
+                            Text(active.details.split(" · ").first(), style = MaterialTheme.typography.bodyMedium)
+                    } else if (stacked) {
                         DirectionSymbol(cue.maneuver, active.maneuverIcon, arrowSize, Modifier.align(Alignment.CenterHorizontally))
                         Column(Modifier.fillMaxWidth(), content = text)
                     } else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
@@ -148,9 +161,9 @@ private fun DirectionSymbol(maneuver: TurnManeuver, supplied: android.graphics.B
                             modifier: Modifier = Modifier) {
     if (supplied != null) {
         // Provider symbols may contain black pixels or transparent backgrounds; keep their contrast stable.
-        Surface(color = androidx.compose.ui.graphics.Color(0xFFE7EBEF),
+        Surface(color = remember(supplied) { symbolBackground(supplied) },
             shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp), modifier = modifier) {
-            Image(supplied.asImageBitmap(), "Navigation symbol supplied by navigation app", Modifier.size(size).padding(8.dp))
+            Image(supplied.asImageBitmap(), "Navigation symbol supplied by navigation app", Modifier.size(size).padding(if (size < 64.dp) 4.dp else 8.dp))
         }
     } else {
         val icon = when (maneuver) {
@@ -170,3 +183,18 @@ private fun DirectionSymbol(maneuver: TurnManeuver, supplied: android.graphics.B
             modifier.size(size), tint = MaterialTheme.colorScheme.onSurface)
     }
 }
+
+/** White and black provider glyphs both need a contrasting backing, independent of theme. */
+internal fun symbolBackground(bitmap: android.graphics.Bitmap): androidx.compose.ui.graphics.Color = runCatching {
+    var light = 0.0
+    var weight = 0.0
+    for (y in 0 until bitmap.height step maxOf(1, bitmap.height / 24)) {
+        for (x in 0 until bitmap.width step maxOf(1, bitmap.width / 24)) {
+            val pixel = bitmap.getPixel(x, y)
+            val alpha = android.graphics.Color.alpha(pixel) / 255.0
+            light += alpha * (0.2126 * android.graphics.Color.red(pixel) + 0.7152 * android.graphics.Color.green(pixel) + 0.0722 * android.graphics.Color.blue(pixel))
+            weight += alpha
+        }
+    }
+    androidx.compose.ui.graphics.Color(if (weight > 0 && light / weight > 127) 0xFF242830 else 0xFFE7EBEF)
+}.getOrDefault(androidx.compose.ui.graphics.Color(0xFFE7EBEF))

@@ -47,6 +47,8 @@ class DirectionsTest {
         assertEquals("Turn right onto Main St", parsed.instruction)
         assertTrue(parsed.followingSteps.isEmpty())
         val localized = navigationText(notification(body = "Gira a la derecha"))
+        assertEquals("Turn right onto Then Street", navigationText(notification(body = "Turn right onto Then Street")).instruction)
+        assertTrue(navigationText(notification(body = "Turn right onto Then Street")).followingSteps.isEmpty())
         assertEquals("Gira a la derecha", localized.instruction)
         assertEquals(TurnManeuver.UNKNOWN, turnCue(localized.title, localized.instruction).maneuver)
     }
