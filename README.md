@@ -7,9 +7,9 @@
 ## Download the Android preview
 
 <!-- preview-download:start -->
-**[Download Open Launcher 0.0.25-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-dccf0b6/openlauncher-preview.apk)**
+**[Download Open Launcher 0.0.26-preview preview APK](https://github.com/itsTwistys/openlauncher/releases/download/preview-e0c39ed/openlauncher-preview.apk)**
 
-[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-dccf0b6) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-dccf0b6/docs/PREVIEW.md)
+[Release notes and checksum](https://github.com/itsTwistys/openlauncher/releases/tag/preview-e0c39ed) · [Installation and testing guide](https://github.com/itsTwistys/openlauncher/blob/preview-e0c39ed/docs/PREVIEW.md)
 <!-- preview-download:end -->
 
 This permanently signed preview installs as **Open Launcher Preview**. Version 0.0.26 adds a resizable **Directions** widget: a large maneuver arrow, next-turn distance and instruction, trip summary, and up to three following steps when Google Maps or Waze explicitly shares them in its navigation notification. Add it in Edit Dashboard; existing layouts and setup stay in place. It uses the same navigation-app preference as Maps and requires Notification Access and navigation running on the head unit. [Setup and limits](docs/PREVIEW.md).
