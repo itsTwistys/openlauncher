@@ -65,6 +65,7 @@ internal fun DirectionsCard(navigation: NavigationInfo?, connected: Boolean, pre
         else -> "Directions"
     }
     BoxWithConstraints(modifier) {
+        val textScale = MaterialTheme.typography.bodyLarge.fontSize.value / 16f
         val tall = maxHeight >= 360.dp
         val stacked = tall && maxWidth < 340.dp
         val arrowSize = if (tall) 128.dp else 80.dp
@@ -105,9 +106,9 @@ internal fun DirectionsCard(navigation: NavigationInfo?, connected: Boolean, pre
                     val cue = turnCue(active.title, active.details)
                     val text: @Composable ColumnScope.() -> Unit = {
                         if (cue.distance.isNotBlank()) Text(cue.distance,
-                            fontSize = if (tall) 48.sp else 30.sp, fontWeight = FontWeight.Bold,
+                            fontSize = ((if (tall) 48 else 30) * textScale).sp, fontWeight = FontWeight.Bold,
                             modifier = Modifier.semantics { heading() })
-                        Text(cue.instruction, fontSize = if (tall) 25.sp else 19.sp,
+                        Text(cue.instruction, fontSize = ((if (tall) 25 else 19) * textScale).sp,
                             fontWeight = FontWeight.SemiBold)
                         // Some providers put the maneuver in the title and the road in the body.
                         if (active.details.isNotBlank() && cue.instruction == active.title && active.details != active.title)
