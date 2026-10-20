@@ -73,7 +73,7 @@ class MediaListenerService : NotificationListenerService() {
     private fun navigationIcon(notification: android.app.Notification): android.graphics.Bitmap? = runCatching {
         if (android.os.Build.VERSION.SDK_INT >= 23) {
             notification.getLargeIcon()?.loadDrawable(this)?.let {
-                it.toBitmap(72, 72)
+                it.toBitmap(192, 192)
             }
         } else {
             @Suppress("DEPRECATION")
@@ -92,7 +92,7 @@ class MediaListenerService : NotificationListenerService() {
                 val n = sbn.notification
                 val fields = navigationText(n)
                 if (fields.title.isBlank() && fields.instruction.isBlank()) null else NavigationInfo(
-                    sbn.packageName, fields.title, fields.instruction, n.contentIntent, fields.trip, navigationIcon(n))
+                    sbn.packageName, fields.title, fields.instruction, n.contentIntent, fields.trip, navigationIcon(n), fields.followingSteps)
             }
         }.getOrDefault(emptyList())
     }
@@ -176,7 +176,8 @@ class MediaListenerService : NotificationListenerService() {
 
     data class NavigationInfo(val packageName: String, val title: String, val details: String,
         val openIntent: android.app.PendingIntent?, val tripDetails: String = "",
-        val maneuverIcon: android.graphics.Bitmap? = null)
+        val maneuverIcon: android.graphics.Bitmap? = null,
+        val followingSteps: List<String> = emptyList())
 
     companion object {
         private val navigationPackages = setOf("com.google.android.apps.maps", "com.waze")

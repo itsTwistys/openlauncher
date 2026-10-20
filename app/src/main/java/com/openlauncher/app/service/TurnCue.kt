@@ -15,7 +15,7 @@ internal fun turnCue(title: String, details: String): TurnCue {
     // Trip totals belong in the details sheet, not the next-turn line.
     val instruction = (if (localizedDistance != null && details.isNotBlank()) details
         else titleRemainder.ifBlank { details }).split(" · ").first().trim()
-    val text = "$title $details".lowercase(java.util.Locale.ROOT)
+    val text = "$title ${details.split(" · ").first()}".lowercase(java.util.Locale.ROOT)
     fun has(pattern: String) = Regex(pattern).containsMatchIn(text)
     val maneuver = when {
         has("\\b(?:left\\s+u[- ]?turn|u[- ]?turn\\s+(?:to the\\s+)?left)\\b") -> TurnManeuver.UTURN_LEFT

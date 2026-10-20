@@ -75,6 +75,7 @@ internal val ALL_WIDGET_TYPES = listOf(
     WidgetTypeInfo("VITALS",      "VITALS",      Icons.Default.Dns,           "Head Unit Health / Vitals"),
     WidgetTypeInfo("TRIP_TRACKER", "TRIP TRACKER", Icons.Default.Map,          "Trip logs & stats"),
     WidgetTypeInfo("MAP",          "MAP",          Icons.Default.Place,        "Live map and navigation instructions"),
+    WidgetTypeInfo("DIRECTIONS", "DIRECTIONS", Icons.Default.TurnRight, "Large turn arrow and steps shared by Google Maps or Waze"),
     WidgetTypeInfo("CONNECTIVITY", "CONNECTIVITY", Icons.Default.Wifi,       "Network status"),
     WidgetTypeInfo("DESTINATIONS", "DESTINATIONS", Icons.Default.Home,      "Home and work shortcuts"),
     WidgetTypeInfo("RADAR",        "RADAR",        Icons.Default.Grain,      "Open live weather radar"),
@@ -308,7 +309,7 @@ fun HomeScreen(
             rendered.forEach { w ->
                 key(w.id) {
                 val expanded = expandedWidget == w.id
-                val expandable = w.id in setOf("MAP", "NOW_PLAYING")
+                val expandable = w.id in setOf("MAP", "NOW_PLAYING", "DIRECTIONS")
                 val xOff = if (expanded) 0.dp else (cellW + gap) * w.gridX
                 val yOff = if (expanded) 0.dp else (cellH + gap) * w.gridY
                 val width = if (expanded) maxWidth else cellW * w.spanX + gap * (w.spanX - 1)
@@ -514,6 +515,13 @@ fun HomeScreen(
                             networkAvailable = networkAvailable,
                             modifier = Modifier.fillMaxSize()
                         )
+                        "DIRECTIONS" -> DirectionsWidget(
+                            navigationPackage = settings.navigationPackage,
+                            isEditing = editMode,
+                            expanded = expanded,
+                            onExpand = { expandedWidget = if (expanded) null else w.id },
+                            modifier = Modifier.fillMaxSize()
+                        )
                         "CONNECTIVITY" -> ConnectivityWidget(
                             isWifi = isWifi, isData = isData, internetValidated = internetValidated, enabled = !editMode, modifier = Modifier.fillMaxSize()
                         )
@@ -561,7 +569,7 @@ fun HomeScreen(
                     }
 
                     }
-                    if (expandable && !editMode && w.id != "MAP") {
+                    if (expandable && !editMode && w.id !in setOf("MAP", "DIRECTIONS")) {
                         Row(Modifier.align(Alignment.TopStart).fillMaxWidth().height(48.dp).padding(start = 12.dp),
                             verticalAlignment = Alignment.CenterVertically) {
                             if (w.id == "MAP") Text("Map", fontSize = 16.sp,
@@ -576,7 +584,7 @@ fun HomeScreen(
                     }
                     // Label — hide when album art fills the widget background
                     val labelColor = when {
-                        w.id in setOf("NOW_PLAYING", "MAP") -> Color.Transparent
+                        w.id in setOf("NOW_PLAYING", "MAP", "DIRECTIONS") -> Color.Transparent
                         isGhost -> Color.Transparent
                         w.id == "NOW_PLAYING" && nowPlaying?.albumArt != null && nowPlaying.title.isNotEmpty() -> Color.Transparent
                         isDayMode -> Color(0xFF999999)

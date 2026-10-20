@@ -8,7 +8,7 @@ import com.google.gson.JsonParser
 object SettingsBackup {
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val ids = setOf("CLOCK", "WEATHER", "NOW_PLAYING", "TELEMETRY", "ALTIMETER", "SPEEDOMETER",
-        "VITALS", "TRIP_TRACKER", "SOUNDBOARD", "MAP", "CONNECTIVITY", "DESTINATIONS", "RADAR", "TRAFFIC", "SPORTS",
+        "VITALS", "TRIP_TRACKER", "SOUNDBOARD", "MAP", "DIRECTIONS", "CONNECTIVITY", "DESTINATIONS", "RADAR", "TRAFFIC", "SPORTS",
         "OBD", "AGENDA", "PHONE")
 
     fun encode(settings: AppSettings): String = gson.toJson(JsonObject().apply {
