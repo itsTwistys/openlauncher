@@ -17,8 +17,8 @@ android {
         manifestPlaceholders["appLabel"] = "Open Launcher"
         minSdk         = 21
         targetSdk      = 36
-        versionCode    = 26
-        versionName    = "0.0.25-preview"
+        versionCode    = 27
+        versionName    = "0.0.26-preview"
     }
 
     buildTypes {

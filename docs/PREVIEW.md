@@ -1,6 +1,15 @@
 # Open Launcher preview: installation and testing
 
-## Current release: 0.0.25 automation, OBD2, offline maps and trip insights
+## Current release: 0.0.26 Directions widget
+
+- Add **Directions** in **Edit Dashboard**. It is a separate resizable card, so your existing Map, Now Playing, Clock and saved layouts are not rearranged by the upgrade. Remove or resize a card in the editor if you want more room. Expand Directions with its corner button and tap again to return to your saved layout.
+- A large provider-supplied maneuver symbol, or a conservative arrow for explicit English turn wording, appears beside the next-turn distance and instruction. Unsupported wording or a road name alone uses a neutral directions symbol. Trip information such as ETA stays separate.
+- Start a route in **Google Maps or Waze on the head unit**, enable **Notification Access** for Open Launcher, and return Home. Directions follows the navigation-app preference already used by Maps. With Automatic selection, the newest supported active navigation notification wins. The header opens the provider or Notification Access settings.
+- **Then** shows up to three following instructions only when the notification explicitly includes a sequence (Then/Next/After that or numbered steps). A notification that shares only the current turn cannot provide a full next-turn list; the widget says following steps are not shared. It does not invent steps from past notifications, query a private navigation API, or read navigation running only through CarPlay/ZLINK. Provider text is kept in memory only and clears when its notification is removed or the listener disconnects.
+- Compact cards keep the current arrow/text at the top; the remaining content scrolls. Day/night colors, font choice and text size follow the launcher theme.
+- Version code 27 uses the existing permanent preview certificate and application ID, so it installs over 0.0.25 and preserves setup. No new Android permission is required beyond the existing optional Notification Access. Physical Maps/Waze notification formats still need a head-unit check.
+
+### Retained from 0.0.25: automation, OBD2, offline maps and trip insights
 
 Everything new is optional and off until you turn it on. Nothing in the launcher hides or disables a feature because the car is moving. Existing layouts, shortcuts, settings, trips and the signing key are unchanged, so this installs over 0.0.24.
 

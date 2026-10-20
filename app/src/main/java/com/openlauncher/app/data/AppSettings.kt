@@ -155,6 +155,7 @@ data class AppSettings(
     val compassOffset: Float = 0f,
     val showSoundboard: Boolean = false,
     val showMap: Boolean = true,
+    val showDirections: Boolean = false,
     val onlineMapEnabled: Boolean = false,
     val showConnectivity: Boolean = false,
     val showDestinations: Boolean = false,
@@ -220,6 +221,7 @@ fun AppSettings.activeWidgetIds(): Set<String> = buildSet {
     if (showTripTracker) add("TRIP_TRACKER")
     if (showSoundboard) add("SOUNDBOARD")
     if (showMap) add("MAP")
+    if (showDirections) add("DIRECTIONS")
     if (showConnectivity) add("CONNECTIVITY")
     if (showDestinations) add("DESTINATIONS")
     if (showRadar) add("RADAR")
@@ -236,6 +238,7 @@ fun AppSettings.withWidgetVisibility(ids: Set<String>): AppSettings = copy(
     showAltimeter = "ALTIMETER" in ids, showSpeedometer = "SPEEDOMETER" in ids,
     showVitals = "VITALS" in ids, showTripTracker = "TRIP_TRACKER" in ids,
     showSoundboard = "SOUNDBOARD" in ids, showMap = "MAP" in ids,
+    showDirections = "DIRECTIONS" in ids,
     showConnectivity = "CONNECTIVITY" in ids,
     showDestinations = "DESTINATIONS" in ids, showRadar = "RADAR" in ids,
     showTraffic = "TRAFFIC" in ids, showSports = "SPORTS" in ids,
